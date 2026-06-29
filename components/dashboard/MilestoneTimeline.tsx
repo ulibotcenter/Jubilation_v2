@@ -1,0 +1,108 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Flag, MapPin, Target } from "lucide-react";
+
+interface MilestoneTimelineProps {
+  currentAge: number;
+  retirementAge: number;
+  journeyProgress: number;
+}
+
+export function MilestoneTimeline({
+  currentAge,
+  retirementAge,
+  journeyProgress,
+}: MilestoneTimelineProps) {
+  const midpoint = Math.round((currentAge + retirementAge) / 2);
+  const atMidpoint = journeyProgress >= 50;
+
+  const milestones = [
+    {
+      id: "today",
+      label: "Today",
+      sub: `Age ${currentAge}`,
+      icon: MapPin,
+      position: 0,
+      done: true,
+      active: journeyProgress < 50,
+    },
+    {
+      id: "mid",
+      label: "Midpoint",
+      sub: `Age ${midpoint}`,
+      icon: Target,
+      position: 50,
+      done: atMidpoint,
+      active: journeyProgress >= 50 && journeyProgress < 100,
+    },
+    {
+      id: "retire",
+      label: "Retirement",
+      sub: `Age ${retirementAge}`,
+      icon: Flag,
+      position: 100,
+      done: journeyProgress >= 100,
+      active: false,
+    },
+  ];
+
+  return (
+    <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0 border-t border-border/60">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        Life Milestones
+      </p>
+
+      <div className="relative">
+        {/* Track */}
+        <div className="absolute top-[1.125rem] left-4 right-4 h-1 rounded-full bg-surface-elevated overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: "var(--accent-gradient)" }}
+            initial={{ width: 0 }}
+            animate={{ width: `${journeyProgress}%` }}
+            transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
+          />
+        </div>
+
+        {/* Nodes */}
+        <div className="relative flex justify-between">
+          {milestones.map((m, i) => {
+            const Icon = m.icon;
+            const isLit = m.done || m.active;
+
+            return (
+              <motion.div
+                key={m.id}
+                className="flex flex-col items-center gap-1.5 min-w-0"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+              >
+                <div
+                  className={`relative z-10 flex items-center justify-center w-9 h-9 rounded-full border-2 transition-colors duration-300 ${
+                    isLit
+                      ? "border-accent bg-accent/15 text-accent shadow-[0_0_12px_rgba(255,112,64,0.25)]"
+                      : "border-border bg-surface text-muted-foreground"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" size={14} />
+                </div>
+                <div className="text-center">
+                  <p
+                    className={`text-[11px] font-semibold ${
+                      isLit ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {m.label}
+                  </p>
+                  <p className="text-[10px] text-muted tabular-nums">{m.sub}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
