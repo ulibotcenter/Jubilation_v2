@@ -37,7 +37,7 @@ export function SimulationTab({
       : s.projectionRevision
   );
 
-  const chartHorizon = getChartHorizonAge(projections);
+  const chartHorizon = getChartHorizonAge(projections, kpis);
   const finalRow =
     projections.find((p) => p.age === kpis.retirementAge) ??
     projections[projections.length - 1];

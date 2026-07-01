@@ -10,54 +10,46 @@ export interface CashFlowChartPoint {
   openingWealth: number;
   /** Novos aportes no período */
   contributions: number;
-  /** Retorno dos investimentos (CAGR real) */
+  /** Retorno dos investimentos (CAGR real) — do motor de projeção */
   returns: number;
-  /** Custo de vida (acumulação) ou retiradas (aposentadoria) */
+  /** Custo de vida (acumulação, referência) ou retiradas (aposentadoria) */
   livingCost: number;
-  /** Saldo projetado (linha) = entradas − saídas */
+  /** Saldo = portfolioValue do motor (linha do gráfico) */
   projectedBalance: number;
+  /** Saídas que reduzem o patrimônio neste período */
+  outflowAffectsBalance: boolean;
 }
 
-/** Build annual cash-flow series through full lifecycle */
+/**
+ * Cash-flow series aligned with generateExtendedProjections.
+ * During accumulation, living costs are shown for context but do not reduce
+ * the portfolio line (expenses are funded outside invested assets).
+ */
 export function buildCashFlowChartSeries(
   projections: ProjectionYear[],
   kpis: KPIValues,
   options?: { untilAge?: number }
 ): CashFlowChartPoint[] {
-  const until = options?.untilAge;
-  const slice =
-    until != null
-      ? projections.filter((p) => p.age <= until)
-      : projections;
-
-  const realReturn = (kpis.expectedCAGR - kpis.annualInflation) / 100;
-  let openingWealth = kpis.currentNetWorth;
+  const until = options?.untilAge ?? kpis.lifeExpectancy;
+  const slice = projections.filter((p) => p.age <= until);
 
   return slice.map((row, index) => {
     const isRetired = row.age >= kpis.retirementAge;
-    const contributions = row.contributions;
-    const returns =
-      index === 0 ? 0 : Math.round(openingWealth * realReturn);
-    const livingCost = row.expenses;
-    const projectedBalance = Math.max(
-      0,
-      openingWealth + contributions + returns - livingCost
-    );
+    const openingWealth =
+      index === 0
+        ? kpis.currentNetWorth
+        : (slice[index - 1]?.portfolioValue ?? kpis.currentNetWorth);
 
-    const point: CashFlowChartPoint = {
+    return {
       age: row.age,
       year: row.year,
       phase: isRetired ? "retirement" : "accumulation",
-      openingWealth: Math.round(
-        index === 0 ? kpis.currentNetWorth : openingWealth
-      ),
-      contributions,
-      returns,
-      livingCost,
-      projectedBalance: Math.round(projectedBalance),
+      openingWealth: Math.round(openingWealth),
+      contributions: row.contributions,
+      returns: row.returns,
+      livingCost: row.expenses,
+      projectedBalance: row.portfolioValue,
+      outflowAffectsBalance: isRetired,
     };
-
-    openingWealth = projectedBalance;
-    return point;
   });
 }

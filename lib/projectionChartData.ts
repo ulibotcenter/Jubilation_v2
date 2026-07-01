@@ -1,7 +1,6 @@
-import {
-  chartDataWithMcBands,
-  PROJECTION_END_AGE,
-} from "@/lib/projectionsExtended";
+import { chartDataWithMcBands } from "@/lib/projectionsExtended";
+import { getChartHorizonAge } from "@/lib/projectionUtils";
+import { DEFAULT_LIFE_EXPECTANCY } from "@/types";
 import type {
   ChartDataPoint,
   KPIValues,
@@ -12,9 +11,11 @@ import type {
 /** Full lifecycle chart points (accumulation + post-retirement drawdown). */
 export function sliceProjectionsForChart(
   projections: ProjectionYear[],
-  endAge: number = PROJECTION_END_AGE
+  endAge?: number
 ): ProjectionYear[] {
-  return projections.filter((p) => p.age <= endAge);
+  const horizon =
+    endAge ?? getChartHorizonAge(projections) ?? DEFAULT_LIFE_EXPECTANCY;
+  return projections.filter((p) => p.age <= horizon);
 }
 
 function stripBandsAfterRetirement(
@@ -37,8 +38,7 @@ export function buildDisplayChartData(
     results: MonteCarloResult[];
   }
 ): ChartDataPoint[] {
-  const horizon =
-    projections[projections.length - 1]?.age ?? PROJECTION_END_AGE;
+  const horizon = getChartHorizonAge(projections, kpis);
   const fullProjections = sliceProjectionsForChart(projections, horizon);
   const fullChart = chartData.filter((d) => d.age <= horizon);
 

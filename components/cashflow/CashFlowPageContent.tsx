@@ -15,7 +15,7 @@ export function CashFlowPageContent() {
   const projections = useAppStore((s) => s.projections);
   const kpis = useAppStore((s) => s.kpis);
   const currency = useAppStore((s) => s.currency);
-  const horizon = getChartHorizonAge(projections);
+  const horizon = getChartHorizonAge(projections, kpis);
 
   const flowData = useMemo(
     () =>

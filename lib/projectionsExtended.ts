@@ -5,22 +5,19 @@ import {
   type ProjectionYear,
 } from "@/types";
 
-/** Full chart horizon — accumulation through drawdown */
+/** @deprecated Use kpis.lifeExpectancy — kept for test fallbacks */
 export const PROJECTION_END_AGE = 90;
 
-/** Accumulation + drawdown phase (4% rule annual withdrawal after retirement) */
+/** Accumulation + drawdown through user-defined life expectancy */
 export function generateExtendedProjections(kpis: KPIValues): ProjectionYear[] {
   const projections: ProjectionYear[] = [];
   const annualContribution = kpis.monthlyContribution * 12;
   const annualLiving = kpis.monthlyExpenses * 12;
   const realReturn = (kpis.expectedCAGR - kpis.annualInflation) / 100;
-  const annualWithdrawal =
-    kpis.desiredMonthlyIncome > 0
-      ? kpis.desiredMonthlyIncome * 12
-      : kpis.currentNetWorth * 0.04;
+  const endAge = kpis.lifeExpectancy;
 
   let portfolioValue = kpis.currentNetWorth;
-  const endAge = PROJECTION_END_AGE;
+  let annualWithdrawal = 0;
   const startYear = new Date().getFullYear();
 
   for (let age = kpis.currentAge; age <= endAge; age++) {
@@ -28,9 +25,16 @@ export function generateExtendedProjections(kpis: KPIValues): ProjectionYear[] {
     const year = startYear + i;
     const isRetired = age >= kpis.retirementAge;
     const returns = i === 0 ? 0 : portfolioValue * realReturn;
-    const contributions =
-      i === 0 || isRetired ? 0 : annualContribution;
+    const contributions = i === 0 || isRetired ? 0 : annualContribution;
     const expenses = i === 0 ? 0 : isRetired ? 0 : annualLiving;
+
+    if (isRetired && annualWithdrawal === 0) {
+      annualWithdrawal =
+        kpis.desiredMonthlyIncome > 0
+          ? kpis.desiredMonthlyIncome * 12
+          : Math.round(portfolioValue * 0.04);
+    }
+
     const withdrawals = i === 0 || !isRetired ? 0 : annualWithdrawal;
     const invested = contributions;
     const requiredIncome = expenses + invested;

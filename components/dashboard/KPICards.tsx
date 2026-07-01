@@ -7,6 +7,7 @@ import {
   CircleDollarSign,
   Flame,
   ShoppingBag,
+  Heart,
   Target,
   TrendingUp,
   Wallet,
@@ -30,6 +31,7 @@ import {
 const KPI_GRID_FIELDS: KPIField[] = [
   "currentAge",
   "retirementAge",
+  "lifeExpectancy",
   "currentNetWorth",
   "monthlyContribution",
   "monthlyExpenses",
@@ -42,6 +44,7 @@ const KPI_GRID_FIELDS: KPIField[] = [
 const KPI_ICONS: Record<KPIField, React.ElementType> = {
   currentAge: Calendar,
   retirementAge: Target,
+  lifeExpectancy: Heart,
   currentNetWorth: Wallet,
     monthlyContribution: CircleDollarSign,
     monthlyExpenses: ShoppingBag,
@@ -55,6 +58,7 @@ function getKPISubtitle(
   kpis: {
     currentAge: number;
     retirementAge: number;
+    lifeExpectancy: number;
     currentNetWorth: number;
     monthlyContribution: number;
     monthlyExpenses: number;
@@ -79,6 +83,12 @@ function getKPISubtitle(
       return yearsLeft === 1
         ? translate("kpi.subtitle.yearsToGoOne")
         : translate("kpi.subtitle.yearsToGo", { n: yearsLeft });
+    case "lifeExpectancy": {
+      const drawdownYears = kpis.lifeExpectancy - kpis.retirementAge;
+      return drawdownYears === 1
+        ? translate("kpi.subtitle.lifeExpectancyOne")
+        : translate("kpi.subtitle.lifeExpectancy", { n: drawdownYears });
+    }
     case "currentNetWorth":
       return translate("kpi.subtitle.totalAssets");
     case "monthlyContribution":
@@ -241,6 +251,22 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
     if (field === "currentAge" && value >= kpis.retirementAge) {
       toast.error(t("toast.kpi.invalidCurrentAge"), {
         description: t("toast.kpi.currentAgeDesc", { n: kpis.retirementAge }),
+      });
+      return;
+    }
+    if (field === "lifeExpectancy" && value <= kpis.retirementAge) {
+      toast.error(t("toast.kpi.invalidLifeExpectancy"), {
+        description: t("toast.kpi.lifeExpectancyDesc", {
+          n: kpis.retirementAge,
+        }),
+      });
+      return;
+    }
+    if (field === "retirementAge" && value >= kpis.lifeExpectancy) {
+      toast.error(t("toast.kpi.invalidRetirementAge"), {
+        description: t("toast.kpi.retirementVsLifeDesc", {
+          n: kpis.lifeExpectancy,
+        }),
       });
       return;
     }

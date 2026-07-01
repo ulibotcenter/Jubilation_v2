@@ -100,7 +100,7 @@ export function ProjectionChartCard({
   }, [projectionRevision]);
 
   const sym = CURRENCY_SYMBOLS[currency];
-  const chartHorizon = getChartHorizonAge(projections);
+  const chartHorizon = getChartHorizonAge(projections, kpis);
   const retirementRow = getRetirementProjectionRow(
     projections,
     kpis.retirementAge

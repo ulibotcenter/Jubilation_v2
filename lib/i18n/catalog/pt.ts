@@ -44,6 +44,7 @@ export const PT: Record<MessageKey, string> = {
   "kpi.sandboxEdit": "Sandbox — clique para editar premissas",
   "kpi.field.currentAge": "Idade atual",
   "kpi.field.retirementAge": "Idade de aposentadoria",
+  "kpi.field.lifeExpectancy": "Expectativa de vida",
   "kpi.field.currentNetWorth": "Patrimônio líquido atual",
   "kpi.field.monthlyContribution": "Contribuição mensal",
   "kpi.field.monthlyExpenses": "Despesas mensais de vida",
@@ -53,6 +54,8 @@ export const PT: Record<MessageKey, string> = {
   "kpi.subtitle.born": "Nascido ~{year}",
   "kpi.subtitle.yearsToGo": "Faltam {n} anos",
   "kpi.subtitle.yearsToGoOne": "Falta 1 ano",
+  "kpi.subtitle.lifeExpectancy": "{n} anos de projeção após aposentadoria",
+  "kpi.subtitle.lifeExpectancyOne": "1 ano de projeção após aposentadoria",
   "kpi.subtitle.totalAssets": "Total de ativos hoje",
   "kpi.subtitle.annualInvested": "{amount}/ano investidos",
   "kpi.subtitle.expenses": "{annual}/ano · precisa ~{monthly}/mês bruto",
@@ -93,7 +96,7 @@ export const PT: Record<MessageKey, string> = {
   "income.surplus": "Excedente de {amount}/mês acima da sua meta",
   "dashboard.projection.title": "Projeção do portfólio real",
   "dashboard.projection.subtitle":
-    "Acumulação e drawdown — da idade atual até os 90 anos",
+    "Acumulação e drawdown — da idade atual até sua expectativa de vida",
   "dashboard.cta.simulation": "Abrir simulação sandbox",
   "portfolio.section.title": "Portfólio real",
   "portfolio.page.title": "Portfólio real",
@@ -228,6 +231,7 @@ export const PT: Record<MessageKey, string> = {
   "chart.cashflow.title": "Fluxo de caixa anual",
   "chart.cashflow.subtitle": "Barras empilhadas = despesas + investido + retornos",
   "chart.cashflow.living": "Custo de vida",
+  "chart.cashflow.livingReference": "Custo de vida (referência)",
   "chart.cashflow.outflows": "Saídas",
   "chart.cashflow.withdrawals": "Retiradas",
   "chart.cashflow.invested": "Investido",
@@ -342,6 +346,11 @@ export const PT: Record<MessageKey, string> = {
   "toast.kpi.retirementAgeDesc": "Deve ser maior que a idade atual ({n}).",
   "toast.kpi.invalidCurrentAge": "Idade atual inválida",
   "toast.kpi.currentAgeDesc": "Deve ser menor que a idade de aposentadoria ({n}).",
+  "toast.kpi.invalidLifeExpectancy": "Expectativa de vida inválida",
+  "toast.kpi.lifeExpectancyDesc":
+    "Deve ser maior que a idade de aposentadoria ({n}).",
+  "toast.kpi.retirementVsLifeDesc":
+    "Deve ser menor que a expectativa de vida ({n}).",
   "toast.kpi.cagrFromPortfolio": "CAGR vem do portfólio",
   "toast.kpi.cagrFromPortfolioDesc": "Ajuste o CAGR % de cada ativo na tabela abaixo.",
   "toast.netWorth.saved": "Snapshot salvo",
@@ -485,9 +494,11 @@ export const PT: Record<MessageKey, string> = {
   "chart.cashflow.footnote":
     "Custo de vida médio {amount}/mês durante a fase de acumulação · A linha segue o saldo após entradas e saídas",
   "chart.cashflow.footnoteAccum":
-    "Acumulação: custo de vida médio {amount}/mês",
+    "Acumulação: custo de vida médio {amount}/mês (referência — não reduz o portfólio investido)",
   "chart.cashflow.footnoteRetire":
     "Aposentadoria: retirada média {amount}/mês",
+  "chart.cashflow.tooltipAccumNote":
+    "Na acumulação, o custo de vida é referência — o patrimônio investido cresce com aportes e retorno.",
   "onboarding.brand": "Jubilation V2",
   "onboarding.step": "Etapa {current} de {total} · ~30 segundos",
   "onboarding.step1.title": "Bem-vindo — escolha sua moeda",

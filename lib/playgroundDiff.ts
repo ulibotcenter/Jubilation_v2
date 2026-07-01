@@ -6,6 +6,7 @@ import type { SimulationPlaygroundState } from "@/lib/simulationPlayground";
 const TRACKED_KPI_FIELDS: KPIField[] = [
   "currentAge",
   "retirementAge",
+  "lifeExpectancy",
   "currentNetWorth",
   "monthlyContribution",
   "monthlyExpenses",
@@ -38,6 +39,7 @@ export interface PlaygroundDiffSummary {
 const KPI_LABELS: Record<KPIField, string> = {
   currentAge: "Current age",
   retirementAge: "Retirement age",
+  lifeExpectancy: "Life expectancy",
   currentNetWorth: "Net worth",
   monthlyContribution: "Monthly contribution",
   monthlyExpenses: "Living expenses",

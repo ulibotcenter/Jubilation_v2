@@ -1,5 +1,5 @@
-import { PROJECTION_END_AGE } from "@/lib/projectionsExtended";
-import type { ProjectionYear } from "@/types";
+import { DEFAULT_LIFE_EXPECTANCY } from "@/types";
+import type { KPIValues, ProjectionYear } from "@/types";
 
 /** Row at planned retirement age (headline KPI, not end-of-life). */
 export function getRetirementProjectionRow(
@@ -20,17 +20,23 @@ export function getRetirementPortfolioValue(
 
 export function getEndOfLifeProjectionRow(
   projections: ProjectionYear[],
-  endAge: number = PROJECTION_END_AGE
+  endAge?: number
 ): ProjectionYear | undefined {
+  const target = endAge ?? projections[projections.length - 1]?.age;
+  if (target == null) return projections[projections.length - 1];
   return (
-    projections.find((p) => p.age === endAge) ??
+    projections.find((p) => p.age === target) ??
     projections[projections.length - 1]
   );
 }
 
-export function getChartHorizonAge(projections: ProjectionYear[]): number {
+export function getChartHorizonAge(
+  projections: ProjectionYear[],
+  kpis?: Pick<KPIValues, "lifeExpectancy">
+): number {
   return (
     projections[projections.length - 1]?.age ??
-    PROJECTION_END_AGE
+    kpis?.lifeExpectancy ??
+    DEFAULT_LIFE_EXPECTANCY
   );
 }

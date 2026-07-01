@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_KPI_VALUES, runMonteCarloSimulation } from "@/types";
+import {
+  DEFAULT_KPI_VALUES,
+  DEFAULT_LIFE_EXPECTANCY,
+  runMonteCarloSimulation,
+} from "@/types";
 import { buildCashFlowChartSeries } from "@/lib/cashFlowChartData";
 import { buildDisplayChartData } from "@/lib/projectionChartData";
 import {
@@ -9,16 +13,41 @@ import {
 import {
   chartDataWithMcBands,
   generateExtendedProjections,
-  PROJECTION_END_AGE,
 } from "@/lib/projectionsExtended";
 import { generateChartData } from "@/types";
 
-describe("projection chart data", () => {
+describe("projection engine", () => {
   const kpis = DEFAULT_KPI_VALUES;
   const projections = generateExtendedProjections(kpis);
-  const horizon = PROJECTION_END_AGE;
 
-  it("uses retirement age for headline KPI, not end-of-life", () => {
+  it("runs through user life expectancy", () => {
+    expect(projections[projections.length - 1]?.age).toBe(kpis.lifeExpectancy);
+    expect(getChartHorizonAge(projections, kpis)).toBe(kpis.lifeExpectancy);
+  });
+
+  it("respects custom life expectancy", () => {
+    const custom = { ...kpis, lifeExpectancy: 95 };
+    const customProj = generateExtendedProjections(custom);
+    expect(customProj[customProj.length - 1]?.age).toBe(95);
+    expect(customProj.length).toBe(95 - kpis.currentAge + 1);
+  });
+
+  it("uses 4% of portfolio at retirement when no desired income", () => {
+    const noIncome = {
+      ...kpis,
+      desiredMonthlyIncome: 0,
+      lifeExpectancy: 85,
+    };
+    const proj = generateExtendedProjections(noIncome);
+    const atRet = proj.find((p) => p.age === noIncome.retirementAge)!;
+    const prev = proj.find((p) => p.age === noIncome.retirementAge - 1)!;
+    const expectedWithdrawal = Math.round(prev.portfolioValue * 0.04);
+    const firstRetired = proj.find((p) => p.age === noIncome.retirementAge + 1);
+    expect(firstRetired?.expenses).toBe(expectedWithdrawal);
+    expect(atRet.portfolioValue).toBeGreaterThan(0);
+  });
+
+  it("keeps retirement headline separate from end-of-life", () => {
     const atRetirement = getRetirementPortfolioValue(
       projections,
       kpis.retirementAge
@@ -27,14 +56,20 @@ describe("projection chart data", () => {
     expect(atRetirement).toBeGreaterThan(0);
     expect(atRetirement).not.toBe(endOfLife);
   });
+});
 
-  it("extends chart through full lifecycle horizon", () => {
+describe("projection chart data", () => {
+  const kpis = DEFAULT_KPI_VALUES;
+  const projections = generateExtendedProjections(kpis);
+
+  it("extends chart through life expectancy", () => {
     const base = generateChartData(projections);
     const display = buildDisplayChartData(base, projections, kpis);
-    expect(display.length).toBe(horizon - kpis.currentAge + 1);
-    expect(display[0]?.age).toBe(kpis.currentAge);
-    expect(display[display.length - 1]?.age).toBe(horizon);
-    expect(getChartHorizonAge(projections)).toBe(horizon);
+    expect(display.length).toBe(kpis.lifeExpectancy - kpis.currentAge + 1);
+    expect(display[display.length - 1]?.age).toBe(kpis.lifeExpectancy);
+    expect(display[display.length - 1]?.value).toBe(
+      projections[projections.length - 1]?.portfolioValue
+    );
   });
 
   it("keeps Monte Carlo bands only through retirement", () => {
@@ -61,73 +96,80 @@ describe("projection chart data", () => {
     expect(atRetirement.optimistic).toBeGreaterThan(atRetirement.value);
     expect(postRetirement.pessimistic).toBeUndefined();
     expect(postRetirement.optimistic).toBeUndefined();
-    expect(postRetirement.band).toBe(0);
   });
 
-  it("shows post-retirement drawdown in base line", () => {
+  it("chart line matches projection portfolio every year", () => {
     const base = generateChartData(projections);
     const display = buildDisplayChartData(base, projections, kpis);
-    const atRetirement = display.find((d) => d.age === kpis.retirementAge)!;
-    const atHorizon = display[display.length - 1]!;
-    expect(atHorizon.age).toBeGreaterThan(kpis.retirementAge);
-    expect(atHorizon.value).toBeGreaterThan(0);
-    expect(atRetirement.value).not.toBe(atHorizon.value);
+    for (let i = 0; i < display.length; i++) {
+      expect(display[i]?.value).toBe(projections[i]?.portfolioValue);
+    }
   });
 });
 
 describe("cash flow chart data", () => {
   const kpis = DEFAULT_KPI_VALUES;
   const projections = generateExtendedProjections(kpis);
-  const horizon = PROJECTION_END_AGE;
 
-  it("extends through full horizon", () => {
-    const series = buildCashFlowChartSeries(projections, kpis, {
-      untilAge: horizon,
-    });
-    expect(series[series.length - 1]?.age).toBe(horizon);
-    expect(series.length).toBe(horizon - kpis.currentAge + 1);
-  });
-
-  it("balances line equals stacked inflows minus living cost", () => {
-    const series = buildCashFlowChartSeries(projections, kpis, {
-      untilAge: horizon,
-    });
-
-    for (const row of series.slice(1)) {
-      const expected =
-        row.openingWealth + row.contributions + row.returns - row.livingCost;
-      expect(row.projectedBalance).toBe(Math.max(0, Math.round(expected)));
+  it("line matches portfolio value every year (zero drift)", () => {
+    const series = buildCashFlowChartSeries(projections, kpis);
+    expect(series.length).toBe(projections.length);
+    for (let i = 0; i < series.length; i++) {
+      expect(series[i]?.projectedBalance).toBe(projections[i]?.portfolioValue);
     }
   });
 
-  it("chains opening wealth from prior projected balance", () => {
-    const series = buildCashFlowChartSeries(projections, kpis, {
-      untilAge: horizon,
-    });
-
+  it("uses projection engine returns, not recalculated", () => {
+    const series = buildCashFlowChartSeries(projections, kpis);
     for (let i = 1; i < series.length; i++) {
-      expect(series[i]?.openingWealth).toBe(series[i - 1]?.projectedBalance);
+      expect(series[i]?.returns).toBe(projections[i]?.returns);
     }
   });
 
-  it("marks post-retirement rows and uses withdrawals as outflows", () => {
-    const series = buildCashFlowChartSeries(projections, kpis, {
-      untilAge: horizon,
-    });
-    const retired = series.filter((r) => r.phase === "retirement");
+  it("chains opening wealth from prior portfolio value", () => {
+    const series = buildCashFlowChartSeries(projections, kpis);
+    for (let i = 1; i < series.length; i++) {
+      expect(series[i]?.openingWealth).toBe(
+        projections[i - 1]?.portfolioValue
+      );
+    }
+  });
+
+  it("accumulation outflows are reference-only", () => {
+    const series = buildCashFlowChartSeries(projections, kpis);
+    const accum = series.filter(
+      (r) => r.phase === "accumulation" && r.age > kpis.currentAge
+    );
+    expect(accum.length).toBeGreaterThan(0);
+    for (const row of accum) {
+      expect(row.outflowAffectsBalance).toBe(false);
+      expect(row.livingCost).toBeGreaterThan(0);
+      expect(row.projectedBalance).toBeGreaterThanOrEqual(
+        row.openingWealth + row.contributions + row.returns - 1
+      );
+    }
+  });
+
+  it("retirement applies withdrawals to balance", () => {
+    const series = buildCashFlowChartSeries(projections, kpis);
+    const retired = series.filter(
+      (r) => r.phase === "retirement" && r.age > kpis.retirementAge
+    );
     expect(retired.length).toBeGreaterThan(0);
     for (const row of retired) {
+      expect(row.outflowAffectsBalance).toBe(true);
       expect(row.contributions).toBe(0);
       expect(row.livingCost).toBeGreaterThan(0);
     }
   });
 
-  it("starts with current net worth at current age", () => {
-    const [first] = buildCashFlowChartSeries(projections, kpis, {
-      untilAge: horizon,
-    });
-    expect(first?.openingWealth).toBe(kpis.currentNetWorth);
-    expect(first?.projectedBalance).toBe(kpis.currentNetWorth);
-    expect(first?.phase).toBe("accumulation");
+  it("horizon follows life expectancy changes", () => {
+    const custom = { ...kpis, lifeExpectancy: 88 };
+    const customProj = generateExtendedProjections(custom);
+    const series = buildCashFlowChartSeries(customProj, custom);
+    expect(series[series.length - 1]?.age).toBe(88);
+    expect(series.length).not.toBe(
+      DEFAULT_LIFE_EXPECTANCY - kpis.currentAge + 1
+    );
   });
 });

@@ -41,7 +41,7 @@ export function CashFlowChart({
 }: CashFlowChartProps) {
   const { t } = useTranslation();
   const sym = CURRENCY_SYMBOLS[currency];
-  const horizon = getChartHorizonAge(projections);
+  const horizon = getChartHorizonAge(projections, kpis);
 
   const flowData = useMemo(
     () => buildCashFlowChartSeries(projections, kpis, { untilAge: horizon }),

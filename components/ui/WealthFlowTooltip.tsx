@@ -18,6 +18,7 @@ interface WealthFlowTooltipProps {
       returns?: number;
       livingCost?: number;
       projectedBalance?: number;
+      outflowAffectsBalance?: boolean;
     };
   }[];
   label?: string | number;
@@ -53,7 +54,7 @@ export function WealthFlowTooltip({
 
   const outflowLabel = isRetired
     ? t("chart.cashflow.withdrawals")
-    : t("chart.cashflow.living");
+    : t("chart.cashflow.livingReference");
 
   const rows = [
     {
@@ -127,6 +128,11 @@ export function WealthFlowTooltip({
           </div>
         ))}
       </div>
+      {!isRetired && (raw.livingCost ?? 0) > 0 && (
+        <p className="text-[9px] text-muted mt-2 leading-snug">
+          {t("chart.cashflow.tooltipAccumNote")}
+        </p>
+      )}
     </div>
   );
 }

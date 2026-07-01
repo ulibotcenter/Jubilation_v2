@@ -28,7 +28,7 @@ export function ProjectionCashFlowChart({
   projectionRevision,
 }: ProjectionCashFlowChartProps) {
   const { t } = useTranslation();
-  const horizon = getChartHorizonAge(projections);
+  const horizon = getChartHorizonAge(projections, kpis);
 
   const flowData = useMemo(
     () =>

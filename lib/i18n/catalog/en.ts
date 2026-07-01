@@ -42,6 +42,7 @@ export const EN = {
   "kpi.sandboxEdit": "Sandbox only — click to edit assumptions",
   "kpi.field.currentAge": "Current Age",
   "kpi.field.retirementAge": "Retirement Age",
+  "kpi.field.lifeExpectancy": "Life Expectancy",
   "kpi.field.currentNetWorth": "Current Net Worth",
   "kpi.field.monthlyContribution": "Monthly Contribution",
   "kpi.field.monthlyExpenses": "Monthly Living Expenses",
@@ -51,6 +52,8 @@ export const EN = {
   "kpi.subtitle.born": "Born ~{year}",
   "kpi.subtitle.yearsToGo": "{n} years to go",
   "kpi.subtitle.yearsToGoOne": "1 year to go",
+  "kpi.subtitle.lifeExpectancy": "{n} years projected after retirement",
+  "kpi.subtitle.lifeExpectancyOne": "1 year projected after retirement",
   "kpi.subtitle.totalAssets": "Total assets today",
   "kpi.subtitle.annualInvested": "{amount}/yr invested",
   "kpi.subtitle.expenses": "{annual}/yr · need ~{monthly}/mo gross",
@@ -91,7 +94,7 @@ export const EN = {
   "income.surplus": "Surplus of {amount}/mo above your goal",
   "dashboard.projection.title": "Real portfolio projection",
   "dashboard.projection.subtitle":
-    "Accumulation and drawdown — from today through age 90",
+    "Accumulation and drawdown — from today through your life expectancy",
   "dashboard.cta.simulation": "Open simulation playground",
   "portfolio.section.title": "Real Portfolio",
   "portfolio.page.title": "Real Portfolio",
@@ -226,6 +229,7 @@ export const EN = {
   "chart.cashflow.title": "Annual cash flow",
   "chart.cashflow.subtitle": "Stacked bar = living expenses + invested + market returns",
   "chart.cashflow.living": "Living expenses",
+  "chart.cashflow.livingReference": "Living cost (reference)",
   "chart.cashflow.outflows": "Outflows",
   "chart.cashflow.withdrawals": "Withdrawals",
   "chart.cashflow.invested": "Invested",
@@ -340,6 +344,11 @@ export const EN = {
   "toast.kpi.retirementAgeDesc": "Must be greater than current age ({n}).",
   "toast.kpi.invalidCurrentAge": "Invalid current age",
   "toast.kpi.currentAgeDesc": "Must be less than retirement age ({n}).",
+  "toast.kpi.invalidLifeExpectancy": "Invalid life expectancy",
+  "toast.kpi.lifeExpectancyDesc":
+    "Must be greater than retirement age ({n}).",
+  "toast.kpi.retirementVsLifeDesc":
+    "Must be less than life expectancy ({n}).",
   "toast.kpi.cagrFromPortfolio": "CAGR comes from portfolio",
   "toast.kpi.cagrFromPortfolioDesc": "Adjust each holding's CAGR % in the table below.",
   "toast.netWorth.saved": "Snapshot saved",
@@ -483,9 +492,11 @@ export const EN = {
   "chart.cashflow.footnote":
     "Orange line tracks balance after inflows and outflows each year",
   "chart.cashflow.footnoteAccum":
-    "Accumulation: avg living cost {amount}/mo",
+    "Accumulation: avg living cost {amount}/mo (reference — does not reduce invested portfolio)",
   "chart.cashflow.footnoteRetire":
     "Retirement: avg withdrawal {amount}/mo",
+  "chart.cashflow.tooltipAccumNote":
+    "During accumulation, living cost is for reference — invested wealth grows via contributions and returns.",
   "onboarding.brand": "Jubilation V2",
   "onboarding.step": "Step {current} of {total} · ~30 seconds",
   "onboarding.step1.title": "Welcome — pick your currency",

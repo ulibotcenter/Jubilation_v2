@@ -162,12 +162,15 @@ export const NAV_ITEMS: NavItem[] = [
 export type KPIField =
   | "currentAge"
   | "retirementAge"
+  | "lifeExpectancy"
   | "currentNetWorth"
   | "monthlyContribution"
   | "monthlyExpenses"
   | "desiredMonthlyIncome"
   | "expectedCAGR"
   | "annualInflation";
+
+export const DEFAULT_LIFE_EXPECTANCY = 90;
 
 export interface KPIConfig {
   field: KPIField;
@@ -196,6 +199,15 @@ export const KPI_CONFIGS: KPIConfig[] = [
     label: "Retirement Age",
     min: 40,
     max: 90,
+    step: 1,
+    decimals: 0,
+    format: "integer",
+  },
+  {
+    field: "lifeExpectancy",
+    label: "Life Expectancy",
+    min: 55,
+    max: 120,
     step: 1,
     decimals: 0,
     format: "integer",
@@ -269,7 +281,7 @@ export const KPI_GROUPS: KPIGroup[] = [
   {
     id: "timeline",
     label: "Timeline",
-    fields: ["currentAge", "retirementAge"],
+    fields: ["currentAge", "retirementAge", "lifeExpectancy"],
   },
   {
     id: "wealth",
@@ -286,6 +298,8 @@ export const KPI_GROUPS: KPIGroup[] = [
 export interface KPIValues {
   currentAge: number;
   retirementAge: number;
+  /** Planning horizon — charts and drawdown run through this age */
+  lifeExpectancy: number;
   currentNetWorth: number;
   monthlyContribution: number;
   /** Average monthly living costs (lifestyle burn, not portfolio withdrawals) */
@@ -299,6 +313,7 @@ export interface KPIValues {
 export const DEFAULT_KPI_VALUES: KPIValues = {
   currentAge: 42,
   retirementAge: 60,
+  lifeExpectancy: DEFAULT_LIFE_EXPECTANCY,
   currentNetWorth: 810_000,
   monthlyContribution: 4_500,
   monthlyExpenses: 9_500,
@@ -308,7 +323,15 @@ export const DEFAULT_KPI_VALUES: KPIValues = {
 };
 
 export function normalizeKpiValues(partial?: Partial<KPIValues>): KPIValues {
-  return { ...DEFAULT_KPI_VALUES, ...partial };
+  const merged = { ...DEFAULT_KPI_VALUES, ...partial };
+  let currentAge = Math.max(18, Math.min(80, merged.currentAge));
+  let lifeExpectancy = Math.max(55, Math.min(120, merged.lifeExpectancy));
+  let retirementAge = Math.max(
+    currentAge + 1,
+    Math.min(lifeExpectancy - 1, merged.retirementAge)
+  );
+  lifeExpectancy = Math.max(retirementAge + 1, lifeExpectancy);
+  return { ...merged, currentAge, retirementAge, lifeExpectancy };
 }
 
 // ─── Portfolio Assets ──────────────────────────────────────
