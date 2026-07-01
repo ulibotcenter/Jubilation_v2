@@ -925,8 +925,6 @@ export function generateChartData(
     year: p.year,
     age: p.age,
     value: p.portfolioValue,
-    pessimistic: p.portfolioValue,
-    optimistic: p.portfolioValue,
     band: 0,
     expenses: p.expenses,
     invested: p.invested,

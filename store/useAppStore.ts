@@ -429,7 +429,10 @@ export const useAppStore = create<AppStore>()(
         const state = get();
         const sensitivity = { cagr: patch.cagr, inflation: patch.inflation };
         const built = buildProjectionsFromState({
-          ...state,
+          kpis: state.kpis,
+          portfolio: state.portfolio,
+          simulationIncludedAssetIds: state.simulationIncludedAssetIds,
+          kpiOutsidePortfolio: state.kpiOutsidePortfolio,
           sensitivity,
         });
         set({
@@ -438,13 +441,17 @@ export const useAppStore = create<AppStore>()(
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
+          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
         });
       },
 
       resetSensitivity: () => {
         const state = get();
         const built = buildProjectionsFromState({
-          ...state,
+          kpis: state.kpis,
+          portfolio: state.portfolio,
+          simulationIncludedAssetIds: state.simulationIncludedAssetIds,
+          kpiOutsidePortfolio: state.kpiOutsidePortfolio,
           sensitivity: { cagr: null, inflation: null },
         });
         set({
@@ -452,6 +459,7 @@ export const useAppStore = create<AppStore>()(
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
+          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
         });
       },
 

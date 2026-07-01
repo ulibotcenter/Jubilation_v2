@@ -233,6 +233,28 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
     []
   );
 
+  const mobilePages = useMemo(() => {
+    const pages: KPIConfig[][] = [];
+    for (let i = 0; i < visibleConfigs.length; i += 4) {
+      pages.push(visibleConfigs.slice(i, i + 4));
+    }
+    return pages;
+  }, [visibleConfigs]);
+
+  const renderCard = (config: KPIConfig, index: number) => (
+    <KPICard
+      key={config.field}
+      config={config}
+      label={getKpiLabel(locale, config.field)}
+      index={index}
+      value={kpis[config.field]}
+      currencySymbol={currencySymbol}
+      currency={currency}
+      subtitle={subtitles[config.field]}
+      onChange={(v) => handleChange(config.field, v)}
+    />
+  );
+
   return (
     <section
       aria-label={t("kpi.assumptions")}
@@ -246,20 +268,18 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
         </p>
       </div>
 
-      <div className="kpi-grid">
-        {visibleConfigs.map((config, index) => (
-          <KPICard
-            key={config.field}
-            config={config}
-            label={getKpiLabel(locale, config.field)}
-            index={index}
-            value={kpis[config.field]}
-            currencySymbol={currencySymbol}
-            currency={currency}
-            subtitle={subtitles[config.field]}
-            onChange={(v) => handleChange(config.field, v)}
-          />
+      <div className="kpi-carousel sm:hidden" aria-label={t("kpi.assumptions")}>
+        {mobilePages.map((page, pageIndex) => (
+          <div key={pageIndex} className="kpi-carousel-page">
+            {page.map((config, index) =>
+              renderCard(config, pageIndex * 4 + index)
+            )}
+          </div>
         ))}
+      </div>
+
+      <div className="kpi-grid hidden sm:grid">
+        {visibleConfigs.map((config, index) => renderCard(config, index))}
       </div>
     </section>
   );

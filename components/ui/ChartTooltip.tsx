@@ -38,9 +38,15 @@ export function ChartTooltip({
 
   if (!active || !payload?.length) return null;
 
-  const entries = payload.filter((p) =>
-    isChartScenarioEntry(p.dataKey, p.name)
-  );
+  const seenScenarios = new Set<string>();
+  const entries = payload.filter((p) => {
+    if (!isChartScenarioEntry(p.dataKey, p.name)) return false;
+    const scenario = resolveChartScenarioFromEntry(p.dataKey, p.name);
+    if (!scenario) return false;
+    if (seenScenarios.has(scenario)) return false;
+    seenScenarios.add(scenario);
+    return true;
+  });
   const pessimistic = entries.find(
     (p) => resolveChartScenarioFromEntry(p.dataKey, p.name) === "pessimistic"
   );

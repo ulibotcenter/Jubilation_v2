@@ -15,6 +15,7 @@ export interface ChartLineVisibility {
 interface ChartScenarioTogglesProps {
   visibility: ChartLineVisibility;
   onToggle: (line: ChartLineId) => void;
+  bandsAvailable?: boolean;
 }
 
 const LINES: {
@@ -31,6 +32,7 @@ const LINES: {
 export function ChartScenarioToggles({
   visibility,
   onToggle,
+  bandsAvailable = true,
 }: ChartScenarioTogglesProps) {
   const { locale, t } = useTranslation();
 
@@ -41,15 +43,20 @@ export function ChartScenarioToggles({
       aria-label={t("chart.aria.scenarioVisibility")}
     >
       {LINES.map((line) => {
-        const active = visibility[line.id];
+        const locked = !bandsAvailable && line.id !== "base";
+        const active = locked ? false : visibility[line.id];
         return (
           <button
             key={line.id}
             type="button"
-            onClick={() => onToggle(line.id)}
+            onClick={() => !locked && onToggle(line.id)}
             aria-pressed={active}
+            aria-disabled={locked}
+            disabled={locked}
+            title={locked ? t("chart.bandsLocked") : undefined}
             className="chart-scenario-toggle"
             data-active={active ? "true" : "false"}
+            data-locked={locked ? "true" : "false"}
           >
             <span
               className="chart-scenario-swatch"

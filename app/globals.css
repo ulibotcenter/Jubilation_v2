@@ -1233,6 +1233,28 @@ body::before {
 /* ─── KPI Cards ─── */
 
 /* Benchmark: ProjectionLab / New Retirement — dense multi-column assumption row */
+.kpi-carousel {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.25rem;
+}
+
+.kpi-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.kpi-carousel-page {
+  flex: 0 0 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  scroll-snap-align: start;
+}
+
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -3981,14 +4003,68 @@ body::before {
   line-height: 1.45;
 }
 
+.chart-scenario-toggle[data-locked="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chart-scenario-toggle[data-locked="true"]:hover {
+  border-color: var(--border);
+  color: var(--muted-foreground);
+}
+
+.chart-bands-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 16rem;
+}
+
 .chart-bands-hint {
   font-size: 0.625rem;
   color: var(--muted-foreground);
-  margin-top: 0.5rem;
+  line-height: 1.45;
   padding: 0.35rem 0.5rem;
   border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px dashed var(--border);
+}
+
+.chart-mc-run-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  align-self: flex-start;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-muted);
+  border: 1px solid rgba(255, 112, 64, 0.3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.chart-mc-run-btn:hover:not(:disabled) {
+  background: rgba(255, 112, 64, 0.18);
+  border-color: rgba(255, 112, 64, 0.45);
+}
+
+.chart-mc-run-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.chart-bands-active {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-muted);
 }
 
 .needle-delta {

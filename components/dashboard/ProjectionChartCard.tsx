@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, LineChart as LineChartIcon } from "lucide-react";
+import { BarChart3, LineChart as LineChartIcon, Loader2, Play } from "lucide-react";
+import { toast } from "sonner";
 import { ProjectionCashFlowChart } from "@/components/dashboard/ProjectionCashFlowChart";
 import {
   Area,
@@ -26,6 +27,7 @@ import { ChartTooltip } from "@/components/ui/ChartTooltip";
 import { SimulationAssetFilter } from "@/components/ui/SimulationAssetFilter";
 import { getChartScenarioLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useAppStore } from "@/store/useAppStore";
 import {
   CURRENCY_SYMBOLS,
   formatCurrencyValue,
@@ -67,11 +69,16 @@ export function ProjectionChartCard({
   compact = false,
 }: ProjectionChartCardProps) {
   const { t, locale } = useTranslation();
+  const monteCarlo = useAppStore((s) =>
+    mode === "playground" ? s.simPlayground.monteCarlo : s.monteCarlo
+  );
+  const runRealMc = useAppStore((s) => s.runMonteCarlo);
+  const runSimMc = useAppStore((s) => s.runSimMonteCarlo);
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [lineVisibility, setLineVisibility] = useState<ChartLineVisibility>({
     base: true,
-    pessimistic: true,
-    optimistic: true,
+    pessimistic: false,
+    optimistic: false,
   });
   const [showCashFlow, setShowCashFlow] = useState(!compact);
 
@@ -90,21 +97,51 @@ export function ProjectionChartCard({
   const hasMcBands = useMemo(
     () =>
       chartData.some(
-        (d) => (d.band ?? 0) > 0 && d.pessimistic !== d.value
+        (d) =>
+          d.pessimistic != null &&
+          d.optimistic != null &&
+          (d.band ?? 0) > 0 &&
+          (d.pessimistic !== d.value || d.optimistic !== d.value)
       ),
     [chartData]
   );
+
+  useEffect(() => {
+    if (hasMcBands) {
+      setLineVisibility({ base: true, pessimistic: true, optimistic: true });
+      return;
+    }
+    setLineVisibility({ base: true, pessimistic: false, optimistic: false });
+  }, [hasMcBands]);
+
+  const effectiveVisibility = useMemo(
+    (): ChartLineVisibility => ({
+      base: lineVisibility.base,
+      pessimistic: hasMcBands && lineVisibility.pessimistic,
+      optimistic: hasMcBands && lineVisibility.optimistic,
+    }),
+    [hasMcBands, lineVisibility]
+  );
+
   const peakValue = useMemo(() => {
     const values = chartData.flatMap((d) => {
       const pts = [d.value];
-      if (lineVisibility.pessimistic && d.pessimistic != null)
+      if (effectiveVisibility.pessimistic && d.pessimistic != null)
         pts.push(d.pessimistic);
-      if (lineVisibility.optimistic && d.optimistic != null)
+      if (effectiveVisibility.optimistic && d.optimistic != null)
         pts.push(d.optimistic);
       return pts;
     });
     return Math.max(...values, 0);
-  }, [chartData, lineVisibility]);
+  }, [chartData, effectiveVisibility]);
+
+  const handleRunMonteCarlo = async () => {
+    const runMc = mode === "playground" ? runSimMc : runRealMc;
+    await runMc();
+    toast.success(t("toast.monteCarlo.complete"), {
+      description: t("toast.monteCarlo.completeDesc"),
+    });
+  };
 
   const formatYAxis = (value: number) => {
     if (value >= 1_000_000) return `${sym}${(value / 1_000_000).toFixed(1)}M`;
@@ -148,11 +185,45 @@ export function ProjectionChartCard({
           <ChartScenarioToggles
             visibility={lineVisibility}
             onToggle={toggleLine}
+            bandsAvailable={hasMcBands}
           />
-          {!hasMcBands && mode === "real" && (
-            <p className="chart-bands-hint w-full sm:w-auto sm:max-w-[14rem] text-left">
-              {t("chart.bandsHint")}
+          {hasMcBands ? (
+            <p className="chart-bands-active w-full sm:w-auto text-left">
+              {t("chart.bandsActive")}
             </p>
+          ) : (
+            <div className="chart-bands-cta w-full sm:w-auto">
+              <p className="chart-bands-hint text-left">
+                {mode === "playground"
+                  ? t("chart.bandsHintPlayground")
+                  : t("chart.bandsHint")}
+              </p>
+              {mode === "real" ? (
+                <button
+                  type="button"
+                  className="chart-mc-run-btn"
+                  onClick={handleRunMonteCarlo}
+                  disabled={monteCarlo.isRunning}
+                >
+                  {monteCarlo.isRunning ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" size={14} />
+                      {t("chart.runningMc")}
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3.5 h-3.5" size={14} />
+                      {t("chart.runMonteCarlo")}
+                    </>
+                  )}
+                </button>
+              ) : (
+                <a href="#monte-carlo" className="chart-mc-run-btn">
+                  <Play className="w-3.5 h-3.5" size={14} />
+                  {t("chart.goToMonteCarlo")}
+                </a>
+              )}
+            </div>
           )}
           <button
             type="button"
@@ -230,7 +301,9 @@ export function ProjectionChartCard({
               stroke="#ff7040"
               strokeDasharray="6 4"
             />
-            {lineVisibility.pessimistic && lineVisibility.optimistic && (
+            {hasMcBands &&
+              effectiveVisibility.pessimistic &&
+              effectiveVisibility.optimistic && (
               <>
                 <Area
                   type="monotone"
@@ -239,7 +312,8 @@ export function ProjectionChartCard({
                   stroke="none"
                   fill="transparent"
                   legendType="none"
-                  {...CHART_ANIMATION}
+                  tooltipType="none"
+                  isAnimationActive={false}
                 />
                 <Area
                   type="monotone"
@@ -248,21 +322,23 @@ export function ProjectionChartCard({
                   stroke="none"
                   fill={`url(#confidenceBand-${mode})`}
                   legendType="none"
-                  {...CHART_ANIMATION}
+                  tooltipType="none"
+                  isAnimationActive={false}
                 />
               </>
             )}
-            {lineVisibility.base && (
+            {effectiveVisibility.base && (
               <Area
                 type="monotone"
                 dataKey="value"
                 stroke="none"
                 fill={`url(#baseGradient-${mode})`}
                 legendType="none"
-                {...CHART_ANIMATION}
+                tooltipType="none"
+                isAnimationActive={false}
               />
             )}
-            {lineVisibility.pessimistic && (
+            {hasMcBands && effectiveVisibility.pessimistic && (
               <Line
                 type="monotone"
                 dataKey="pessimistic"
@@ -274,7 +350,7 @@ export function ProjectionChartCard({
                 {...CHART_ANIMATION}
               />
             )}
-            {lineVisibility.base && (
+            {effectiveVisibility.base && (
               <Line
                 type="monotone"
                 dataKey="value"
@@ -285,7 +361,7 @@ export function ProjectionChartCard({
                 {...CHART_ANIMATION}
               />
             )}
-            {lineVisibility.optimistic && (
+            {hasMcBands && effectiveVisibility.optimistic && (
               <Line
                 type="monotone"
                 dataKey="optimistic"
