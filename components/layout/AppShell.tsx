@@ -2,6 +2,10 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { BottomNav } from "@/components/platform/BottomNav";
+import { CoachMarks } from "@/components/platform/CoachMarks";
+import { CommandPalette } from "@/components/platform/CommandPalette";
+import { RetirementCoach } from "@/components/platform/RetirementCoach";
 import { FloatingNav } from "@/components/layout/FloatingNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
@@ -36,11 +40,20 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
   const [hydrated, setHydrated] = useState(false);
   const pathname = usePathname();
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
+  const presentationMode = useAppStore((s) => s.presentationMode);
+  const theme = useAppStore((s) => s.theme);
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
   const setActiveNav = useAppStore((s) => s.setActiveNav);
+  const setTheme = useAppStore((s) => s.setTheme);
+
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setTheme(theme);
+  }, [hydrated, theme, setTheme]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -81,18 +94,27 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
 
   if (!hydrated) return <ShellSkeleton />;
 
+  const showChrome = !presentationMode;
+
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <FloatingNav />
+    <div
+      className="app-shell"
+      data-presentation={presentationMode ? "true" : "false"}
+    >
+      {showChrome && <Sidebar />}
+      {showChrome && <FloatingNav />}
+      <BottomNav />
 
       <div className="app-main">
         <Topbar />
         <main className="app-content max-w-[var(--content-max-width)] mx-auto w-full safe-area-bottom">
+          {pathname === "/" && <CoachMarks />}
           {children}
         </main>
       </div>
 
+      <CommandPalette />
+      <RetirementCoach />
       <OnboardingModal />
     </div>
   );

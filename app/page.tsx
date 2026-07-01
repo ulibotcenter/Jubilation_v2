@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { FIMilestonesCard } from "@/components/dashboard/FIMilestonesCard";
 import { IncomeGoalPanel } from "@/components/dashboard/IncomeGoalPanel";
+import { NetWorthHistoryCard } from "@/components/dashboard/NetWorthHistoryCard";
 import { ProjectionChartCard } from "@/components/dashboard/ProjectionChartCard";
+import { RebalanceCard } from "@/components/dashboard/RebalanceCard";
 import {
   RetirementHero,
   useHeroProjectedValue,
@@ -11,6 +14,10 @@ import {
 import { KPICards } from "@/components/dashboard/KPICards";
 import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
 import { AppShell } from "@/components/layout/AppShell";
+import { NeedleDeltaCard } from "@/components/platform/NeedleDeltaCard";
+import { SensitivityPanel } from "@/components/platform/SensitivityPanel";
+import { ShareSnapshotButton } from "@/components/platform/ShareSnapshotButton";
+import { TaxPreviewCard } from "@/components/tax/TaxPreviewCard";
 import { useAppStore } from "@/store/useAppStore";
 
 function DashboardIncomeSection() {
@@ -42,7 +49,8 @@ function RealProjectionSection() {
         projectionRevision={projectionRevision}
         compact
       />
-      <div className="flex justify-end mt-3">
+      <div className="flex flex-wrap justify-end gap-2 mt-3">
+        <ShareSnapshotButton />
         <Link href="/simulation" className="dashboard-cta-link">
           Open simulation playground
           <ArrowRight className="w-3.5 h-3.5" size={14} />
@@ -60,6 +68,23 @@ export default function DashboardPage() {
 
       <section className="mb-5 sm:mb-6" id="dashboard">
         <KPICards mode="real" />
+      </section>
+
+      <section className="mb-5 sm:mb-6">
+        <NeedleDeltaCard />
+      </section>
+
+      <section className="mb-5 sm:mb-6">
+        <FIMilestonesCard />
+      </section>
+
+      <section className="mb-5 sm:mb-6 dashboard-insights-grid">
+        <SensitivityPanel />
+        <div className="dashboard-insights-stack">
+          <TaxPreviewCard />
+          <NetWorthHistoryCard />
+          <RebalanceCard />
+        </div>
       </section>
 
       <RealProjectionSection />
@@ -81,6 +106,10 @@ export default function DashboardPage() {
           financial, investment, tax, or legal advice.
         </p>
         <p className="text-[10px] text-muted-foreground">
+          <Link href="/cash-flow" className="text-accent hover:underline">
+            View cash flow breakdown →
+          </Link>
+          {" · "}
           <Link href="/simulation" className="text-accent hover:underline">
             Run simulations in the playground →
           </Link>

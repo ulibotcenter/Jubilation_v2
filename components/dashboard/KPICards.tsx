@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditableNumber } from "@/components/ui/EditableNumber";
+import { debounce } from "@/lib/debounce";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import {
   CURRENCY_SYMBOLS,
@@ -158,6 +160,7 @@ interface KPICardsProps {
 }
 
 export function KPICards({ mode = "real" }: KPICardsProps) {
+  const { t } = useTranslation();
   const realKpis = useAppStore((s) => s.kpis);
   const simKpis = useAppStore((s) => s.simPlayground.kpis);
   const kpis = mode === "playground" ? simKpis : realKpis;
@@ -165,7 +168,19 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
   const setKPI = useAppStore((s) => s.setKPI);
   const setSimKPI = useAppStore((s) => s.setSimKPI);
   const setKpiFn = mode === "playground" ? setSimKPI : setKPI;
+  const setKpiFnRef = useRef(setKpiFn);
+  setKpiFnRef.current = setKpiFn;
   const currencySymbol = CURRENCY_SYMBOLS[currency];
+
+  const debouncedSetKpi = useMemo(
+    () =>
+      debounce((field: KPIField, value: number) => {
+        setKpiFnRef.current(field, value);
+      }, 300),
+    []
+  );
+
+  useEffect(() => () => debouncedSetKpi.cancel(), [debouncedSetKpi]);
 
   const subtitles = useMemo(
     () =>
@@ -191,7 +206,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
       });
       return;
     }
-    setKpiFn(field, value);
+    debouncedSetKpi(field, value);
   };
 
   const visibleConfigs = useMemo(
@@ -212,12 +227,10 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
     >
       <div className="flex items-center justify-between mb-3 px-0.5">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-          {mode === "playground" ? "Playground Assumptions" : "Key Assumptions"}
+          {t("kpi.assumptions")}
         </h2>
         <p className="text-xs text-muted-foreground hidden sm:block">
-          {mode === "playground"
-            ? "Sandbox only — click to edit assumptions"
-            : "Click any value to edit"}
+          {mode === "playground" ? t("kpi.sandboxEdit") : t("kpi.clickEdit")}
         </p>
       </div>
 

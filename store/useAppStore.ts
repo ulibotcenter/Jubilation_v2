@@ -13,6 +13,13 @@ import {
   deriveOutsideFromManualNetWorth,
   syncNetWorthWithPortfolio,
 } from "@/lib/netWorthSync";
+import type { CoachMessage } from "@/lib/ai/retirementCoach";
+import type { AppLocale } from "@/lib/i18n/messages";
+import type { PlanTier } from "@/lib/plans";
+import {
+  chartDataWithMcBands,
+  generateExtendedProjections,
+} from "@/lib/projectionsExtended";
 import {
   buildPlaygroundProjections,
   initialPlaygroundFromMock,
@@ -53,11 +60,52 @@ import {
 /** Bump when default demo portfolio / KPIs change — migrates persisted local data */
 const DEMO_SEED_VERSION = 3;
 
+export interface NetWorthSnapshot {
+  id: string;
+  capturedAt: string;
+  value: number;
+}
+
+export interface SavedScenario {
+  id: string;
+  name: string;
+  savedAt: string;
+  snapshot: SimulationPlaygroundState;
+}
+
+export interface SensitivityState {
+  cagr: number | null;
+  inflation: number | null;
+}
+
+export interface NeedleDelta {
+  field: KPIField;
+  before: number;
+  after: number;
+  projectedBefore: number;
+  projectedAfter: number;
+}
+
+function applySensitivity(
+  kpis: KPIValues,
+  sensitivity: SensitivityState
+): KPIValues {
+  return {
+    ...kpis,
+    expectedCAGR: sensitivity.cagr ?? kpis.expectedCAGR,
+    annualInflation: sensitivity.inflation ?? kpis.annualInflation,
+  };
+}
+
 function buildProjectionsFromState(state: {
   kpis: KPIValues;
   portfolio: PortfolioAsset[];
   simulationIncludedAssetIds: string[];
   kpiOutsidePortfolio: number;
+  sensitivity?: SensitivityState;
+  monteCarlo?: {
+    results: MonteCarloResult[];
+  };
 }) {
   const syncedKpis = syncNetWorthWithPortfolio(
     normalizeKpiValues(state.kpis),
@@ -65,18 +113,28 @@ function buildProjectionsFromState(state: {
     state.kpiOutsidePortfolio
   );
   const effectiveKpis = resolveSimulationKpis(
-    syncedKpis,
+    applySensitivity(syncedKpis, state.sensitivity ?? { cagr: null, inflation: null }),
     state.portfolio,
     state.simulationIncludedAssetIds,
     state.kpiOutsidePortfolio
   );
-  const projections = generateProjections(effectiveKpis);
+  const projections = generateExtendedProjections(effectiveKpis);
+  const mcBase = state.monteCarlo?.results?.find((r) => r.scenario === "base");
+  const chartData = chartDataWithMcBands(
+    projections,
+    mcBase?.percentile10,
+    mcBase?.percentile90
+  );
   return {
     kpis: syncedKpis,
     effectiveKpis,
     projections,
-    chartData: generateChartData(projections),
+    chartData,
   };
+}
+
+function pushSimUndo(state: SimulationPlaygroundState, stack: SimulationPlaygroundState[]) {
+  return [JSON.parse(JSON.stringify(state)) as SimulationPlaygroundState, ...stack].slice(0, 8);
 }
 
 function findQuoteForAsset(
@@ -142,8 +200,35 @@ export interface AppStore {
   fxSnapshot: FxSnapshot | null;
   isChangingCurrency: boolean;
   demoSeedVersion: number;
+  planTier: PlanTier;
+  explainSimple: boolean;
+  theme: "dark" | "light";
+  presentationMode: boolean;
+  coachMarksDismissed: boolean;
+  coachOpen: boolean;
+  sensitivity: SensitivityState;
+  netWorthSnapshots: NetWorthSnapshot[];
+  aiChatHistory: CoachMessage[];
+  savedScenarios: SavedScenario[];
+  simUndoStack: SimulationPlaygroundState[];
+  lastNeedleDelta: NeedleDelta | null;
   simPlayground: SimulationPlaygroundState;
 
+  setLocale: (locale: AppLocale) => void;
+  setPlanTier: (tier: PlanTier) => void;
+  setExplainSimple: (value: boolean) => void;
+  setTheme: (theme: "dark" | "light") => void;
+  togglePresentationMode: () => void;
+  dismissCoachMarks: () => void;
+  setCoachOpen: (open: boolean) => void;
+  setSensitivity: (patch: { cagr: number; inflation: number }) => void;
+  resetSensitivity: () => void;
+  addNetWorthSnapshot: (value: number) => void;
+  pushAiMessage: (message: CoachMessage) => void;
+  clearAiChat: () => void;
+  saveNamedScenario: (name: string) => void;
+  loadNamedScenario: (id: string) => void;
+  undoSimPlayground: () => void;
   setCurrency: (currency: Currency) => void;
   changeCurrency: (currency: Currency) => Promise<FxSnapshot>;
   setOnboardingStep: (step: OnboardingStep) => void;
@@ -250,6 +335,7 @@ const initialBuild = buildProjectionsFromState({
   portfolio: MOCK_PORTFOLIO,
   simulationIncludedAssetIds: defaultIncludedIds,
   kpiOutsidePortfolio: initialOutside,
+  sensitivity: { cagr: null, inflation: null },
 });
 
 export const useAppStore = create<AppStore>()(
@@ -292,12 +378,124 @@ export const useAppStore = create<AppStore>()(
       fxSnapshot: null,
       isChangingCurrency: false,
       demoSeedVersion: DEMO_SEED_VERSION,
+      planTier: "free",
+      explainSimple: false,
+      theme: "dark",
+      presentationMode: false,
+      coachMarksDismissed: false,
+      coachOpen: false,
+      sensitivity: { cagr: null, inflation: null },
+      netWorthSnapshots: [],
+      aiChatHistory: [],
+      savedScenarios: [],
+      simUndoStack: [],
+      lastNeedleDelta: null,
       simPlayground: initialPlaygroundFromMock(
         initialBuild.kpis,
         initialOutside,
         MOCK_PORTFOLIO,
         defaultIncludedIds
       ),
+
+      setLocale: (locale) => set({ locale }),
+
+      setPlanTier: (tier) => set({ planTier: tier }),
+
+      setExplainSimple: (value) => set({ explainSimple: value }),
+
+      setTheme: (theme) => {
+        set({ theme });
+        if (typeof document !== "undefined") {
+          document.documentElement.classList.toggle("dark", theme === "dark");
+          document.documentElement.classList.toggle("light", theme === "light");
+        }
+      },
+
+      togglePresentationMode: () =>
+        set((s) => ({ presentationMode: !s.presentationMode })),
+
+      dismissCoachMarks: () => set({ coachMarksDismissed: true }),
+
+      setCoachOpen: (open) => set({ coachOpen: open }),
+
+      setSensitivity: (patch) => {
+        const state = get();
+        const sensitivity = { cagr: patch.cagr, inflation: patch.inflation };
+        const built = buildProjectionsFromState({
+          ...state,
+          sensitivity,
+        });
+        set({
+          sensitivity,
+          kpis: built.kpis,
+          projections: built.projections,
+          chartData: built.chartData,
+          projectionRevision: state.projectionRevision + 1,
+        });
+      },
+
+      resetSensitivity: () => {
+        const state = get();
+        const built = buildProjectionsFromState({
+          ...state,
+          sensitivity: { cagr: null, inflation: null },
+        });
+        set({
+          sensitivity: { cagr: null, inflation: null },
+          projections: built.projections,
+          chartData: built.chartData,
+          projectionRevision: state.projectionRevision + 1,
+        });
+      },
+
+      addNetWorthSnapshot: (value) =>
+        set((s) => ({
+          netWorthSnapshots: [
+            ...s.netWorthSnapshots,
+            {
+              id: `snap-${Date.now()}`,
+              capturedAt: new Date().toISOString(),
+              value: Math.round(value),
+            },
+          ],
+        })),
+
+      pushAiMessage: (message) =>
+        set((s) => ({
+          aiChatHistory: [...s.aiChatHistory, message].slice(-40),
+        })),
+
+      clearAiChat: () => set({ aiChatHistory: [] }),
+
+      saveNamedScenario: (name) => {
+        const state = get();
+        const entry: SavedScenario = {
+          id: `sc-${Date.now()}`,
+          name,
+          savedAt: new Date().toISOString(),
+          snapshot: JSON.parse(
+            JSON.stringify(state.simPlayground)
+          ) as SimulationPlaygroundState,
+        };
+        set({ savedScenarios: [...state.savedScenarios, entry].slice(-12) });
+      },
+
+      loadNamedScenario: (id) => {
+        const state = get();
+        const found = state.savedScenarios.find((s) => s.id === id);
+        if (!found) return;
+        set({
+          simPlayground: found.snapshot,
+          simUndoStack: pushSimUndo(state.simPlayground, state.simUndoStack),
+        });
+      },
+
+      undoSimPlayground: () => {
+        const state = get();
+        const [head, ...rest] = state.simUndoStack;
+        if (!head) return;
+        set({ simPlayground: head, simUndoStack: rest });
+      },
 
       setCurrency: (currency) => set({ currency }),
 
@@ -410,6 +608,7 @@ export const useAppStore = create<AppStore>()(
       setKPI: (field, value) => {
         const state = get();
         let kpiOutsidePortfolio = state.kpiOutsidePortfolio;
+        const before = state.kpis[field];
         let kpis = normalizeKpiValues({ ...state.kpis, [field]: value });
 
         if (field === "currentNetWorth") {
@@ -419,11 +618,24 @@ export const useAppStore = create<AppStore>()(
           );
         }
 
+        const builtBefore = buildProjectionsFromState(state);
         const built = buildProjectionsFromState({
           ...state,
           kpis,
           kpiOutsidePortfolio,
         });
+        const projBefore =
+          builtBefore.projections[state.kpis.retirementAge - state.kpis.currentAge]
+            ?.portfolioValue ??
+          builtBefore.projections[builtBefore.projections.length - 1]
+            ?.portfolioValue ??
+          0;
+        const projAfter =
+          built.projections[state.kpis.retirementAge - state.kpis.currentAge]
+            ?.portfolioValue ??
+          built.projections[built.projections.length - 1]?.portfolioValue ??
+          0;
+
         set({
           kpis: built.kpis,
           kpiOutsidePortfolio,
@@ -433,6 +645,13 @@ export const useAppStore = create<AppStore>()(
           monteCarlo: invalidateMonteCarlo(state.monteCarlo),
           activeStressTest: null,
           stressTestResults: [],
+          lastNeedleDelta: {
+            field,
+            before,
+            after: value,
+            projectedBefore: projBefore,
+            projectedAfter: projAfter,
+          },
         });
       },
 
@@ -720,7 +939,10 @@ export const useAppStore = create<AppStore>()(
           kpis,
           kpiOutsidePortfolio,
         });
-        set({ simPlayground: next });
+        set({
+          simPlayground: next,
+          simUndoStack: pushSimUndo(state.simPlayground, state.simUndoStack),
+        });
       },
 
       setSimPortfolioSearchQuery: (query) =>
@@ -954,6 +1176,8 @@ export const useAppStore = create<AppStore>()(
           portfolio,
           simulationIncludedAssetIds,
           kpiOutsidePortfolio,
+          sensitivity: p?.sensitivity ?? { cagr: null, inflation: null },
+          monteCarlo: p?.monteCarlo,
         });
 
         const simPlayground = normalizeSimPlayground(
@@ -986,6 +1210,14 @@ export const useAppStore = create<AppStore>()(
         onboarding: state.onboarding,
         sidebarCollapsed: state.sidebarCollapsed,
         demoSeedVersion: state.demoSeedVersion,
+        planTier: state.planTier,
+        explainSimple: state.explainSimple,
+        theme: state.theme,
+        coachMarksDismissed: state.coachMarksDismissed,
+        sensitivity: state.sensitivity,
+        netWorthSnapshots: state.netWorthSnapshots,
+        aiChatHistory: state.aiChatHistory,
+        savedScenarios: state.savedScenarios,
         kpis: state.kpis,
         kpiOutsidePortfolio: state.kpiOutsidePortfolio,
         portfolio: state.portfolio,

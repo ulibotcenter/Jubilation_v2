@@ -11,6 +11,7 @@ import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
 import { SimulationTab } from "@/components/dashboard/SimulationTab";
 import { PlaygroundDiffPanel } from "@/components/simulation/PlaygroundDiffPanel";
 import { PlaygroundSummaryStrip } from "@/components/simulation/PlaygroundSummaryStrip";
+import { ScenarioManager } from "@/components/simulation/ScenarioManager";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -82,6 +83,11 @@ export function SimulationPlaygroundPage() {
       <PlaygroundSummaryStrip />
 
       <PlaygroundDiffPanel />
+
+      <section aria-label="Named scenarios" className="card-surface p-4">
+        <h3 className="text-sm font-bold mb-2">Saved scenarios</h3>
+        <ScenarioManager />
+      </section>
 
       <section aria-label="Playground income goal">
         <IncomeGoalPanel

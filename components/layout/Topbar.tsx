@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   Download,
   Menu,
+  Monitor,
   Sparkles,
   User,
 } from "lucide-react";
@@ -13,15 +15,22 @@ import { toast } from "sonner";
 import { Logo } from "@/components/common/Logo";
 import { exportRetirementReport } from "@/lib/exportReport";
 import { getCrossRate } from "@/lib/fx/convert";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { PLAN_LABELS } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
 
 export function Topbar() {
+  const router = useRouter();
+  const { t } = useTranslation();
   const currency = useAppStore((s) => s.currency);
   const changeCurrency = useAppStore((s) => s.changeCurrency);
   const isChangingCurrency = useAppStore((s) => s.isChangingCurrency);
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
   const user = useAppStore((s) => s.user);
+  const planTier = useAppStore((s) => s.planTier);
+  const presentationMode = useAppStore((s) => s.presentationMode);
+  const togglePresentationMode = useAppStore((s) => s.togglePresentationMode);
   const isExporting = useAppStore((s) => s.isExporting);
   const setExporting = useAppStore((s) => s.setExporting);
 
@@ -70,9 +79,7 @@ export function Topbar() {
 
   const handleUpgrade = () => {
     // TODO: Stripe + Supabase — open pricing modal / checkout
-    toast.info("Pro plans coming soon!", {
-      description: "Monthly ($9.99) and Yearly ($89.99) plans will be available at launch.",
-    });
+    router.push("/upgrade");
   };
 
   const handleExport = useCallback(async () => {
@@ -168,6 +175,21 @@ export function Topbar() {
           </AnimatePresence>
         </div>
 
+        {/* Presentation mode */}
+        <button
+          type="button"
+          onClick={togglePresentationMode}
+          className="btn-ghost hidden md:inline-flex gap-1.5"
+          aria-label={
+            presentationMode ? t("presentation.off") : t("presentation.on")
+          }
+        >
+          <Monitor className="w-4 h-4" size={16} />
+          <span className="hidden lg:inline">
+            {presentationMode ? t("presentation.off") : t("presentation.on")}
+          </span>
+        </button>
+
         {/* Export — desktop */}
         <button
           type="button"
@@ -185,10 +207,10 @@ export function Topbar() {
           type="button"
           onClick={handleUpgrade}
           className="btn-upgrade"
-          aria-label="Upgrade to Pro plan"
+          aria-label="View plans"
         >
           <Sparkles className="w-3.5 h-3.5" size={14} />
-          <span>Upgrade</span>
+          <span>{t("nav.upgrade")}</span>
         </button>
 
         {/* Avatar dropdown */}
@@ -220,7 +242,7 @@ export function Topbar() {
                     {user.email}
                   </p>
                   <span className="inline-flex mt-1.5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-accent/15 text-accent">
-                    {user.plan} plan
+                    {PLAN_LABELS[planTier]} plan
                   </span>
                 </div>
                 <button

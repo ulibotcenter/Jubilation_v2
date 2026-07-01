@@ -1,24 +1,44 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   ChevronDown,
   Download,
   Globe,
+  Languages,
   Loader2,
   PanelLeft,
   Settings,
   Sparkles,
+  SunMoon,
   User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { exportRetirementReport } from "@/lib/exportReport";
 import { getCrossRate } from "@/lib/fx/convert";
+import type { AppLocale } from "@/lib/i18n/messages";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { PLAN_LABELS } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
 
+const LOCALES: { code: AppLocale; label: string }[] = [
+  { code: "en", label: "English" },
+  { code: "pt", label: "Português" },
+  { code: "es", label: "Español" },
+];
+
 export function SettingsPageContent() {
+  const { t } = useTranslation();
+  const locale = useAppStore((s) => s.locale);
+  const setLocale = useAppStore((s) => s.setLocale);
+  const explainSimple = useAppStore((s) => s.explainSimple);
+  const setExplainSimple = useAppStore((s) => s.setExplainSimple);
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
+  const planTier = useAppStore((s) => s.planTier);
   const currency = useAppStore((s) => s.currency);
   const changeCurrency = useAppStore((s) => s.changeCurrency);
   const isChangingCurrency = useAppStore((s) => s.isChangingCurrency);
@@ -73,12 +93,6 @@ export function SettingsPageContent() {
     }
   };
 
-  const handleUpgrade = () => {
-    toast.info("Pro plans coming soon!", {
-      description: "Monthly and yearly plans will be available at launch.",
-    });
-  };
-
   const fxDate = fxSnapshot?.date;
   const usdToDisplay = fxSnapshot
     ? getCrossRate("USD", currency, fxSnapshot.rates)
@@ -88,8 +102,8 @@ export function SettingsPageContent() {
     <div className="secondary-page">
       <PageHeader
         icon={Settings}
-        title="Settings"
-        description="Currency, account, and data preferences for your retirement plan."
+        title={t("nav.settings")}
+        description="Currency, language, plans, and data preferences for your retirement plan."
       />
 
       <div className="settings-page-grid">
@@ -150,6 +164,62 @@ export function SettingsPageContent() {
 
         <section className="settings-page-card">
           <div className="settings-page-card-head">
+            <Languages className="w-4 h-4 text-accent" size={16} />
+            <h2>Language</h2>
+          </div>
+          <p className="settings-page-card-body">
+            UI translations — more strings roll out each release.
+          </p>
+          <div className="settings-locale-options">
+            {LOCALES.map((l) => (
+              <button
+                key={l.code}
+                type="button"
+                className="settings-locale-option"
+                data-active={locale === l.code ? "true" : "false"}
+                onClick={() => setLocale(l.code)}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="settings-page-card">
+          <div className="settings-page-card-head">
+            <SunMoon className="w-4 h-4 text-accent" size={16} />
+            <h2>Experience</h2>
+          </div>
+          <label className="settings-toggle-row">
+            <span>{t("explain.simple")}</span>
+            <input
+              type="checkbox"
+              checked={explainSimple}
+              onChange={(e) => setExplainSimple(e.target.checked)}
+            />
+          </label>
+          <div className="settings-theme-toggle mt-3">
+            <button
+              type="button"
+              className="settings-locale-option"
+              data-active={theme === "dark" ? "true" : "false"}
+              onClick={() => setTheme("dark")}
+            >
+              {t("theme.dark")}
+            </button>
+            <button
+              type="button"
+              className="settings-locale-option"
+              data-active={theme === "light" ? "true" : "false"}
+              onClick={() => setTheme("light")}
+            >
+              {t("theme.light")}
+            </button>
+          </div>
+        </section>
+
+        <section className="settings-page-card">
+          <div className="settings-page-card-head">
             <User className="w-4 h-4 text-accent" size={16} />
             <h2>Account</h2>
           </div>
@@ -157,15 +227,11 @@ export function SettingsPageContent() {
             {user.name}
           </p>
           <p className="text-sm text-muted-foreground">{user.email}</p>
-          <span className="settings-plan-badge">{user.plan} plan</span>
-          <button
-            type="button"
-            className="btn-upgrade mt-4"
-            onClick={handleUpgrade}
-          >
+          <span className="settings-plan-badge">{PLAN_LABELS[planTier]} plan</span>
+          <Link href="/upgrade" className="btn-upgrade mt-4 inline-flex">
             <Sparkles className="w-3.5 h-3.5" size={14} />
-            Upgrade to Pro
-          </button>
+            {t("nav.upgrade")}
+          </Link>
         </section>
 
         <section className="settings-page-card">
@@ -199,8 +265,10 @@ export function SettingsPageContent() {
             </span>
             . Use the control at the bottom of the left menu to toggle.
           </p>
-          <p className="text-[11px] text-muted-foreground mt-3">
-            Jubilation V2 Beta · v0.1.0
+          <p className="text-[11px] text-muted-foreground mt-3 flex items-center gap-1">
+            Jubilation V2 Beta · v0.2.0
+            <ChevronDown className="w-3 h-3 opacity-40" size={12} />
+            <span className="text-accent">Bloco 1+2</span>
           </p>
         </section>
       </div>

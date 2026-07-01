@@ -99,6 +99,7 @@ export type NavItemId =
   | "dashboard"
   | "portfolio"
   | "simulation"
+  | "cashflow"
   | "settings"
   | "help";
 
@@ -131,6 +132,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Simulation",
     href: "/simulation",
     icon: "LineChart",
+    showInSidebar: true,
+  },
+  {
+    id: "cashflow",
+    label: "Cash Flow",
+    href: "/cash-flow",
+    icon: "Waves",
     showInSidebar: true,
   },
   {

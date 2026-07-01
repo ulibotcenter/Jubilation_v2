@@ -8,26 +8,39 @@ import {
   LayoutDashboard,
   LineChart,
   Settings,
+  Waves,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
-import { NAV_ITEMS } from "@/types";
+import { NAV_ITEMS, type NavItemId } from "@/types";
 
 const ICON_MAP = {
   LayoutDashboard,
   Briefcase,
   LineChart,
+  Waves,
   Settings,
   HelpCircle,
 } as const;
+
+const NAV_I18N: Record<NavItemId, "nav.dashboard" | "nav.portfolio" | "nav.simulation" | "nav.cashflow" | "nav.settings" | "nav.help"> = {
+  dashboard: "nav.dashboard",
+  portfolio: "nav.portfolio",
+  simulation: "nav.simulation",
+  cashflow: "nav.cashflow",
+  settings: "nav.settings",
+  help: "nav.help",
+};
 
 export function Sidebar() {
   const activeNav = useAppStore((s) => s.activeNav);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
   const navigate = useAppNavigation();
+  const { t } = useTranslation();
   const sidebarItems = NAV_ITEMS.filter((item) => item.showInSidebar);
 
   useEffect(() => {
@@ -93,7 +106,7 @@ export function Sidebar() {
 
               >
                 <Icon className="w-4 h-4 shrink-0" size={16} />
-                <span className="sidebar-link-label">{item.label}</span>
+                <span className="sidebar-link-label">{t(NAV_I18N[item.id])}</span>
               </motion.button>
             );
           })}

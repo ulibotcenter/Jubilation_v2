@@ -9,6 +9,7 @@ const ROUTES: Record<NavItemId, string> = {
   dashboard: "/",
   portfolio: "/",
   simulation: "/simulation",
+  cashflow: "/cash-flow",
   settings: "/settings",
   help: "/help",
 };
@@ -64,6 +65,7 @@ export function useAppNavigation() {
 
 export function navIdFromPathname(pathname: string): NavItemId {
   if (pathname.startsWith("/simulation")) return "simulation";
+  if (pathname.startsWith("/cash-flow")) return "cashflow";
   if (pathname.startsWith("/settings")) return "settings";
   if (pathname.startsWith("/help")) return "help";
   return "dashboard";
