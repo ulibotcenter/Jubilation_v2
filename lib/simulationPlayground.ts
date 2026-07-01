@@ -38,6 +38,7 @@ export interface SimulationPlaygroundState {
   monteCarlo: {
     hasRun: boolean;
     isRunning: boolean;
+    stale: boolean;
     lastRunAt: string | null;
     results: MonteCarloResult[];
     distributions: Record<MonteCarloScenario, DistributionBin[]> | null;
@@ -52,6 +53,7 @@ function emptyMonteCarlo(): SimulationPlaygroundState["monteCarlo"] {
   return {
     hasRun: false,
     isRunning: false,
+    stale: false,
     lastRunAt: null,
     results: [],
     distributions: null,
@@ -98,6 +100,7 @@ export function buildPlaygroundProjections(state: {
   simulationIncludedAssetIds: string[];
   kpiOutsidePortfolio: number;
   monteCarlo?: {
+    hasRun?: boolean;
     results: MonteCarloResult[];
   };
 }) {
@@ -121,7 +124,10 @@ export function buildPlaygroundProjections(state: {
     state.simulationIncludedAssetIds
   );
   const projections = generateProjections(effectiveKpis);
-  const mcBase = state.monteCarlo?.results?.find((r) => r.scenario === "base");
+  const mcBase =
+    state.monteCarlo?.hasRun && (state.monteCarlo.results?.length ?? 0) > 0
+      ? state.monteCarlo.results.find((r) => r.scenario === "base")
+      : undefined;
   const chartData = chartDataWithMcBands(
     projections,
     mcBase?.percentile10,

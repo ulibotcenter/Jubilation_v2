@@ -33,6 +33,8 @@
 /* ─── Dark theme (default) ─── */
 
 html.dark {
+  --gain: #4ade80;
+  --loss: #f87171;
   --background: #020617;
   --foreground: #f8fafc;
   --surface: #0f172a;
@@ -66,6 +68,8 @@ html.dark {
 /* ─── Light theme ─── */
 
 html.light {
+  --gain: #16a34a;
+  --loss: #dc2626;
   --background: #f1f5f9;
   --foreground: #0f172a;
   --surface: #ffffff;
@@ -148,7 +152,8 @@ html.light .hero-metric-tile:hover {
 }
 
 html.light .kpi-card {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-sm);
 }
 
 html.light .income-goal-panel {
@@ -1267,7 +1272,13 @@ body::before {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.35rem;
+}
+
+@media (min-width: 640px) {
+  .kpi-carousel {
+    display: none;
+  }
 }
 
 .kpi-carousel::-webkit-scrollbar {
@@ -1283,9 +1294,15 @@ body::before {
 }
 
 .kpi-grid {
-  display: grid;
+  display: none;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .kpi-grid {
+    display: grid;
+  }
 }
 
 @media (min-width: 768px) {
@@ -1303,6 +1320,7 @@ body::before {
 }
 
 .kpi-card {
+  min-height: 7.5rem;
   background: linear-gradient(
     160deg,
     rgba(30, 41, 59, 0.45) 0%,
@@ -4174,6 +4192,35 @@ body::before {
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
   background: var(--accent-muted);
+}
+
+.chart-bands-stale {
+  font-size: 0.625rem;
+  color: var(--warning);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px dashed rgba(234, 179, 8, 0.35);
+}
+
+.text-gain {
+  color: var(--gain);
+}
+
+.text-loss {
+  color: var(--loss);
+}
+
+.portfolio-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .portfolio-stat-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
 }
 
 .needle-delta {

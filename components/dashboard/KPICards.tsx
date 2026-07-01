@@ -63,7 +63,8 @@ function getKPISubtitle(
     annualInflation: number;
   },
   currency: keyof typeof CURRENCY_SYMBOLS,
-  translate: (key: MessageKey, params?: Record<string, string | number>) => string
+  translate: (key: MessageKey, params?: Record<string, string | number>) => string,
+  portfolioLength = 0
 ): string {
   const yearsLeft = kpis.retirementAge - kpis.currentAge;
   const annualContrib = kpis.monthlyContribution * 12;
@@ -97,7 +98,11 @@ function getKPISubtitle(
         amount: formatCurrencyValue(kpis.desiredMonthlyIncome * 12, currency),
       });
     case "expectedCAGR":
-      return translate("kpi.subtitle.cagrFromPortfolio");
+      return portfolioLength > 0
+        ? translate("kpi.subtitle.cagrFromPortfolio")
+        : realReturn > 0
+          ? translate("kpi.subtitle.realReturn", { n: realReturn.toFixed(1) })
+          : translate("kpi.subtitle.nominalGrowth");
     case "annualInflation":
       return translate("kpi.subtitle.inflation");
     default:
@@ -114,6 +119,7 @@ function KPICard({
   currency,
   subtitle,
   onChange,
+  readOnly = false,
 }: {
   config: KPIConfig;
   label: string;
@@ -123,6 +129,7 @@ function KPICard({
   currency: keyof typeof CURRENCY_SYMBOLS;
   subtitle: string;
   onChange: (value: number) => void;
+  readOnly?: boolean;
 }) {
   const Icon = KPI_ICONS[config.field];
 
@@ -147,19 +154,27 @@ function KPICard({
       <p className="kpi-label">{label}</p>
 
       <div className="kpi-value mt-1">
-        <EditableNumber
-          value={value}
-          onChange={onChange}
-          min={config.min}
-          max={config.max}
-          step={config.step}
-          decimals={config.decimals}
-          format={config.format}
-          suffix={config.suffix}
-          currencySymbol={currencySymbol}
-          compact={config.format === "currency"}
-          inputClassName="text-xl sm:text-2xl font-bold w-full bg-transparent"
-        />
+        {readOnly ? (
+          <p className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+            {config.format === "percent"
+              ? `${value.toFixed(config.decimals)}%`
+              : value.toLocaleString("en-US")}
+          </p>
+        ) : (
+          <EditableNumber
+            value={value}
+            onChange={onChange}
+            min={config.min}
+            max={config.max}
+            step={config.step}
+            decimals={config.decimals}
+            format={config.format}
+            suffix={config.suffix}
+            currencySymbol={currencySymbol}
+            compact={config.format === "currency"}
+            inputClassName="text-xl sm:text-2xl font-bold w-full bg-transparent"
+          />
+        )}
       </div>
 
       <p className="text-[10px] text-muted-foreground mt-2 sm:hidden">
@@ -204,10 +219,10 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
       Object.fromEntries(
         KPI_CONFIGS.map((c) => [
           c.field,
-          getKPISubtitle(c.field, kpis, currency, t),
+          getKPISubtitle(c.field, kpis, currency, t, portfolio.length),
         ])
       ) as Record<KPIField, string>,
-    [kpis, currency, t]
+    [kpis, currency, t, portfolio.length]
   );
 
   const handleChange = (field: KPIField, value: number) => {
@@ -258,6 +273,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
       currencySymbol={currencySymbol}
       currency={currency}
       subtitle={subtitles[config.field]}
+      readOnly={config.field === "expectedCAGR" && portfolio.length > 0}
       onChange={(v) => handleChange(config.field, v)}
     />
   );
@@ -275,7 +291,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
         </p>
       </div>
 
-      <div className="kpi-carousel sm:hidden" aria-label={t("kpi.assumptions")}>
+      <div className="kpi-carousel" aria-label={t("kpi.assumptions")}>
         {mobilePages.map((page, pageIndex) => (
           <div key={pageIndex} className="kpi-carousel-page">
             {page.map((config, index) =>
@@ -285,7 +301,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
         ))}
       </div>
 
-      <div className="kpi-grid hidden sm:grid">
+      <div className="kpi-grid">
         {visibleConfigs.map((config, index) => renderCard(config, index))}
       </div>
     </section>

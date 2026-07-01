@@ -29,7 +29,7 @@ export function CashFlowPageContent() {
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={flow} barCategoryGap="12%">
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(30,41,59,0.6)" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
               <XAxis dataKey="age" tick={{ fontSize: 10, fill: "#94a3b8" }} />
               <YAxis tickFormatter={(v) => `${sym}${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`} width={48} tick={{ fontSize: 10, fill: "#94a3b8" }} />
               <Tooltip />

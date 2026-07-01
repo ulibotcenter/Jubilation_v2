@@ -438,6 +438,7 @@ export interface MonteCarloSimulationOutput {
 export interface MonteCarloState {
   hasRun: boolean;
   isRunning: boolean;
+  stale: boolean;
   lastRunAt: string | null;
   results: MonteCarloResult[];
   distributions: Record<MonteCarloScenario, DistributionBin[]> | null;

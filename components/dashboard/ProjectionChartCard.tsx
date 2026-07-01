@@ -94,17 +94,26 @@ export function ProjectionChartCard({
 
   const sym = CURRENCY_SYMBOLS[currency];
   const finalRow = projections[projections.length - 1];
-  const hasMcBands = useMemo(
-    () =>
-      chartData.some(
-        (d) =>
-          d.pessimistic != null &&
-          d.optimistic != null &&
-          (d.band ?? 0) > 0 &&
-          (d.pessimistic !== d.value || d.optimistic !== d.value)
-      ),
-    [chartData]
-  );
+  const mcReady =
+    monteCarlo.hasRun && (monteCarlo.results?.length ?? 0) > 0;
+
+  const hasMcBands = useMemo(() => {
+    const fromChart = chartData.some(
+      (d) =>
+        d.pessimistic != null &&
+        d.optimistic != null &&
+        (d.band ?? 0) > 0 &&
+        (d.pessimistic !== d.value || d.optimistic !== d.value)
+    );
+    if (fromChart) return true;
+    if (!mcReady) return false;
+    const base = monteCarlo.results.find((r) => r.scenario === "base");
+    return (
+      base != null &&
+      base.percentile10 !== base.percentile90 &&
+      base.percentile10 > 0
+    );
+  }, [chartData, mcReady, monteCarlo.results]);
 
   useEffect(() => {
     if (hasMcBands) {
@@ -188,9 +197,15 @@ export function ProjectionChartCard({
             bandsAvailable={hasMcBands}
           />
           {hasMcBands ? (
-            <p className="chart-bands-active w-full sm:w-auto text-left">
-              {t("chart.bandsActive")}
-            </p>
+            monteCarlo.stale ? (
+              <p className="chart-bands-stale w-full sm:w-auto text-left">
+                {t("chart.bandsStale")}
+              </p>
+            ) : (
+              <p className="chart-bands-active w-full sm:w-auto text-left">
+                {t("chart.bandsActive")}
+              </p>
+            )
           ) : (
             <div className="chart-bands-cta w-full sm:w-auto">
               <p className="chart-bands-hint text-left">

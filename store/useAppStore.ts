@@ -49,6 +49,7 @@ import {
   type KPIValues,
   type MonteCarloResult,
   type MonteCarloScenario,
+  type MonteCarloState,
   type NavItemId,
   type OnboardingStep,
   type PortfolioAsset,
@@ -109,6 +110,7 @@ function buildProjectionsFromState(state: {
   kpiOutsidePortfolio: number;
   sensitivity?: SensitivityState;
   monteCarlo?: {
+    hasRun?: boolean;
     results: MonteCarloResult[];
   };
 }) {
@@ -135,7 +137,10 @@ function buildProjectionsFromState(state: {
     state.simulationIncludedAssetIds
   );
   const projections = generateExtendedProjections(effectiveKpis);
-  const mcBase = state.monteCarlo?.results?.find((r) => r.scenario === "base");
+  const mcBase =
+    state.monteCarlo?.hasRun && (state.monteCarlo.results?.length ?? 0) > 0
+      ? state.monteCarlo.results.find((r) => r.scenario === "base")
+      : undefined;
   const chartData = chartDataWithMcBands(
     projections,
     mcBase?.percentile10,
@@ -168,14 +173,26 @@ function findQuoteForAsset(
   return undefined;
 }
 
+function markMonteCarloStale(state: AppStore["monteCarlo"]) {
+  if (!state.hasRun) return state;
+  return { ...state, stale: true };
+}
+
 function invalidateMonteCarlo(state: AppStore["monteCarlo"]) {
   return {
     ...state,
     hasRun: false,
+    stale: false,
     results: [],
     distributions: null,
     target: null,
   };
+}
+
+function mcBandsInput(monteCarlo: AppStore["monteCarlo"]) {
+  return monteCarlo.hasRun && monteCarlo.results.length > 0
+    ? { hasRun: true, results: monteCarlo.results }
+    : undefined;
 }
 
 export interface AppStore {
@@ -200,15 +217,7 @@ export interface AppStore {
   simulationIncludedAssetIds: string[];
   projections: ReturnType<typeof generateProjections>;
   chartData: ReturnType<typeof generateChartData>;
-  monteCarlo: {
-    hasRun: boolean;
-    isRunning: boolean;
-    lastRunAt: string | null;
-    results: MonteCarloResult[];
-    distributions: Record<MonteCarloScenario, DistributionBin[]> | null;
-    target: number | null;
-    iterations: number;
-  };
+  monteCarlo: MonteCarloState;
   activeStressTest: StressTestId | null;
   stressTestResults: ReturnType<typeof runStressTest>[];
   isExporting: boolean;
@@ -320,6 +329,7 @@ function invalidateSimMonteCarlo(
   return {
     ...mc,
     hasRun: false,
+    stale: false,
     results: [],
     distributions: null,
     target: null,
@@ -329,14 +339,21 @@ function invalidateSimMonteCarlo(
 function rebuildSimPlayground(
   sim: SimulationPlaygroundState
 ): SimulationPlaygroundState {
-  const built = buildPlaygroundProjections(sim);
+  const built = buildPlaygroundProjections({
+    ...sim,
+    monteCarlo: sim.monteCarlo.hasRun
+      ? { hasRun: true, results: sim.monteCarlo.results }
+      : undefined,
+  });
   return {
     ...sim,
     kpis: built.kpis,
     projections: built.projections,
     chartData: built.chartData,
     projectionRevision: sim.projectionRevision + 1,
-    monteCarlo: invalidateSimMonteCarlo(sim.monteCarlo),
+    monteCarlo: sim.monteCarlo.hasRun
+      ? { ...sim.monteCarlo, stale: true }
+      : invalidateSimMonteCarlo(sim.monteCarlo),
     activeStressTest: null,
     stressTestResults: [],
   };
@@ -384,6 +401,7 @@ export const useAppStore = create<AppStore>()(
       monteCarlo: {
         hasRun: false,
         isRunning: false,
+        stale: false,
         lastRunAt: null,
         results: [],
         distributions: null,
@@ -453,6 +471,7 @@ export const useAppStore = create<AppStore>()(
           simulationIncludedAssetIds: state.simulationIncludedAssetIds,
           kpiOutsidePortfolio: state.kpiOutsidePortfolio,
           sensitivity,
+          monteCarlo: mcBandsInput(state.monteCarlo),
         });
         set({
           sensitivity,
@@ -460,7 +479,7 @@ export const useAppStore = create<AppStore>()(
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
-          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
         });
       },
 
@@ -472,13 +491,14 @@ export const useAppStore = create<AppStore>()(
           simulationIncludedAssetIds: state.simulationIncludedAssetIds,
           kpiOutsidePortfolio: state.kpiOutsidePortfolio,
           sensitivity: { cagr: null, inflation: null },
+          monteCarlo: mcBandsInput(state.monteCarlo),
         });
         set({
           sensitivity: { cagr: null, inflation: null },
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
-          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
         });
       },
 
@@ -606,7 +626,7 @@ export const useAppStore = create<AppStore>()(
             fxSnapshot: snapshot,
             isChangingCurrency: false,
             projectionRevision: state.projectionRevision + 1,
-            monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+            monteCarlo: markMonteCarloStale(state.monteCarlo),
             activeStressTest: null,
             stressTestResults: [],
             simPlayground,
@@ -676,7 +696,7 @@ export const useAppStore = create<AppStore>()(
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
-          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
           activeStressTest: null,
           stressTestResults: [],
           lastNeedleDelta: {
@@ -716,7 +736,7 @@ export const useAppStore = create<AppStore>()(
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
-          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
         });
       },
 
@@ -725,14 +745,18 @@ export const useAppStore = create<AppStore>()(
         const portfolio = state.portfolio.map((a) =>
           a.id === id ? { ...a, ...patch } : a
         );
-        const built = buildProjectionsFromState({ ...state, portfolio });
+        const built = buildProjectionsFromState({
+          ...state,
+          portfolio,
+          monteCarlo: mcBandsInput(state.monteCarlo),
+        });
         set({
           portfolio,
           kpis: built.kpis,
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
-          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
         });
       },
 
@@ -797,7 +821,7 @@ export const useAppStore = create<AppStore>()(
             chartData: built.chartData,
             portfolioLastRefreshedAt: fetchedAt,
             projectionRevision: state.projectionRevision + 1,
-            monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+            monteCarlo: markMonteCarloStale(state.monteCarlo),
             isRefreshingPrices: false,
           });
 
@@ -828,7 +852,7 @@ export const useAppStore = create<AppStore>()(
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
-          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
         });
       },
 
@@ -847,7 +871,7 @@ export const useAppStore = create<AppStore>()(
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
-          monteCarlo: invalidateMonteCarlo(state.monteCarlo),
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
           activeStressTest: null,
           stressTestResults: [],
         });
@@ -880,7 +904,14 @@ export const useAppStore = create<AppStore>()(
 
       recalculateProjections: () => {
         const state = get();
-        const built = buildProjectionsFromState(state);
+        const built = buildProjectionsFromState({
+          kpis: state.kpis,
+          portfolio: state.portfolio,
+          simulationIncludedAssetIds: state.simulationIncludedAssetIds,
+          kpiOutsidePortfolio: state.kpiOutsidePortfolio,
+          sensitivity: state.sensitivity,
+          monteCarlo: mcBandsInput(state.monteCarlo),
+        });
         set({
           kpis: built.kpis,
           projections: built.projections,
@@ -898,7 +929,7 @@ export const useAppStore = create<AppStore>()(
         const output = runMonteCarloSimulation(effectiveKpis);
         const built = buildProjectionsFromState({
           ...state,
-          monteCarlo: { results: output.results },
+          monteCarlo: { hasRun: true, results: output.results },
         });
         set({
           chartData: built.chartData,
@@ -907,6 +938,7 @@ export const useAppStore = create<AppStore>()(
           monteCarlo: {
             hasRun: true,
             isRunning: false,
+            stale: false,
             lastRunAt: new Date().toISOString(),
             results: output.results,
             distributions: output.distributions,
@@ -1154,7 +1186,7 @@ export const useAppStore = create<AppStore>()(
         const output = runMonteCarloSimulation(effectiveKpis);
         const built = buildPlaygroundProjections({
           ...current.simPlayground,
-          monteCarlo: { results: output.results },
+          monteCarlo: { hasRun: true, results: output.results },
         });
         set({
           simPlayground: {
@@ -1165,6 +1197,7 @@ export const useAppStore = create<AppStore>()(
             monteCarlo: {
               hasRun: true,
               isRunning: false,
+              stale: false,
               lastRunAt: new Date().toISOString(),
               results: output.results,
               distributions: output.distributions,
@@ -1219,13 +1252,17 @@ export const useAppStore = create<AppStore>()(
           ? seedKpis
           : normalizeKpiValues(p?.kpis);
 
+        const persistedMc = p?.monteCarlo;
         const built = buildProjectionsFromState({
           kpis,
           portfolio,
           simulationIncludedAssetIds,
           kpiOutsidePortfolio,
           sensitivity: p?.sensitivity ?? { cagr: null, inflation: null },
-          monteCarlo: p?.monteCarlo,
+          monteCarlo:
+            persistedMc?.hasRun && persistedMc.results?.length
+              ? { hasRun: true, results: persistedMc.results }
+              : undefined,
         });
 
         const simPlayground = normalizeSimPlayground(
@@ -1238,6 +1275,10 @@ export const useAppStore = create<AppStore>()(
           }
         );
 
+        const monteCarlo = persistedMc
+          ? { ...persistedMc, stale: persistedMc.stale ?? false }
+          : current.monteCarlo;
+
         return {
           ...current,
           ...p,
@@ -1248,6 +1289,7 @@ export const useAppStore = create<AppStore>()(
           kpis: built.kpis,
           projections: built.projections,
           chartData: built.chartData,
+          monteCarlo,
           simPlayground,
         };
       },

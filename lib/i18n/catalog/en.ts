@@ -116,6 +116,7 @@ export const EN = {
   "chart.runningMc": "Calculating…",
   "chart.goToMonteCarlo": "Go to Monte Carlo",
   "chart.bandsActive": "Monte Carlo bands active",
+  "chart.bandsStale": "Bands outdated — re-run Monte Carlo after changing assumptions",
   "needle.title": "What moved the needle",
   "needle.changed": "Changed",
   "needle.atRetirement": "at retirement",

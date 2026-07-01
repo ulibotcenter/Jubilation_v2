@@ -118,6 +118,7 @@ export const ES: Record<MessageKey, string> = {
   "chart.runningMc": "Calculando…",
   "chart.goToMonteCarlo": "Ir a Monte Carlo",
   "chart.bandsActive": "Bandas Monte Carlo activas",
+  "chart.bandsStale": "Bandas desactualizadas — vuelve a ejecutar Monte Carlo tras cambiar supuestos",
   "needle.title": "Qué cambió en el plan",
   "needle.changed": "Cambiado",
   "needle.atRetirement": "al jubilarse",

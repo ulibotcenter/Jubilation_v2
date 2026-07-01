@@ -235,7 +235,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="portfolio-stat-grid">
         {[
           {
             key: "totalValue",
@@ -284,8 +284,8 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
             <p
               className={`portfolio-stat-value flex items-center gap-1.5 ${
                 stat.muted ? "text-muted-foreground" : ""
-              } ${stat.positive === true ? "text-green-400" : ""} ${
-                stat.positive === false ? "text-red-400" : ""
+              } ${stat.positive === true ? "text-gain" : ""} ${
+                stat.positive === false ? "text-loss" : ""
               } ${"accent" in stat && stat.accent ? "text-accent" : ""}`}
             >
               {stat.icon &&

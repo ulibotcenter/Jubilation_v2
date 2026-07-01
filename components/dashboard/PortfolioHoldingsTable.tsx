@@ -155,8 +155,8 @@ export function PortfolioHoldingsTable({
                     <p
                       className={`portfolio-cell-sub ${
                         m.priceDeltaPct >= 0
-                          ? "text-green-400/80"
-                          : "text-red-400/80"
+                          ? "text-gain opacity-80"
+                          : "text-loss opacity-80"
                       }`}
                     >
                       {m.priceDeltaPct >= 0 ? "+" : ""}
@@ -173,7 +173,7 @@ export function PortfolioHoldingsTable({
 
                 <td
                   className={`portfolio-col-value text-right hidden lg:table-cell portfolio-cell-value ${
-                    isPositive ? "text-green-400" : "text-red-400"
+                    isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {isPositive ? "+" : ""}
@@ -183,7 +183,7 @@ export function PortfolioHoldingsTable({
                 <td className="portfolio-col-pct text-right">
                   <span
                     className={`inline-flex items-center gap-1 font-bold tabular-nums text-sm whitespace-nowrap ${
-                      isPositive ? "text-green-400" : "text-red-400"
+                      isPositive ? "text-gain" : "text-loss"
                     }`}
                   >
                     {isPositive ? (

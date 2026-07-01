@@ -69,27 +69,29 @@ export function SimulationTab({
     <div className="space-y-6">
       {mode !== "playground" && <SimulationAssumptions mode={mode} />}
 
-      <div
-        key={`stats-${projectionRevision}`}
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
-      >
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.key}
-            className="rounded-xl border border-border bg-surface px-3 py-3 sm:p-4"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-          >
-            <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {stat.label}
-            </p>
-            <p className="text-base sm:text-lg font-bold text-foreground mt-1 tabular-nums">
-              {stat.value}
-            </p>
-          </motion.div>
-        ))}
-      </div>
+      {mode !== "playground" && (
+        <div
+          key={`stats-${projectionRevision}`}
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+        >
+          {stats.map((stat, i) => (
+            <motion.div
+              key={stat.key}
+              className="rounded-xl border border-border bg-surface px-3 py-3 sm:p-4"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
+              <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {stat.label}
+              </p>
+              <p className="text-base sm:text-lg font-bold text-foreground mt-1 tabular-nums">
+                {stat.value}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {!hideChart && (
         <ProjectionChartCard
