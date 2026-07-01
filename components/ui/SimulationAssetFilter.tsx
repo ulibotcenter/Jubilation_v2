@@ -4,21 +4,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Filter, X } from "lucide-react";
 import { toast } from "sonner";
+import { getAssetClassLabel, getScopePresetLabel } from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   applyScopePreset,
-  SCOPE_PRESETS,
   type ScopePresetId,
 } from "@/lib/simulationScope";
 import { useAppStore } from "@/store/useAppStore";
 import {
-  ASSET_CLASS_LABELS,
   calculatePortfolioValue,
   formatCurrencyValue,
   type AssetClass,
   type PortfolioAsset,
 } from "@/types";
-
-// i18n-ready: labels → future next-intl keys (simulation.scope.*)
 
 const ASSET_CLASS_ORDER: AssetClass[] = [
   "stocks",
@@ -40,10 +38,10 @@ interface SimulationAssetFilterProps {
   mode?: "real" | "playground";
 }
 
-function groupByClass(portfolio: PortfolioAsset[]) {
+function groupByClass(portfolio: PortfolioAsset[], locale: Parameters<typeof getAssetClassLabel>[0]) {
   return ASSET_CLASS_ORDER.map((assetClass) => ({
     assetClass,
-    label: ASSET_CLASS_LABELS[assetClass],
+    label: getAssetClassLabel(locale, assetClass),
     assets: portfolio.filter((a) => a.assetClass === assetClass),
   })).filter((g) => g.assets.length > 0);
 }
@@ -52,6 +50,7 @@ export function SimulationAssetFilter({
   className,
   mode = "real",
 }: SimulationAssetFilterProps) {
+  const { t, locale } = useTranslation();
   const realPortfolio = useAppStore((s) => s.portfolio);
   const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
   const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
@@ -74,7 +73,10 @@ export function SimulationAssetFilter({
   const panelRef = useRef<HTMLDivElement>(null);
 
   const includedSet = useMemo(() => new Set(includedIds), [includedIds]);
-  const groups = useMemo(() => groupByClass(portfolio), [portfolio]);
+  const groups = useMemo(
+    () => groupByClass(portfolio, locale),
+    [portfolio, locale]
+  );
 
   const totalValue = calculatePortfolioValue(portfolio);
   const filteredValue = calculatePortfolioValue(
@@ -96,10 +98,20 @@ export function SimulationAssetFilter({
   const applyPreset = (presetId: ScopePresetId) => {
     const ids = applyScopePreset(portfolio, presetId);
     setIncludedIds(ids);
-    toast.success(`Scope: ${SCOPE_PRESETS[presetId].label}`, {
-      description: `${ids.length} of ${portfolio.length} assets included.`,
-    });
+    toast.success(
+      t("simulation.scope.toastTitle", {
+        label: getScopePresetLabel(locale, presetId),
+      }),
+      {
+        description: t("simulation.scope.toastDesc", {
+          included: ids.length,
+          total: portfolio.length,
+        }),
+      }
+    );
   };
+
+  const presetIds: ScopePresetId[] = ["all", "investmentsOnly", "liquidMarkets"];
 
   return (
     <div ref={panelRef} className={`sim-asset-filter ${className ?? ""}`}>
@@ -111,9 +123,11 @@ export function SimulationAssetFilter({
         aria-haspopup="dialog"
       >
         <Filter className="w-3.5 h-3.5" size={14} />
-        <span>Asset scope</span>
+        <span>{t("simulation.scope.trigger")}</span>
         {isFiltered && (
-          <span className="sim-asset-filter-badge">{excludedCount} off</span>
+          <span className="sim-asset-filter-badge">
+            {t("simulation.scope.offBadge", { n: excludedCount })}
+          </span>
         )}
       </button>
 
@@ -122,7 +136,7 @@ export function SimulationAssetFilter({
           <motion.div
             className="sim-asset-filter-panel"
             role="dialog"
-            aria-label="Simulation asset scope"
+            aria-label={t("simulation.scope.ariaLabel")}
             initial={{ opacity: 0, y: -8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
@@ -131,17 +145,17 @@ export function SimulationAssetFilter({
             <div className="sim-asset-filter-header">
               <div>
                 <h4 className="text-sm font-bold text-foreground">
-                  Projection scope
+                  {t("simulation.scope.title")}
                 </h4>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Choose which holdings feed the chart and Monte Carlo
+                  {t("simulation.scope.subtitle")}
                 </p>
               </div>
               <button
                 type="button"
                 className="btn-ghost p-1.5"
                 onClick={() => setOpen(false)}
-                aria-label="Close"
+                aria-label={t("common.close")}
               >
                 <X className="w-4 h-4" size={16} />
               </button>
@@ -152,22 +166,27 @@ export function SimulationAssetFilter({
                 {formatCurrencyValue(filteredValue, currency, true)}
               </span>
               <span className="text-muted-foreground">
-                of {formatCurrencyValue(totalValue, currency, true)} portfolio
+                {t("simulation.scope.ofPortfolio", {
+                  amount: formatCurrencyValue(totalValue, currency, true),
+                })}
               </span>
               <span className="sim-asset-filter-count">
-                {includedIds.length}/{portfolio.length} assets
+                {t("simulation.scope.assetCount", {
+                  included: includedIds.length,
+                  total: portfolio.length,
+                })}
               </span>
             </div>
 
             <div className="sim-asset-filter-presets">
-              {(Object.keys(SCOPE_PRESETS) as ScopePresetId[]).map((id) => (
+              {presetIds.map((id) => (
                 <button
                   key={id}
                   type="button"
                   className="sim-asset-filter-preset"
                   onClick={() => applyPreset(id)}
                 >
-                  {SCOPE_PRESETS[id].label}
+                  {getScopePresetLabel(locale, id)}
                 </button>
               ))}
             </div>

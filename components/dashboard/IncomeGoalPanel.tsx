@@ -7,6 +7,8 @@ import {
   analyzeIncomeGap,
   computeSuggestedMonthlyIncome,
 } from "@/lib/incomeGoals";
+import { getIncomeStatusKey } from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCY_SYMBOLS, formatCurrencyValue } from "@/types";
 
@@ -19,6 +21,7 @@ export function IncomeGoalPanel({
   projectedPortfolio,
   mode = "real",
 }: IncomeGoalPanelProps) {
+  const { t } = useTranslation();
   const realKpis = useAppStore((s) => s.kpis);
   const simKpis = useAppStore((s) => s.simPlayground.kpis);
   const kpis = mode === "playground" ? simKpis : realKpis;
@@ -55,18 +58,18 @@ export function IncomeGoalPanel({
       <div className="income-goal-header">
         <Sparkles className="w-4 h-4 text-accent" size={16} />
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Retirement income
+          {t("income.section")}
         </span>
       </div>
 
       <div className="income-goal-columns">
         <div className="income-goal-col">
-          <p className="income-goal-label">Suggested by app</p>
+          <p className="income-goal-label">{t("income.suggested")}</p>
           <p className="income-goal-value tabular-nums">
             {formatCurrencyValue(suggested, currency)}
-            <span className="income-goal-period">/mo</span>
+            <span className="income-goal-period">{t("common.perMonth")}</span>
           </p>
-          <p className="income-goal-hint">4% rule on projected portfolio</p>
+          <p className="income-goal-hint">{t("income.suggestedHint")}</p>
         </div>
 
         <div className="income-goal-divider" aria-hidden="true">
@@ -76,7 +79,7 @@ export function IncomeGoalPanel({
         <div className="income-goal-col income-goal-col--editable">
           <p className="income-goal-label flex items-center gap-1">
             <Target className="w-3 h-3" size={12} />
-            Your goal
+            {t("income.yourGoal")}
           </p>
           <div className="income-goal-editable">
             <EditableNumber
@@ -91,9 +94,9 @@ export function IncomeGoalPanel({
               compact
               inputClassName="text-lg sm:text-xl font-bold bg-transparent"
             />
-            <span className="income-goal-period">/mo</span>
+            <span className="income-goal-period">{t("common.perMonth")}</span>
           </div>
-          <p className="income-goal-hint">Tap to set your target lifestyle</p>
+          <p className="income-goal-hint">{t("income.goalHint")}</p>
         </div>
       </div>
 
@@ -102,10 +105,10 @@ export function IncomeGoalPanel({
           <span
             className={`text-xs font-semibold ${statusColors[analysis.status]}`}
           >
-            {analysis.statusLabel}
+            {t(getIncomeStatusKey(analysis))}
           </span>
           <span className="text-xs text-muted-foreground tabular-nums">
-            {analysis.progressPct}% of goal
+            {t("income.progressOfGoal", { n: analysis.progressPct })}
           </span>
         </div>
         <div className="income-goal-bar-track">
@@ -118,20 +121,16 @@ export function IncomeGoalPanel({
         </div>
         {kpis.desiredMonthlyIncome > 0 && analysis.gap > 0 && (
           <p className="text-[11px] text-muted-foreground mt-2">
-            Shortfall of{" "}
-            <span className="text-foreground font-semibold tabular-nums">
-              {formatCurrencyValue(analysis.gap, currency)}
-            </span>
-            /mo at retirement based on current projection
+            {t("income.shortfall", {
+              amount: formatCurrencyValue(analysis.gap, currency),
+            })}
           </p>
         )}
         {analysis.gap < 0 && (
           <p className="text-[11px] text-green-400/90 mt-2">
-            Surplus of{" "}
-            <span className="font-semibold tabular-nums">
-              {formatCurrencyValue(Math.abs(analysis.gap), currency)}
-            </span>
-            /mo above your goal
+            {t("income.surplus", {
+              amount: formatCurrencyValue(Math.abs(analysis.gap), currency),
+            })}
           </p>
         )}
       </div>

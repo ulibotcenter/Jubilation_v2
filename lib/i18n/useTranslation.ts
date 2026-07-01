@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { t, type AppLocale, type MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -8,8 +8,15 @@ export function useTranslation() {
   const locale = useAppStore((s) => s.locale) as AppLocale;
   const explainSimple = useAppStore((s) => s.explainSimple);
 
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = locale;
+    }
+  }, [locale]);
+
   const translate = useCallback(
-    (key: MessageKey) => t(locale, key, explainSimple),
+    (key: MessageKey, params?: Record<string, string | number>) =>
+      t(locale, key, { simple: explainSimple, params }),
     [locale, explainSimple]
   );
 

@@ -2,18 +2,25 @@
 
 import { LayoutDashboard, Briefcase, FlaskConical, Waves, Settings } from "lucide-react";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import type { NavItemId } from "@/types";
 
-const ITEMS: { id: NavItemId; icon: typeof LayoutDashboard; label: string }[] = [
-  { id: "dashboard", icon: LayoutDashboard, label: "Home" },
-  { id: "portfolio", icon: Briefcase, label: "Portfolio" },
-  { id: "simulation", icon: FlaskConical, label: "Sim" },
-  { id: "cashflow", icon: Waves, label: "Flow" },
-  { id: "settings", icon: Settings, label: "Settings" },
+const ITEMS: {
+  id: NavItemId;
+  icon: typeof LayoutDashboard;
+  labelKey: MessageKey;
+}[] = [
+  { id: "dashboard", icon: LayoutDashboard, labelKey: "nav.mobile.home" },
+  { id: "portfolio", icon: Briefcase, labelKey: "nav.portfolio" },
+  { id: "simulation", icon: FlaskConical, labelKey: "nav.mobile.sim" },
+  { id: "cashflow", icon: Waves, labelKey: "nav.mobile.flow" },
+  { id: "settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
 export function BottomNav() {
+  const { t } = useTranslation();
   const navigate = useAppNavigation();
   const activeNav = useAppStore((s) => s.activeNav);
   const presentationMode = useAppStore((s) => s.presentationMode);
@@ -21,7 +28,7 @@ export function BottomNav() {
   if (presentationMode) return null;
 
   return (
-    <nav className="bottom-nav" aria-label="Mobile navigation">
+    <nav className="bottom-nav" aria-label={t("nav.aria.mobile")}>
       {ITEMS.map((item) => {
         const Icon = item.icon;
         return (
@@ -33,7 +40,7 @@ export function BottomNav() {
             onClick={() => navigate(item.id)}
           >
             <Icon className="w-5 h-5" size={20} />
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </button>
         );
       })}

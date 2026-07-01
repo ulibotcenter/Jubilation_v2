@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -21,6 +22,7 @@ export function Logo({
   collapsed = false,
   className = "",
 }: LogoProps) {
+  const { t } = useTranslation();
   const s = SIZES[size];
 
   if (collapsed) {
@@ -50,11 +52,11 @@ export function Logo({
       </motion.div>
       <div className="min-w-0 logo-text-wrap">
         <p className={`${s.title} font-bold tracking-tight leading-none`}>
-          <span className="gradient-text">Jubilation</span>
+          <span className="gradient-text">{t("app.name")}</span>
         </p>
         {showTagline && (
           <p className={`${s.tagline} text-muted-foreground mt-0.5 truncate`}>
-            Retirement Planning
+            {t("app.tagline")}
           </p>
         )}
       </div>

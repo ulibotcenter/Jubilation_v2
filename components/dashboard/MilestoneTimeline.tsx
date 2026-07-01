@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Flag, MapPin, Target } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface MilestoneTimelineProps {
   currentAge: number;
@@ -14,14 +15,15 @@ export function MilestoneTimeline({
   retirementAge,
   journeyProgress,
 }: MilestoneTimelineProps) {
+  const { t } = useTranslation();
   const midpoint = Math.round((currentAge + retirementAge) / 2);
   const atMidpoint = journeyProgress >= 50;
 
   const milestones = [
     {
       id: "today",
-      label: "Today",
-      sub: `Age ${currentAge}`,
+      label: t("hero.milestones.today"),
+      sub: t("hero.milestones.age", { n: currentAge }),
       icon: MapPin,
       position: 0,
       done: true,
@@ -29,8 +31,8 @@ export function MilestoneTimeline({
     },
     {
       id: "mid",
-      label: "Midpoint",
-      sub: `Age ${midpoint}`,
+      label: t("hero.milestones.midpoint"),
+      sub: t("hero.milestones.age", { n: midpoint }),
       icon: Target,
       position: 50,
       done: atMidpoint,
@@ -38,8 +40,8 @@ export function MilestoneTimeline({
     },
     {
       id: "retire",
-      label: "Retirement",
-      sub: `Age ${retirementAge}`,
+      label: t("hero.milestones.retirement"),
+      sub: t("hero.milestones.age", { n: retirementAge }),
       icon: Flag,
       position: 100,
       done: journeyProgress >= 100,
@@ -50,7 +52,7 @@ export function MilestoneTimeline({
   return (
     <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0 border-t border-border/60">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-        Life Milestones
+        {t("hero.milestones.title")}
       </p>
 
       <div className="relative">

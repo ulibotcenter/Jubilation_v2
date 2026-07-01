@@ -3,9 +3,15 @@
 import { useMemo, useState } from "react";
 import { HelpCircle, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import {
+  getHelpGroupDescription,
+  getHelpGroupTitle,
+} from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { HELP_GLOSSARY } from "@/lib/helpGlossary";
 
 export function HelpPageContent() {
+  const { t, locale } = useTranslation();
   const [query, setQuery] = useState("");
   const [activeGroup, setActiveGroup] = useState<string>("all");
 
@@ -32,8 +38,8 @@ export function HelpPageContent() {
     <div className="secondary-page">
       <PageHeader
         icon={HelpCircle}
-        title="Help"
-        description="Field glossary for dashboard assumptions, portfolio, and simulation."
+        title={t("help.title")}
+        description={t("help.pageDescription")}
       />
 
       <div className="help-toolbar">
@@ -46,7 +52,7 @@ export function HelpPageContent() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search fields…"
+            placeholder={t("help.searchPlaceholder")}
             className="search-input"
           />
         </div>
@@ -57,7 +63,7 @@ export function HelpPageContent() {
             data-active={activeGroup === "all" ? "true" : "false"}
             onClick={() => setActiveGroup("all")}
           >
-            All
+            {t("common.all")}
           </button>
           {HELP_GLOSSARY.map((g) => (
             <button
@@ -67,38 +73,37 @@ export function HelpPageContent() {
               data-active={activeGroup === g.id ? "true" : "false"}
               onClick={() => setActiveGroup(g.id)}
             >
-              {g.title}
+              {getHelpGroupTitle(locale, g.id)}
             </button>
           ))}
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground mb-4">
-        {totalEntries} field{totalEntries === 1 ? "" : "s"} shown
+        {totalEntries === 1
+          ? t("help.fieldsShownOne", { n: totalEntries })
+          : t("help.fieldsShown", { n: totalEntries })}
       </p>
 
       {filtered.length === 0 ? (
         <div className="help-empty">
-          <p className="text-sm text-muted-foreground">
-            No fields match your search. Try &quot;CAGR&quot;, &quot;Monte
-            Carlo&quot;, or &quot;P&amp;L&quot;.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("help.emptyHints")}</p>
         </div>
       ) : (
         <div className="help-sections">
           {filtered.map((group) => (
             <section key={group.id} className="help-section-card">
               <div className="help-section-head">
-                <h2>{group.title}</h2>
-                <p>{group.description}</p>
+                <h2>{getHelpGroupTitle(locale, group.id)}</h2>
+                <p>{getHelpGroupDescription(locale, group.id)}</p>
               </div>
               <div className="data-table-wrapper">
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Field</th>
-                      <th>What it means</th>
-                      <th className="hidden md:table-cell">Where</th>
+                      <th>{t("help.table.field")}</th>
+                      <th>{t("help.table.meaning")}</th>
+                      <th className="hidden md:table-cell">{t("help.table.where")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -123,8 +128,7 @@ export function HelpPageContent() {
 
       <div className="help-contact-note mt-8">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          In-app email support is planned for a future update. Export your plan
-          from Settings to share with an advisor.
+          {t("help.contactNote")}
         </p>
       </div>
     </div>

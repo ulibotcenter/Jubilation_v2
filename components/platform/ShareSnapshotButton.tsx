@@ -29,11 +29,11 @@ export function ShareSnapshotButton() {
     });
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copied for social", {
-        description: "Paste on LinkedIn, X, or WhatsApp.",
+      toast.success(t("toast.share.success"), {
+        description: t("toast.share.successDesc"),
       });
     } catch {
-      toast.error("Could not copy");
+      toast.error(t("toast.share.error"));
     }
   };
 

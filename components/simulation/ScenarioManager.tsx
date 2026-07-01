@@ -2,10 +2,12 @@
 
 import { BookmarkPlus, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { canAccess } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
 
 export function ScenarioManager() {
+  const { t } = useTranslation();
   const plan = useAppStore((s) => s.planTier);
   const scenarios = useAppStore((s) => s.savedScenarios);
   const saveScenario = useAppStore((s) => s.saveNamedScenario);
@@ -15,7 +17,7 @@ export function ScenarioManager() {
   if (!canAccess(plan, "named_scenarios")) {
     return (
       <p className="text-xs text-muted-foreground">
-        Named scenarios — Premium. Save sandbox snapshots to compare later.
+        {t("simulation.scenarios.locked")}
       </p>
     );
   }
@@ -29,13 +31,14 @@ export function ScenarioManager() {
           onClick={() => {
             const name = `Scenario ${scenarios.length + 1}`;
             saveScenario(name);
-            toast.success(`Saved "${name}"`);
+            toast.success(t("toast.scenarios.saved", { name }));
           }}
         >
-          <BookmarkPlus className="w-3.5 h-3.5" size={14} /> Save scenario
+          <BookmarkPlus className="w-3.5 h-3.5" size={14} />{" "}
+          {t("simulation.scenarios.save")}
         </button>
         <button type="button" className="btn-secondary text-xs" onClick={undoSim}>
-          Undo last change
+          {t("simulation.scenarios.undo")}
         </button>
       </div>
       {scenarios.length > 0 && (
@@ -47,7 +50,7 @@ export function ScenarioManager() {
                 className="scenario-load-btn"
                 onClick={() => {
                   loadScenario(s.id);
-                  toast.info(`Loaded "${s.name}"`);
+                  toast.info(t("toast.scenarios.loaded", { name: s.name }));
                 }}
               >
                 <FolderOpen className="w-3.5 h-3.5" size={14} />

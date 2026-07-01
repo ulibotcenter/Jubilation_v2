@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Table2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrencyValue, type ProjectionYear } from "@/types";
-
-// i18n-ready: labels → future next-intl keys (simulation.table.*)
 
 type TableRow =
   | { kind: "data"; row: ProjectionYear }
@@ -89,6 +88,7 @@ interface ProjectionTableProps {
 }
 
 export function ProjectionTable({ mode = "real" }: ProjectionTableProps) {
+  const { t } = useTranslation();
   const realProjections = useAppStore((s) => s.projections);
   const simProjections = useAppStore((s) => s.simPlayground.projections);
   const projections = mode === "playground" ? simProjections : realProjections;
@@ -129,10 +129,10 @@ export function ProjectionTable({ mode = "real" }: ProjectionTableProps) {
         </div>
         <div>
           <h3 className="text-base sm:text-lg font-bold text-foreground">
-            Year-by-Year Projection
+            {t("simulation.table.title")}
           </h3>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Nominal and inflation-adjusted values each year
+            {t("simulation.table.subtitle")}
           </p>
         </div>
       </div>
@@ -143,12 +143,16 @@ export function ProjectionTable({ mode = "real" }: ProjectionTableProps) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Year</th>
-              <th>Age</th>
-              <th>Portfolio</th>
-              <th className="hidden sm:table-cell">Contributions</th>
-              <th className="hidden sm:table-cell">Returns</th>
-              <th>Real Value</th>
+              <th>{t("simulation.table.column.year")}</th>
+              <th>{t("simulation.table.column.age")}</th>
+              <th>{t("simulation.table.column.portfolio")}</th>
+              <th className="hidden sm:table-cell">
+                {t("simulation.table.column.contributions")}
+              </th>
+              <th className="hidden sm:table-cell">
+                {t("simulation.table.column.returns")}
+              </th>
+              <th>{t("simulation.table.column.realValue")}</th>
             </tr>
           </thead>
           <tbody>
@@ -157,8 +161,11 @@ export function ProjectionTable({ mode = "real" }: ProjectionTableProps) {
                 <tr key={`gap-${i}`} className="projection-table-gap">
                   <td colSpan={6}>
                     <span className="projection-table-gap-label">
-                      ··· {entry.hiddenCount} more year
-                      {entry.hiddenCount === 1 ? "" : "s"} ···
+                      {entry.hiddenCount === 1
+                        ? t("simulation.table.moreYearsOne")
+                        : t("simulation.table.moreYears", {
+                            n: entry.hiddenCount,
+                          })}
                     </span>
                   </td>
                 </tr>
@@ -187,8 +194,10 @@ export function ProjectionTable({ mode = "real" }: ProjectionTableProps) {
             aria-expanded={expanded}
           >
             {expanded
-              ? "Show key years only"
-              : `Show all ${projections.length} years`}
+              ? t("simulation.table.showKeyYears")
+              : t("simulation.table.showAllYears", {
+                  n: projections.length,
+                })}
             <ChevronDown
               className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`}
               size={16}

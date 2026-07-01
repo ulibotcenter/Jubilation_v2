@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { formatCurrencyValue, type Currency } from "@/types";
 
 interface CashFlowTooltipProps {
@@ -15,6 +16,8 @@ export function CashFlowTooltip({
   label,
   currency,
 }: CashFlowTooltipProps) {
+  const { t } = useTranslation();
+
   if (!active || !payload?.length) return null;
 
   const byKey = Object.fromEntries(
@@ -26,21 +29,42 @@ export function CashFlowTooltip({
   const required = expenses + invested;
 
   const rows = [
-    { label: "Living expenses", value: expenses, color: "#f87171" },
-    { label: "Invested", value: invested, color: "#22c55e" },
-    { label: "Income need", value: required, color: "#ff7040", bold: true },
-    { label: "Market returns", value: returns, color: "#60a5fa" },
+    {
+      key: "expenses",
+      label: t("chart.cashflow.living"),
+      value: expenses,
+      color: "#f87171",
+    },
+    {
+      key: "invested",
+      label: t("chart.cashflow.invested"),
+      value: invested,
+      color: "#22c55e",
+    },
+    {
+      key: "required",
+      label: t("chart.tooltip.incomeNeed"),
+      value: required,
+      color: "#ff7040",
+      bold: true,
+    },
+    {
+      key: "returns",
+      label: t("chart.cashflow.returns"),
+      value: returns,
+      color: "#60a5fa",
+    },
   ].filter((r) => r.value > 0 || r.bold);
 
   return (
     <div className="rounded-xl border border-border bg-surface-elevated/95 backdrop-blur-md px-3.5 py-2.5 shadow-lg min-w-[11rem]">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-        Age {label}
+        {t("chart.tooltip.age", { n: label ?? "" })}
       </p>
       <div className="space-y-1.5">
         {rows.map((row) => (
           <div
-            key={row.label}
+            key={row.key}
             className="flex items-center justify-between gap-4 text-xs"
           >
             <span className="flex items-center gap-1.5 text-muted-foreground">

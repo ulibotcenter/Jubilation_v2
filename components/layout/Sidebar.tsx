@@ -80,7 +80,7 @@ export function Sidebar() {
             type="button"
             className="btn-ghost p-2"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Close navigation menu"
+            aria-label={t("nav.aria.closeMenu")}
           >
             <X className="w-5 h-5" size={20} />
           </button>
@@ -114,7 +114,7 @@ export function Sidebar() {
 
         <div className="sidebar-footer">
           <p className="text-[10px] text-muted-foreground leading-relaxed px-1">
-            Jubilation V2 Beta · v0.1.0
+            {t("app.version")}
           </p>
 
         </div>

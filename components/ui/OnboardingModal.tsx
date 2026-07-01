@@ -12,10 +12,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
-
-// i18n-ready: all strings below → future next-intl keys (onboarding.*)
 
 const STEP_VARIANTS = {
   enter: (direction: number) => ({
@@ -32,13 +31,8 @@ const STEP_VARIANTS = {
   }),
 };
 
-const DISCLAIMER_TEXT = `Jubilation is an educational retirement planning tool. It does not provide financial, investment, tax, or legal advice. All projections, simulations, and Monte Carlo results are hypothetical estimates based on assumptions you provide — they are not guarantees of future performance.
-
-Past performance does not predict future results. Markets are volatile. Inflation, taxes, fees, and personal circumstances can materially change outcomes. You should consult a qualified financial advisor before making investment or retirement decisions.
-
-By continuing, you acknowledge that you understand these limitations and agree to use Jubilation for informational purposes only.`;
-
 export function OnboardingModal() {
+  const { t } = useTranslation();
   const onboarding = useAppStore((s) => s.onboarding);
   const currency = useAppStore((s) => s.currency);
   const setCurrency = useAppStore((s) => s.setCurrency);
@@ -63,15 +57,15 @@ export function OnboardingModal() {
     }
 
     if (!disclaimerAccepted) {
-      toast.error("Please accept the disclaimer to continue", {
-        description: "You must acknowledge the terms before using Jubilation.",
+      toast.error(t("toast.onboarding.acceptDisclaimer"), {
+        description: t("toast.onboarding.acceptDisclaimerDesc"),
       });
       return;
     }
 
     completeOnboarding();
-    toast.success("You're all set!", {
-      description: `Dashboard ready in ${currency}. Edit assumptions anytime — we'll recalculate instantly.`,
+    toast.success(t("toast.onboarding.complete"), {
+      description: t("toast.onboarding.completeDesc", { currency }),
     });
   }, [
     currentStep,
@@ -79,6 +73,7 @@ export function OnboardingModal() {
     currency,
     setOnboardingStep,
     completeOnboarding,
+    t,
   ]);
 
   const handleBack = useCallback(() => {
@@ -111,10 +106,10 @@ export function OnboardingModal() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted">
-                  Jubilation V2
+                  {t("onboarding.brand")}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Step {currentStep} of 2 · ~30 seconds
+                  {t("onboarding.step", { current: currentStep, total: 2 })}
                 </p>
               </div>
             </div>
@@ -151,11 +146,10 @@ export function OnboardingModal() {
                   id="onboarding-title"
                   className="text-xl font-bold text-foreground sm:text-2xl"
                 >
-                  Welcome — pick your currency
+                  {t("onboarding.step1.title")}
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  We&apos;ll format all portfolio values and projections in this
-                  currency. You can switch anytime from the header.
+                  {t("onboarding.step1.desc")}
                 </p>
               </motion.div>
             ) : (
@@ -172,11 +166,10 @@ export function OnboardingModal() {
                   id="onboarding-title"
                   className="text-xl font-bold text-foreground sm:text-2xl"
                 >
-                  One last step — please read carefully
+                  {t("onboarding.step2.title")}
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Jubilation is a planning tool, not a financial advisor. Your
-                  agreement below is required to continue.
+                  {t("onboarding.step2.desc")}
                 </p>
               </motion.div>
             )}
@@ -251,9 +244,7 @@ export function OnboardingModal() {
                     size={16}
                   />
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Currency affects display formatting only. Exchange rate
-                    conversion is not applied in this beta — all mock data uses
-                    the selected symbol.
+                    {t("onboarding.currencyNote")}
                   </p>
                 </div>
               </motion.div>
@@ -276,10 +267,10 @@ export function OnboardingModal() {
                   />
                   <div>
                     <p className="text-sm font-semibold text-yellow-500">
-                      Not financial advice
+                      {t("onboarding.warning.title")}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      Jubilation is for educational and planning purposes only.
+                      {t("onboarding.warning.desc")}
                     </p>
                   </div>
                 </div>
@@ -288,7 +279,7 @@ export function OnboardingModal() {
                 <div className="relative">
                   <div className="max-h-48 overflow-y-auto rounded-xl border border-border bg-surface p-4 sm:max-h-52">
                     <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
-                      {DISCLAIMER_TEXT}
+                      {t("onboarding.disclaimer")}
                     </p>
                   </div>
                   <div
@@ -334,9 +325,7 @@ export function OnboardingModal() {
                     id="disclaimer-checkbox-label"
                     className="text-sm text-foreground leading-relaxed select-none"
                   >
-                    I have read and understand the disclaimer. I acknowledge that
-                    Jubilation does not provide financial advice and that all
-                    projections are estimates only.
+                    {t("onboarding.checkbox")}
                   </span>
                 </label>
 
@@ -346,9 +335,7 @@ export function OnboardingModal() {
                     size={16}
                   />
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Your preferences are saved locally in your browser. No account
-                    required for this beta.
-                    {/* TODO: Supabase Auth — sync onboarding state post-login */}
+                    {t("onboarding.privacy")}
                   </p>
                 </div>
               </motion.div>
@@ -365,10 +352,10 @@ export function OnboardingModal() {
               type="button"
               onClick={handleBack}
               className="btn-ghost"
-              aria-label="Go back to currency selection"
+              aria-label={t("onboarding.backAria")}
             >
               <ArrowLeft className="w-4 h-4" size={16} />
-              <span>Back</span>
+              <span>{t("common.back")}</span>
             </button>
           ) : (
             <div />
@@ -381,11 +368,15 @@ export function OnboardingModal() {
             className="btn-primary"
             aria-label={
               currentStep === 1
-                ? "Continue to disclaimer"
-                : "Accept and start using Jubilation"
+                ? t("onboarding.continueAria")
+                : t("onboarding.getStartedAria")
             }
           >
-            <span>{currentStep === 1 ? "Continue" : "Get Started"}</span>
+            <span>
+              {currentStep === 1
+                ? t("onboarding.continue")
+                : t("onboarding.getStarted")}
+            </span>
             <ArrowRight className="w-4 h-4" size={16} />
           </button>
         </div>

@@ -13,10 +13,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/common/Logo";
+import { LocaleThemeControls } from "@/components/platform/LocaleThemeControls";
 import { exportRetirementReport } from "@/lib/exportReport";
 import { getCrossRate } from "@/lib/fx/convert";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { PLAN_LABELS } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
 
@@ -67,12 +68,16 @@ export function Topbar() {
     try {
       const snapshot = await changeCurrency(code);
       const rate = getCrossRate(previous, code, snapshot.rates);
-      toast.success(`Currency switched to ${code}`, {
-        description: `Live rate · 1 ${previous} = ${rate.toFixed(4)} ${code}`,
+      toast.success(t("toast.currency.success", { code }), {
+        description: t("toast.currency.rate", {
+          from: previous,
+          rate: rate.toFixed(4),
+          to: code,
+        }),
       });
     } catch {
-      toast.error("Currency conversion failed", {
-        description: "Could not fetch live rates. Try again shortly.",
+      toast.error(t("toast.currency.error"), {
+        description: t("toast.currency.errorDesc"),
       });
     }
   };
@@ -97,17 +102,20 @@ export function Topbar() {
         stressTestResults: state.stressTestResults,
         user: state.user,
       });
-      toast.success("Report exported", {
-        description: `Downloaded ${csvFilename} and ${jsonFilename}.`,
+      toast.success(t("toast.export.success"), {
+        description: t("toast.export.successDesc", {
+          csv: csvFilename,
+          json: jsonFilename,
+        }),
       });
     } catch {
-      toast.error("Export failed", {
-        description: "Please try again in a moment.",
+      toast.error(t("toast.export.error"), {
+        description: t("toast.export.errorDesc"),
       });
     } finally {
       setExporting(false);
     }
-  }, [setExporting]);
+  }, [setExporting, t]);
 
   return (
     <header className="topbar">
@@ -117,7 +125,7 @@ export function Topbar() {
           type="button"
           className="btn-ghost p-2 topbar-menu-btn"
           onClick={() => setSidebarOpen(true)}
-          aria-label="Open navigation menu"
+          aria-label={t("nav.aria.openMenu")}
         >
           <Menu className="w-5 h-5" size={20} />
         </button>
@@ -126,6 +134,8 @@ export function Topbar() {
 
       {/* Right: actions */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <LocaleThemeControls />
+
         {/* Currency dropdown */}
         <div ref={currencyRef} className="relative">
           <button
@@ -196,10 +206,12 @@ export function Topbar() {
           onClick={handleExport}
           disabled={isExporting}
           className="btn-ghost hidden sm:inline-flex gap-1.5"
-          aria-label="Export report"
+          aria-label={t("export.report")}
         >
           <Download className="w-4 h-4" size={16} />
-          <span>{isExporting ? "Exporting…" : "Export"}</span>
+          <span>
+            {isExporting ? t("settings.export.exporting") : t("export.label")}
+          </span>
         </button>
 
         {/* Upgrade — TODO: Stripe + Supabase */}
@@ -207,7 +219,7 @@ export function Topbar() {
           type="button"
           onClick={handleUpgrade}
           className="btn-upgrade"
-          aria-label="View plans"
+          aria-label={t("nav.upgrade")}
         >
           <Sparkles className="w-3.5 h-3.5" size={14} />
           <span>{t("nav.upgrade")}</span>
@@ -242,7 +254,9 @@ export function Topbar() {
                     {user.email}
                   </p>
                   <span className="inline-flex mt-1.5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-accent/15 text-accent">
-                    {PLAN_LABELS[planTier]} plan
+                    {t("plan.currentBadge", {
+                      plan: t(`plan.${planTier}` as MessageKey),
+                    })}
                   </span>
                 </div>
                 <button
@@ -254,7 +268,7 @@ export function Topbar() {
                   }}
                 >
                   <Download className="w-4 h-4" size={16} />
-                  Export Report
+                  {t("export.report")}
                 </button>
                 <button
                   type="button"
@@ -265,7 +279,7 @@ export function Topbar() {
                   }}
                 >
                   <Sparkles className="w-4 h-4" size={16} />
-                  Upgrade to Pro
+                  {t("nav.upgrade")}
                 </button>
               </motion.div>
             )}

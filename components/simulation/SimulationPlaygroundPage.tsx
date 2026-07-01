@@ -13,9 +13,11 @@ import { PlaygroundDiffPanel } from "@/components/simulation/PlaygroundDiffPanel
 import { PlaygroundSummaryStrip } from "@/components/simulation/PlaygroundSummaryStrip";
 import { ScenarioManager } from "@/components/simulation/ScenarioManager";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 
 export function SimulationPlaygroundPage() {
+  const { t } = useTranslation();
   const sim = useAppStore((s) => s.simPlayground);
   const currency = useAppStore((s) => s.currency);
   const copyPortfolioToSimulation = useAppStore(
@@ -34,9 +36,8 @@ export function SimulationPlaygroundPage() {
 
   const handleReset = () => {
     copyPortfolioToSimulation();
-    toast.success("Reset to real portfolio", {
-      description:
-        "Playground restored from your current holdings and assumptions.",
+    toast.success(t("simulation.playground.reset"), {
+      description: t("toast.playground.reset"),
     });
   };
 
@@ -44,10 +45,10 @@ export function SimulationPlaygroundPage() {
     <div className="secondary-page space-y-6">
       <PageHeader
         icon={FlaskConical}
-        title="Simulation Playground"
-        description="Pre-filled from your real portfolio. Your sandbox persists between sessions until you reset."
+        title={t("simulation.playground.title")}
+        description={t("simulation.playground.description")}
         backHref="/"
-        backLabel="Back to dashboard"
+        backLabel={t("common.backToDashboard")}
       />
 
       <motion.div
@@ -57,15 +58,17 @@ export function SimulationPlaygroundPage() {
       >
         <div className="playground-badge">
           <FlaskConical className="w-3.5 h-3.5" size={14} />
-          Sandbox mode
+          {t("simulation.playground.badge")}
           {sim.copiedAt && (
             <span className="text-muted-foreground font-normal">
-              · synced{" "}
-              {new Date(sim.copiedAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
+              ·{" "}
+              {t("simulation.playground.synced", {
+                date: new Date(sim.copiedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
               })}
             </span>
           )}
@@ -76,7 +79,7 @@ export function SimulationPlaygroundPage() {
           onClick={handleReset}
         >
           <RotateCcw className="w-4 h-4" size={16} />
-          Reset to real portfolio
+          {t("simulation.playground.reset")}
         </button>
       </motion.div>
 
@@ -84,8 +87,11 @@ export function SimulationPlaygroundPage() {
 
       <PlaygroundDiffPanel />
 
-      <section aria-label="Named scenarios" className="card-surface p-4">
-        <h3 className="text-sm font-bold mb-2">Saved scenarios</h3>
+      <section
+        aria-label={t("simulation.scenarios.title")}
+        className="card-surface p-4"
+      >
+        <h3 className="text-sm font-bold mb-2">{t("simulation.scenarios.title")}</h3>
         <ScenarioManager />
       </section>
 
@@ -102,8 +108,11 @@ export function SimulationPlaygroundPage() {
 
       <ProjectionChartCard
         mode="playground"
-        title="Simulated projection"
-        subtitle={`Playground growth from age ${sim.kpis.currentAge} to ${sim.kpis.retirementAge}`}
+        title={t("simulation.playground.projectionTitle")}
+        subtitle={t("simulation.playground.projectionSubtitle", {
+          from: sim.kpis.currentAge,
+          to: sim.kpis.retirementAge,
+        })}
         chartData={sim.chartData}
         projections={sim.projections}
         kpis={sim.kpis}
@@ -115,10 +124,10 @@ export function SimulationPlaygroundPage() {
       <section id="playground-portfolio" className="scroll-mt-6">
         <div className="flex items-center justify-between mb-3 px-0.5">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Playground Portfolio
+            {t("simulation.playground.portfolioTitle")}
           </h2>
           <p className="text-[10px] text-muted hidden sm:block">
-            Changes here do not affect your real holdings
+            {t("simulation.playground.portfolioHint")}
           </p>
         </div>
         <div className="card-surface p-4 sm:p-6">

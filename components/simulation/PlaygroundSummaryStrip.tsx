@@ -11,10 +11,12 @@ import {
   Wallet,
 } from "lucide-react";
 import { computeFITargetFromDesired } from "@/lib/incomeGoals";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrencyValue } from "@/types";
 
 export function PlaygroundSummaryStrip() {
+  const { t } = useTranslation();
   const sim = useAppStore((s) => s.simPlayground);
   const currency = useAppStore((s) => s.currency);
 
@@ -44,17 +46,17 @@ export function PlaygroundSummaryStrip() {
   const metrics = [
     {
       icon: TrendingUp,
-      label: "FI target",
+      label: t("hero.metric.fiTarget"),
       value: formatCurrencyValue(target, currency, true),
     },
     {
       icon: Wallet,
-      label: "Projected",
+      label: t("hero.metric.projected"),
       value: formatCurrencyValue(projectedValue, currency, true),
     },
     {
       icon: Calendar,
-      label: "Timeline",
+      label: t("hero.metric.timeline"),
       value: `${yearsLeft}y`,
     },
   ];
@@ -64,7 +66,7 @@ export function PlaygroundSummaryStrip() {
       className="playground-summary-strip"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      aria-label="Playground scenario summary"
+      aria-label={t("simulation.playground.readiness")}
     >
       <div className="playground-summary-main">
         <div className="playground-summary-score" data-on-track={onTrack}>
@@ -72,11 +74,13 @@ export function PlaygroundSummaryStrip() {
           <span className="playground-summary-score-value tabular-nums">
             {score}
           </span>
-          <span className="playground-summary-score-caption">Score</span>
+          <span className="playground-summary-score-caption">{t("hero.score")}</span>
         </div>
 
         <div className="playground-summary-copy">
-          <p className="playground-summary-title">Scenario readiness</p>
+          <p className="playground-summary-title">
+            {t("simulation.playground.readiness")}
+          </p>
           <div
             className={`playground-summary-status ${
               onTrack
@@ -89,13 +93,17 @@ export function PlaygroundSummaryStrip() {
             ) : (
               <AlertCircle className="w-3.5 h-3.5" size={14} />
             )}
-            {onTrack ? "On track in this scenario" : "Needs attention"}
+            {onTrack
+              ? t("simulation.playground.status.onTrack")
+              : t("simulation.playground.status.needsAttention")}
           </div>
           <p className="playground-summary-subline">
             <span className="text-foreground font-semibold tabular-nums">
               {formatCurrencyValue(projectedValue, currency, true)}
             </span>{" "}
-            projected at age {sim.kpis.retirementAge}
+            {t("simulation.playground.projectedAtAge", {
+              n: sim.kpis.retirementAge,
+            })}
           </p>
         </div>
       </div>

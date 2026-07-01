@@ -2,18 +2,19 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { getKpiLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
-import { formatCurrencyValue, KPI_CONFIGS } from "@/types";
+import { formatCurrencyValue } from "@/types";
 
 export function NeedleDeltaCard() {
   const delta = useAppStore((s) => s.lastNeedleDelta);
   const currency = useAppStore((s) => s.currency);
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   if (!delta) return null;
 
-  const config = KPI_CONFIGS.find((c) => c.field === delta.field);
+  const fieldLabel = getKpiLabel(locale, delta.field);
   const projDelta = delta.projectedAfter - delta.projectedBefore;
   const positive = projDelta >= 0;
 
@@ -29,7 +30,8 @@ export function NeedleDeltaCard() {
         <h3 className="text-sm font-bold mb-2">{t("needle.title")}</h3>
         <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5">
           <span>
-            Changed <strong className="text-foreground">{config?.label ?? delta.field}</strong>
+            {t("needle.changed")}{" "}
+            <strong className="text-foreground">{fieldLabel}</strong>
           </span>
           <span className="text-muted">→</span>
           <span
@@ -43,7 +45,7 @@ export function NeedleDeltaCard() {
               <TrendingDown className="w-3.5 h-3.5" size={14} />
             )}
             {positive ? "+" : ""}
-            {formatCurrencyValue(projDelta, currency, true)} at retirement
+            {formatCurrencyValue(projDelta, currency, true)} {t("needle.atRetirement")}
           </span>
         </p>
       </motion.div>

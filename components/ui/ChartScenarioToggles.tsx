@@ -1,5 +1,9 @@
 "use client";
 
+import { getChartScenarioLabel } from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import type { MonteCarloScenario } from "@/types";
+
 export type ChartLineId = "base" | "pessimistic" | "optimistic";
 
 export interface ChartLineVisibility {
@@ -15,24 +19,26 @@ interface ChartScenarioTogglesProps {
 
 const LINES: {
   id: ChartLineId;
-  label: string;
+  scenario: MonteCarloScenario;
   color: string;
   dash?: boolean;
 }[] = [
-  { id: "base", label: "Base", color: "#ff7040" },
-  { id: "pessimistic", label: "Pessimistic", color: "#f87171", dash: true },
-  { id: "optimistic", label: "Optimistic", color: "#4ade80", dash: true },
+  { id: "base", scenario: "base", color: "#ff7040" },
+  { id: "pessimistic", scenario: "pessimistic", color: "#f87171", dash: true },
+  { id: "optimistic", scenario: "optimistic", color: "#4ade80", dash: true },
 ];
 
 export function ChartScenarioToggles({
   visibility,
   onToggle,
 }: ChartScenarioTogglesProps) {
+  const { locale, t } = useTranslation();
+
   return (
     <div
       className="chart-scenario-toggles"
       role="group"
-      aria-label="Chart scenario visibility"
+      aria-label={t("chart.aria.scenarioVisibility")}
     >
       {LINES.map((line) => {
         const active = visibility[line.id];
@@ -60,7 +66,7 @@ export function ChartScenarioToggles({
                 />
               )}
             </span>
-            {line.label}
+            {getChartScenarioLabel(locale, line.scenario)}
           </button>
         );
       })}

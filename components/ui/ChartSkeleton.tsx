@@ -1,12 +1,15 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface ChartSkeletonProps {
   visible: boolean;
 }
 
 export function ChartSkeleton({ visible }: ChartSkeletonProps) {
+  const { t } = useTranslation();
+
   return (
     <AnimatePresence>
       {visible && (
@@ -29,7 +32,7 @@ export function ChartSkeleton({ visible }: ChartSkeletonProps) {
             ))}
           </div>
           <p className="relative text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Recalculating projection…
+            {t("chart.recalculating")}
           </p>
         </motion.div>
       )}

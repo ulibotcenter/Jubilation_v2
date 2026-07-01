@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { ConfettiBurst } from "@/components/ui/ConfettiBurst";
 import { MilestoneTimeline } from "@/components/dashboard/MilestoneTimeline";
 import { computeFITargetFromDesired } from "@/lib/incomeGoals";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrencyValue } from "@/types";
 
@@ -20,10 +21,12 @@ function ProgressRing({
   progress,
   score,
   pulseKey,
+  scoreLabel,
 }: {
   progress: number;
   score: number;
   pulseKey: number;
+  scoreLabel: string;
 }) {
   const size = 100;
   const stroke = 6;
@@ -49,7 +52,7 @@ function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(30,41,59,0.8)"
+          stroke="var(--hero-ring-track)"
           strokeWidth={stroke}
         />
         <motion.circle
@@ -89,13 +92,14 @@ function ProgressRing({
         >
           {score}
         </motion.span>
-        <span className="hero-ring-caption">Score</span>
+        <span className="hero-ring-caption">{scoreLabel}</span>
       </div>
     </motion.div>
   );
 }
 
 export function RetirementHero() {
+  const { t } = useTranslation();
   const kpis = useAppStore((s) => s.kpis);
   const currency = useAppStore((s) => s.currency);
   const projections = useAppStore((s) => s.projections);
@@ -152,38 +156,38 @@ export function RetirementHero() {
 
     setPulseKey((k) => k + 1);
     setHeroFlash(true);
-    const t = setTimeout(() => setHeroFlash(false), 600);
+    const flashTimer = setTimeout(() => setHeroFlash(false), 600);
 
     if (!prevOnTrack && onTrack) {
       setConfettiTrigger((c) => c + 1);
-      toast.success("You're on track!", {
-        description: `Readiness score reached ${score}.`,
+      toast.success(t("toast.hero.onTrack"), {
+        description: t("toast.hero.onTrackDesc", { score }),
       });
     }
 
     prevScoreRef.current = score;
     prevOnTrackRef.current = onTrack;
-    return () => clearTimeout(t);
-  }, [score, onTrack, kpis]);
+    return () => clearTimeout(flashTimer);
+  }, [score, onTrack, kpis, t]);
 
   const metrics = [
     {
       icon: TrendingUp,
-      label: "FI Target",
+      label: t("hero.metric.fiTarget"),
       value: formatCurrencyValue(target, currency, true),
-      hint: "25× income goal",
+      hint: t("hero.metric.fiTargetHint"),
     },
     {
       icon: Wallet,
-      label: "Projected",
+      label: t("hero.metric.projected"),
       value: formatCurrencyValue(projectedValue, currency, true),
-      hint: "at retirement",
+      hint: t("hero.metric.atRetirement"),
     },
     {
       icon: Calendar,
-      label: "Timeline",
+      label: t("hero.metric.timeline"),
       value: `${yearsToRetirement}y`,
-      hint: `to age ${kpis.retirementAge}`,
+      hint: t("hero.metric.toAge", { n: kpis.retirementAge }),
     },
   ];
 
@@ -196,7 +200,7 @@ export function RetirementHero() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        aria-label="Retirement readiness overview"
+        aria-label={t("hero.aria")}
       >
         <div className="hero-layout">
           <div className="hero-main">
@@ -204,12 +208,13 @@ export function RetirementHero() {
               progress={journeyProgress}
               score={score}
               pulseKey={pulseKey}
+              scoreLabel={t("hero.score")}
             />
 
             <div className="hero-copy min-w-0">
               <div className="hero-title-row">
-                <h1 className="hero-title">Retirement Dashboard</h1>
-                <span className="hero-beta-badge">Beta</span>
+                <h1 className="hero-title">{t("hero.title")}</h1>
+                <span className="hero-beta-badge">{t("common.beta")}</span>
               </div>
 
               <motion.div
@@ -223,18 +228,14 @@ export function RetirementHero() {
                 ) : (
                   <AlertCircle className="w-3.5 h-3.5" size={14} />
                 )}
-                {onTrack ? "On track" : "Needs attention"}
+                {onTrack ? t("hero.status.onTrack") : t("hero.status.needsAttention")}
               </motion.div>
 
               <p className="hero-subline">
-                <span className="text-foreground font-semibold tabular-nums">
-                  {Math.round(journeyProgress)}%
-                </span>{" "}
-                through your journey ·{" "}
-                <span className="text-accent font-semibold tabular-nums">
-                  {formatCurrencyValue(projectedValue, currency, true)}
-                </span>{" "}
-                projected at retirement
+                {t("hero.subline", {
+                  pct: Math.round(journeyProgress),
+                  amount: formatCurrencyValue(projectedValue, currency, true),
+                })}
               </p>
             </div>
           </div>

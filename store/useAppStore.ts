@@ -397,7 +397,12 @@ export const useAppStore = create<AppStore>()(
         defaultIncludedIds
       ),
 
-      setLocale: (locale) => set({ locale }),
+      setLocale: (locale) => {
+        set({ locale });
+        if (typeof document !== "undefined") {
+          document.documentElement.lang = locale;
+        }
+      },
 
       setPlanTier: (tier) => set({ planTier: tier }),
 
@@ -406,8 +411,10 @@ export const useAppStore = create<AppStore>()(
       setTheme: (theme) => {
         set({ theme });
         if (typeof document !== "undefined") {
-          document.documentElement.classList.toggle("dark", theme === "dark");
-          document.documentElement.classList.toggle("light", theme === "light");
+          const el = document.documentElement;
+          el.classList.remove("dark", "light");
+          el.classList.add(theme);
+          el.style.colorScheme = theme;
         }
       },
 

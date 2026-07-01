@@ -18,6 +18,7 @@ import { NeedleDeltaCard } from "@/components/platform/NeedleDeltaCard";
 import { SensitivityPanel } from "@/components/platform/SensitivityPanel";
 import { ShareSnapshotButton } from "@/components/platform/ShareSnapshotButton";
 import { TaxPreviewCard } from "@/components/tax/TaxPreviewCard";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 
 function DashboardIncomeSection() {
@@ -30,6 +31,7 @@ function DashboardIncomeSection() {
 }
 
 function RealProjectionSection() {
+  const { t } = useTranslation();
   const chartData = useAppStore((s) => s.chartData);
   const projections = useAppStore((s) => s.projections);
   const kpis = useAppStore((s) => s.kpis);
@@ -40,8 +42,8 @@ function RealProjectionSection() {
     <section className="mb-5 sm:mb-6" id="projection">
       <ProjectionChartCard
         mode="real"
-        title="Real portfolio projection"
-        subtitle="Based on your tracked holdings and current assumptions"
+        title={t("dashboard.projection.title")}
+        subtitle={t("dashboard.projection.subtitle")}
         chartData={chartData}
         projections={projections}
         kpis={kpis}
@@ -52,7 +54,7 @@ function RealProjectionSection() {
       <div className="flex flex-wrap justify-end gap-2 mt-3">
         <ShareSnapshotButton />
         <Link href="/simulation" className="dashboard-cta-link">
-          Open simulation playground
+          {t("dashboard.cta.simulation")}
           <ArrowRight className="w-3.5 h-3.5" size={14} />
         </Link>
       </div>
@@ -61,6 +63,8 @@ function RealProjectionSection() {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
+
   return (
     <AppShell enableHashSync>
       <RetirementHero />
@@ -92,7 +96,7 @@ export default function DashboardPage() {
       <section id="portfolio" className="scroll-mt-6 mb-6">
         <div className="flex items-center justify-between mb-3 px-0.5">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Real Portfolio
+            {t("portfolio.section.title")}
           </h2>
         </div>
         <div className="card-surface p-4 sm:p-6">
@@ -102,16 +106,15 @@ export default function DashboardPage() {
 
       <footer className="mt-8 sm:mt-10 pb-6 text-center space-y-2">
         <p className="text-[10px] sm:text-xs text-muted leading-relaxed max-w-md mx-auto px-4">
-          Jubilation is for educational purposes only and does not provide
-          financial, investment, tax, or legal advice.
+          {t("footer.disclaimer")}
         </p>
         <p className="text-[10px] text-muted-foreground">
           <Link href="/cash-flow" className="text-accent hover:underline">
-            View cash flow breakdown →
+            {t("footer.link.cashflow")}
           </Link>
           {" · "}
           <Link href="/simulation" className="text-accent hover:underline">
-            Run simulations in the playground →
+            {t("footer.link.simulation")}
           </Link>
         </p>
       </footer>

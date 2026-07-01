@@ -2,34 +2,16 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Briefcase, LineChart } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import type { DashboardTab } from "@/types";
 import { RealPortfolio } from "./RealPortfolio";
 import { SimulationTab } from "./SimulationTab";
 
-// i18n-ready: tab labels → future next-intl keys (tabs.*)
-
-const TABS: {
-  id: DashboardTab;
-  label: string;
-  description: string;
-  icon: React.ElementType;
-}[] = [
-  {
-    id: "real-portfolio",
-    label: "Real Portfolio",
-    description: "Holdings & ticker search",
-    icon: Briefcase,
-  },
-  {
-    id: "simulation",
-    label: "Simulation",
-    description: "Projections & Monte Carlo",
-    icon: LineChart,
-  },
-];
+const TAB_IDS: DashboardTab[] = ["real-portfolio", "simulation"];
 
 export function PortfolioTabs() {
+  const { t } = useTranslation();
   const activeTab = useAppStore((s) => s.activeTab);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
   const setActiveNav = useAppStore((s) => s.setActiveNav);
@@ -41,31 +23,47 @@ export function PortfolioTabs() {
     setActiveNav(id === "real-portfolio" ? "portfolio" : "simulation");
   };
 
+  const tabMeta = {
+    "real-portfolio": {
+      label: t("tabs.realPortfolio.label"),
+      description: t("tabs.realPortfolio.description"),
+      icon: Briefcase,
+      badge: `${portfolio.length}`,
+      order: "1",
+    },
+    simulation: {
+      label: t("tabs.simulation.label"),
+      description: t("tabs.simulation.description"),
+      icon: LineChart,
+      badge: `${projections.length}y`,
+      order: "2",
+    },
+  } as const;
+
   return (
-    <section aria-label="Portfolio and simulation" className="card-surface overflow-hidden">
-      {/* Tab bar */}
+    <section
+      aria-label={t("tabs.aria.section")}
+      className="card-surface overflow-hidden"
+    >
       <div
         className="tab-list px-2 sm:px-4"
         role="tablist"
-        aria-label="Dashboard views"
+        aria-label={t("tabs.aria.tablist")}
       >
-        {TABS.map((tab) => {
+        {TAB_IDS.map((id) => {
+          const tab = tabMeta[id];
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          const badge =
-            tab.id === "real-portfolio"
-              ? `${portfolio.length}`
-              : `${projections.length}y`;
+          const isActive = activeTab === id;
 
           return (
             <button
-              key={tab.id}
+              key={id}
               type="button"
               role="tab"
               aria-selected={isActive}
-              aria-controls={`panel-${tab.id}`}
-              id={`tab-${tab.id}`}
-              onClick={() => handleTabChange(tab.id)}
+              aria-controls={`panel-${id}`}
+              id={`tab-${id}`}
+              onClick={() => handleTabChange(id)}
               data-active={isActive ? "true" : "false"}
               className="tab-trigger flex items-center gap-2"
             >
@@ -80,14 +78,12 @@ export function PortfolioTabs() {
                         : "bg-surface-elevated text-muted-foreground"
                     }`}
                   >
-                    {badge}
+                    {tab.badge}
                   </span>
                 </span>
                 <span className="text-[10px] text-muted-foreground font-normal hidden sm:block">
                   {tab.description}
-                  <span className="ml-1 opacity-50">
-                    · {tab.id === "real-portfolio" ? "1" : "2"}
-                  </span>
+                  <span className="ml-1 opacity-50">· {tab.order}</span>
                 </span>
               </span>
               {isActive && (
@@ -102,7 +98,6 @@ export function PortfolioTabs() {
         })}
       </div>
 
-      {/* Tab panels */}
       <div className="p-4 sm:p-6">
         <AnimatePresence mode="wait">
           {activeTab === "real-portfolio" ? (

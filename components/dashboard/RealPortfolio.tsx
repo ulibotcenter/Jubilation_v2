@@ -18,15 +18,14 @@ import { PortfolioAllocationChart } from "@/components/dashboard/PortfolioAlloca
 import { PortfolioHoldingsTable } from "@/components/dashboard/PortfolioHoldingsTable";
 import { AddAssetModal } from "@/components/ui/AddAssetModal";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { getAssetClassLabel } from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import {
-  ASSET_CLASS_LABELS,
   calculatePortfolioValue,
   formatCurrencyValue,
   type AssetClass,
 } from "@/types";
-
-// i18n-ready: UI strings → future next-intl keys (portfolio.*)
 
 type SortKey = "value" | "gain" | "ticker";
 
@@ -35,6 +34,7 @@ interface RealPortfolioProps {
 }
 
 export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
+  const { t, locale } = useTranslation();
   const realPortfolio = useAppStore((s) => s.portfolio);
   const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
   const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
@@ -113,12 +113,12 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     return Array.from(map.entries())
       .map(([assetClass, value]) => ({
         assetClass,
-        label: ASSET_CLASS_LABELS[assetClass],
+        label: getAssetClassLabel(locale, assetClass),
         value,
         pct: (value / totalValue) * 100,
       }))
       .sort((a, b) => b.pct - a.pct);
-  }, [portfolio, totalValue]);
+  }, [portfolio, totalValue, locale]);
 
   const classChips = useMemo(() => {
     const classes = new Set(portfolio.map((a) => a.assetClass));
@@ -136,7 +136,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
         (a) =>
           a.ticker.toLowerCase().includes(q) ||
           a.name.toLowerCase().includes(q) ||
-          ASSET_CLASS_LABELS[a.assetClass].toLowerCase().includes(q)
+          getAssetClassLabel(locale, a.assetClass).toLowerCase().includes(q)
       );
     }
     return [...list].sort((a, b) => {
@@ -148,7 +148,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
       if (sortBy === "gain") return gainB - gainA;
       return mvB - mvA;
     });
-  }, [portfolio, searchQuery, classFilter, sortBy]);
+  }, [portfolio, searchQuery, classFilter, sortBy, locale]);
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
@@ -156,20 +156,25 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     try {
       const { updated, skipped } = await refreshPrices();
       if (updated === 0) {
-        toast.info("No live quotes updated", {
-          description: "Cash/manual entries are skipped. Quotes cache refreshes every 5 min.",
+        toast.info(t("toast.portfolio.noQuotesUpdated"), {
+          description: t("toast.portfolio.noQuotesDesc"),
         });
       } else {
-        toast.success(`Updated ${updated} price${updated === 1 ? "" : "s"}`, {
-          description:
-            skipped > 0
-              ? `${skipped} skipped. Net worth KPI synced with portfolio.`
-              : "Net worth KPI synced with portfolio.",
-        });
+        toast.success(
+          updated === 1
+            ? t("toast.portfolio.pricesUpdatedOne")
+            : t("toast.portfolio.pricesUpdatedMany", { n: updated }),
+          {
+            description:
+              skipped > 0
+                ? t("toast.portfolio.pricesSkipped", { skipped })
+                : t("toast.portfolio.pricesSynced"),
+          }
+        );
       }
     } catch {
-      toast.error("Could not refresh prices", {
-        description: "Try again shortly — APIs may be rate-limited.",
+      toast.error(t("toast.portfolio.refreshError"), {
+        description: t("toast.portfolio.refreshErrorDesc"),
       });
     } finally {
       if (mode === "playground") setIsRefreshingSim(false);
@@ -178,10 +183,10 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
 
   const handleRemove = (asset: (typeof portfolio)[0]) => {
     removeAsset(asset.id);
-    toast.info(`${asset.ticker} removed`, {
+    toast.info(t("toast.portfolio.removed", { ticker: asset.ticker }), {
       description:
         mode === "playground"
-          ? "Playground only — your real portfolio is unchanged."
+          ? t("toast.portfolio.removedPlayground")
           : undefined,
     });
   };
@@ -195,7 +200,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           onClick={() => setAddOpen(true)}
         >
           <Plus className="w-4 h-4" size={16} />
-          Add asset
+          {t("portfolio.addAsset")}
         </button>
         <button
           type="button"
@@ -207,20 +212,20 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
             className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
             size={16}
           />
-          {isRefreshing ? "Updating…" : "Refresh prices"}
+          {isRefreshing ? t("portfolio.updating") : t("portfolio.refreshPrices")}
         </button>
         <div className="portfolio-toolbar-meta">
           {portfolioLastRefreshedAt && (
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <Clock className="w-3 h-3" size={12} />
-              {new Date(portfolioLastRefreshedAt).toLocaleString("en-US", {
+              {new Date(portfolioLastRefreshedAt).toLocaleString(locale, {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
             </span>
           )}
           <span className="text-[10px] text-muted">
-            NYSE · NASDAQ · B3 · CoinGecko · 5m cache
+            {t("portfolio.dataSources")}
           </span>
         </div>
       </div>
@@ -228,27 +233,34 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: "Total value",
+            key: "totalValue",
+            label: t("portfolio.stat.totalValue"),
             value: formatCurrencyValue(totalValue, currency),
           },
           {
-            label: "Total cost",
+            key: "totalCost",
+            label: t("portfolio.stat.totalCost"),
             value: formatCurrencyValue(totalCost, currency),
             muted: true,
           },
           {
-            label: "Unrealized P&L",
+            key: "unrealizedPnL",
+            label: t("portfolio.stat.unrealizedPnL"),
             value: `${totalGain >= 0 ? "+" : ""}${formatCurrencyValue(Math.abs(totalGain), currency)} (${totalGainPct.toFixed(1)}%)`,
             positive: totalGain >= 0,
             icon: true,
           },
           {
-            label: "Holdings",
-            value: `${portfolio.length} assets`,
+            key: "holdings",
+            label: t("portfolio.stat.holdings"),
+            value:
+              portfolio.length === 1
+                ? t("portfolio.holdingsCountOne")
+                : t("portfolio.holdingsCount", { n: portfolio.length }),
           },
         ].map((stat, i) => (
           <motion.div
-            key={stat.label}
+            key={stat.key}
             className="portfolio-stat-card"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -278,15 +290,18 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
         <div className="portfolio-networth-sync">
           <Link2 className="w-3.5 h-3.5 text-accent shrink-0" size={14} />
           <p className="text-xs text-muted-foreground">
-            KPI net worth{" "}
-            <span className="text-foreground font-semibold tabular-nums">
-              {formatCurrencyValue(kpis.currentNetWorth, currency, true)}
-            </span>{" "}
-            includes{" "}
-            <span className="text-foreground font-medium tabular-nums">
-              {formatCurrencyValue(kpiOutsidePortfolio, currency, true)}
-            </span>{" "}
-            outside tracked holdings (auto-synced on portfolio changes).
+            {t("portfolio.netWorthSync", {
+              netWorth: formatCurrencyValue(
+                kpis.currentNetWorth,
+                currency,
+                true
+              ),
+              outside: formatCurrencyValue(
+                kpiOutsidePortfolio,
+                currency,
+                true
+              ),
+            })}
           </p>
         </div>
       )}
@@ -294,7 +309,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
       {allocationSegments.length > 0 && (
         <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
           <p className="text-sm font-semibold text-foreground mb-4">
-            Allocation by asset class
+            {t("portfolio.allocationTitle")}
           </p>
           <PortfolioAllocationChart
             segments={allocationSegments}
@@ -313,7 +328,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
               data-active={classFilter === "all" ? "true" : "false"}
               onClick={() => setClassFilter("all")}
             >
-              All
+              {t("common.all")}
             </button>
             {classChips.map((cls) => (
               <button
@@ -323,7 +338,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
                 data-active={classFilter === cls ? "true" : "false"}
                 onClick={() => setClassFilter(cls)}
               >
-                {ASSET_CLASS_LABELS[cls]}
+                {getAssetClassLabel(locale, cls)}
               </button>
             ))}
           </div>
@@ -339,9 +354,9 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter by ticker or name (AAPL, PETR4, BTC…)…"
+              placeholder={t("portfolio.searchPlaceholder")}
               className="search-input"
-              aria-label="Filter portfolio"
+              aria-label={t("portfolio.searchAria")}
             />
           </div>
           <button
@@ -354,8 +369,12 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
             }
           >
             <ArrowDownAZ className="w-4 h-4" size={16} />
-            Sort:{" "}
-            {sortBy === "value" ? "Value" : sortBy === "gain" ? "P&L" : "A–Z"}
+            {t("portfolio.sort.label")}{" "}
+            {sortBy === "value"
+              ? t("portfolio.sort.value")
+              : sortBy === "gain"
+                ? t("portfolio.sort.gain")
+                : t("portfolio.sort.ticker")}
           </button>
         </div>
       </div>
@@ -365,16 +384,16 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           icon={searchQuery || classFilter !== "all" ? Search : Briefcase}
           title={
             searchQuery || classFilter !== "all"
-              ? "No matching holdings"
-              : "Build your portfolio"
+              ? t("portfolio.empty.noMatch.title")
+              : t("portfolio.empty.build.title")
           }
           description={
             searchQuery || classFilter !== "all"
-              ? "Adjust filters or add a new asset."
-              : "Search markets or add homes, vehicles, and other physical assets alongside stocks, ETFs, and crypto."
+              ? t("portfolio.empty.noMatch.desc")
+              : t("portfolio.empty.build.desc")
           }
           action={{
-            label: "Add asset",
+            label: t("portfolio.addAsset"),
             onClick: () => setAddOpen(true),
           }}
         />

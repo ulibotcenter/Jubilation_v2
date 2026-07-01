@@ -2,14 +2,12 @@
 
 import { Trash2, TrendingDown, TrendingUp } from "lucide-react";
 import { PortfolioInlineEdit } from "@/components/ui/PortfolioInlineEdit";
+import { getAssetClassLabel } from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { computeHoldingMetrics } from "@/lib/portfolioMetrics";
 import { CLASS_BG } from "@/lib/portfolioColors";
 import { useAppStore } from "@/store/useAppStore";
-import {
-  ASSET_CLASS_LABELS,
-  formatCurrencyValue,
-  type PortfolioAsset,
-} from "@/types";
+import { formatCurrencyValue, type PortfolioAsset } from "@/types";
 
 interface PortfolioHoldingsTableProps {
   assets: PortfolioAsset[];
@@ -24,6 +22,7 @@ export function PortfolioHoldingsTable({
   onRemove,
   mode = "real",
 }: PortfolioHoldingsTableProps) {
+  const { t, locale } = useTranslation();
   const updatePortfolioAsset = useAppStore((s) => s.updatePortfolioAsset);
   const updateSimPortfolioAsset = useAppStore((s) => s.updateSimPortfolioAsset);
   const updateAsset =
@@ -34,15 +33,26 @@ export function PortfolioHoldingsTable({
       <table className="portfolio-table">
         <thead>
           <tr>
-            <th>Asset</th>
-            <th className="text-right">Qty</th>
-            <th className="text-right hidden md:table-cell">Avg price</th>
-            <th className="text-right">Current</th>
-            <th className="text-right hidden sm:table-cell">Market value</th>
-            <th className="text-right hidden lg:table-cell">P&L</th>
-            <th className="text-right">Return %</th>
-            <th className="text-right hidden sm:table-cell">Weight</th>
-            <th className="w-10" aria-label="Actions" />
+            <th>{t("portfolio.table.column.asset")}</th>
+            <th className="text-right">{t("portfolio.table.column.qty")}</th>
+            <th className="text-right hidden md:table-cell">
+              {t("portfolio.table.column.avgPrice")}
+            </th>
+            <th className="text-right">{t("portfolio.table.column.current")}</th>
+            <th className="text-right hidden sm:table-cell">
+              {t("portfolio.table.column.marketValue")}
+            </th>
+            <th className="text-right hidden lg:table-cell">
+              {t("portfolio.table.column.pnl")}
+            </th>
+            <th className="text-right">{t("portfolio.table.column.returnPct")}</th>
+            <th className="text-right hidden sm:table-cell">
+              {t("portfolio.table.column.weight")}
+            </th>
+            <th
+              className="w-10"
+              aria-label={t("portfolio.table.column.actions")}
+            />
           </tr>
         </thead>
         <tbody>
@@ -67,7 +77,7 @@ export function PortfolioHoldingsTable({
                         {asset.name}
                       </p>
                       <span className="portfolio-asset-class-badge mt-0.5 inline-block">
-                        {ASSET_CLASS_LABELS[asset.assetClass]}
+                        {getAssetClassLabel(locale, asset.assetClass)}
                         {asset.currency === "BRL" && (
                           <span className="ml-1 opacity-70">· B3</span>
                         )}
@@ -83,7 +93,9 @@ export function PortfolioHoldingsTable({
                     min={0.0001}
                     step={1}
                     decimals={asset.assetClass === "crypto" ? 6 : 2}
-                    ariaLabel={`Quantity for ${asset.ticker}`}
+                    ariaLabel={t("portfolio.table.aria.quantity", {
+                      ticker: asset.ticker,
+                    })}
                   />
                 </td>
 
@@ -94,7 +106,9 @@ export function PortfolioHoldingsTable({
                     min={0}
                     step={0.01}
                     decimals={2}
-                    ariaLabel={`Average price for ${asset.ticker}`}
+                    ariaLabel={t("portfolio.table.aria.avgPrice", {
+                      ticker: asset.ticker,
+                    })}
                   />
                 </td>
 
@@ -111,7 +125,7 @@ export function PortfolioHoldingsTable({
                       }`}
                     >
                       {m.priceDeltaPct >= 0 ? "+" : ""}
-                      {m.priceDeltaPct.toFixed(2)}% refresh
+                      {m.priceDeltaPct.toFixed(2)}% {t("portfolio.table.priceRefresh")}
                     </p>
                   )}
                 </td>
@@ -154,7 +168,9 @@ export function PortfolioHoldingsTable({
                     type="button"
                     onClick={() => onRemove(asset)}
                     className="btn-ghost p-1.5 text-muted-foreground hover:text-red-400"
-                    aria-label={`Remove ${asset.ticker}`}
+                    aria-label={t("portfolio.table.aria.remove", {
+                      ticker: asset.ticker,
+                    })}
                   >
                     <Trash2 className="w-4 h-4" size={16} />
                   </button>

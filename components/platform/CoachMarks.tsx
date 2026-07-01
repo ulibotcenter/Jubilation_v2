@@ -14,7 +14,7 @@ export function CoachMarks() {
     <div className="coach-marks" role="note">
       <p>{t("coach.welcome")}</p>
       <button type="button" className="btn-secondary text-xs" onClick={dismiss}>
-        Got it
+        {t("coach.dismiss")}
       </button>
     </div>
   );

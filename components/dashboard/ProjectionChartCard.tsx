@@ -24,6 +24,8 @@ import {
 import { ChartSkeleton } from "@/components/ui/ChartSkeleton";
 import { ChartTooltip } from "@/components/ui/ChartTooltip";
 import { SimulationAssetFilter } from "@/components/ui/SimulationAssetFilter";
+import { getChartScenarioLabel } from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   CURRENCY_SYMBOLS,
   formatCurrencyValue,
@@ -64,6 +66,7 @@ export function ProjectionChartCard({
   showAssetFilter = true,
   compact = false,
 }: ProjectionChartCardProps) {
+  const { t, locale } = useTranslation();
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [lineVisibility, setLineVisibility] = useState<ChartLineVisibility>({
     base: true,
@@ -122,8 +125,13 @@ export function ProjectionChartCard({
             </p>
             {!compact && finalRow && (
               <p className="text-xs text-accent font-semibold tabular-nums mt-1">
-                {formatCurrencyValue(finalRow.portfolioValue, currency, true)} at
-                retirement
+                {t("chart.atRetirement", {
+                  amount: formatCurrencyValue(
+                    finalRow.portfolioValue,
+                    currency,
+                    true
+                  ),
+                })}
               </p>
             )}
           </div>
@@ -142,7 +150,7 @@ export function ProjectionChartCard({
             aria-pressed={showCashFlow}
           >
             <BarChart3 className="w-3.5 h-3.5" size={14} />
-            Cash flow
+            {t("chart.cashFlowToggle")}
           </button>
         </div>
       </div>
@@ -250,7 +258,7 @@ export function ProjectionChartCard({
                 strokeWidth={1.5}
                 strokeDasharray="5 5"
                 dot={false}
-                name="Pessimistic"
+                name={getChartScenarioLabel(locale, "pessimistic")}
                 {...CHART_ANIMATION}
               />
             )}
@@ -261,7 +269,7 @@ export function ProjectionChartCard({
                 stroke="#ff7040"
                 strokeWidth={2.5}
                 dot={false}
-                name="Base Case"
+                name={getChartScenarioLabel(locale, "base")}
                 {...CHART_ANIMATION}
               />
             )}
@@ -273,7 +281,7 @@ export function ProjectionChartCard({
                 strokeWidth={1.5}
                 strokeDasharray="5 5"
                 dot={false}
-                name="Optimistic"
+                name={getChartScenarioLabel(locale, "optimistic")}
                 {...CHART_ANIMATION}
               />
             )}

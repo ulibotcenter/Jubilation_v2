@@ -14,7 +14,9 @@ import {
 import { toast } from "sonner";
 import { EditableNumber } from "@/components/ui/EditableNumber";
 import { debounce } from "@/lib/debounce";
+import { getKpiLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
 import {
   CURRENCY_SYMBOLS,
@@ -60,7 +62,8 @@ function getKPISubtitle(
     expectedCAGR: number;
     annualInflation: number;
   },
-  currency: keyof typeof CURRENCY_SYMBOLS
+  currency: keyof typeof CURRENCY_SYMBOLS,
+  translate: (key: MessageKey, params?: Record<string, string | number>) => string
 ): string {
   const yearsLeft = kpis.retirementAge - kpis.currentAge;
   const annualContrib = kpis.monthlyContribution * 12;
@@ -68,26 +71,37 @@ function getKPISubtitle(
 
   switch (field) {
     case "currentAge":
-      return `Born ~${new Date().getFullYear() - kpis.currentAge}`;
+      return translate("kpi.subtitle.born", {
+        year: new Date().getFullYear() - kpis.currentAge,
+      });
     case "retirementAge":
-      return `${yearsLeft} year${yearsLeft === 1 ? "" : "s"} to go`;
+      return yearsLeft === 1
+        ? translate("kpi.subtitle.yearsToGoOne")
+        : translate("kpi.subtitle.yearsToGo", { n: yearsLeft });
     case "currentNetWorth":
-      return "Total assets today";
+      return translate("kpi.subtitle.totalAssets");
     case "monthlyContribution":
-      return `${formatCurrencyValue(annualContrib, currency)}/yr invested`;
+      return translate("kpi.subtitle.annualInvested", {
+        amount: formatCurrencyValue(annualContrib, currency),
+      });
     case "monthlyExpenses": {
       const annualExp = kpis.monthlyExpenses * 12;
       const incomeNeed = kpis.monthlyExpenses + kpis.monthlyContribution;
-      return `${formatCurrencyValue(annualExp, currency)}/yr · need ~${formatCurrencyValue(incomeNeed, currency)}/mo gross`;
+      return translate("kpi.subtitle.expenses", {
+        annual: formatCurrencyValue(annualExp, currency),
+        monthly: formatCurrencyValue(incomeNeed, currency),
+      });
     }
     case "desiredMonthlyIncome":
-      return `${formatCurrencyValue(kpis.desiredMonthlyIncome * 12, currency)}/yr target`;
+      return translate("kpi.subtitle.incomeTarget", {
+        amount: formatCurrencyValue(kpis.desiredMonthlyIncome * 12, currency),
+      });
     case "expectedCAGR":
       return realReturn > 0
-        ? `${realReturn.toFixed(1)}% real return`
-        : "Nominal annual growth";
+        ? translate("kpi.subtitle.realReturn", { n: realReturn.toFixed(1) })
+        : translate("kpi.subtitle.nominalGrowth");
     case "annualInflation":
-      return "Purchasing power erosion";
+      return translate("kpi.subtitle.inflation");
     default:
       return "";
   }
@@ -95,6 +109,7 @@ function getKPISubtitle(
 
 function KPICard({
   config,
+  label,
   index,
   value,
   currencySymbol,
@@ -103,6 +118,7 @@ function KPICard({
   onChange,
 }: {
   config: KPIConfig;
+  label: string;
   index: number;
   value: number;
   currencySymbol: string;
@@ -119,7 +135,7 @@ function KPICard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.07, duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
       whileHover={{ y: -3 }}
-      aria-label={`${config.label}: ${value}`}
+      aria-label={`${label}: ${value}`}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 shrink-0 transition-colors duration-200 group-hover:bg-accent/15">
@@ -130,7 +146,7 @@ function KPICard({
         </span>
       </div>
 
-      <p className="kpi-label">{config.label}</p>
+      <p className="kpi-label">{label}</p>
 
       <div className="kpi-value mt-1">
         <EditableNumber
@@ -160,7 +176,7 @@ interface KPICardsProps {
 }
 
 export function KPICards({ mode = "real" }: KPICardsProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const realKpis = useAppStore((s) => s.kpis);
   const simKpis = useAppStore((s) => s.simPlayground.kpis);
   const kpis = mode === "playground" ? simKpis : realKpis;
@@ -187,22 +203,22 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
       Object.fromEntries(
         KPI_CONFIGS.map((c) => [
           c.field,
-          getKPISubtitle(c.field, kpis, currency),
+          getKPISubtitle(c.field, kpis, currency, t),
         ])
       ) as Record<KPIField, string>,
-    [kpis, currency]
+    [kpis, currency, t]
   );
 
   const handleChange = (field: KPIField, value: number) => {
     if (field === "retirementAge" && value <= kpis.currentAge) {
-      toast.error("Invalid retirement age", {
-        description: `Must be greater than current age (${kpis.currentAge}).`,
+      toast.error(t("toast.kpi.invalidRetirementAge"), {
+        description: t("toast.kpi.retirementAgeDesc", { n: kpis.currentAge }),
       });
       return;
     }
     if (field === "currentAge" && value >= kpis.retirementAge) {
-      toast.error("Invalid current age", {
-        description: `Must be less than retirement age (${kpis.retirementAge}).`,
+      toast.error(t("toast.kpi.invalidCurrentAge"), {
+        description: t("toast.kpi.currentAgeDesc", { n: kpis.retirementAge }),
       });
       return;
     }
@@ -219,11 +235,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
 
   return (
     <section
-      aria-label={
-        mode === "playground"
-          ? "Playground assumptions"
-          : "Editable retirement assumptions"
-      }
+      aria-label={t("kpi.assumptions")}
     >
       <div className="flex items-center justify-between mb-3 px-0.5">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -239,6 +251,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
           <KPICard
             key={config.field}
             config={config}
+            label={getKpiLabel(locale, config.field)}
             index={index}
             value={kpis[config.field]}
             currencySymbol={currencySymbol}

@@ -14,16 +14,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { getChartScenarioLabel } from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   CURRENCY_SYMBOLS,
-  MONTE_CARLO_SCENARIO_LABELS,
   formatCurrencyValue,
   type Currency,
   type DistributionBin,
   type MonteCarloScenario,
 } from "@/types";
-
-// i18n-ready: labels → future next-intl keys (monteCarlo.histogram.*)
 
 const SCENARIO_COLORS: Record<MonteCarloScenario, { above: string; below: string }> = {
   pessimistic: { above: "#4ade80", below: "#f87171" },
@@ -48,6 +47,8 @@ function HistogramTooltip({
   payload?: { payload: DistributionBin }[];
   currency: Currency;
 }) {
+  const { t } = useTranslation();
+
   if (!active || !payload?.[0]) return null;
   const bin = payload[0].payload;
 
@@ -57,14 +58,16 @@ function HistogramTooltip({
         {formatCurrencyValue(bin.midpoint, currency, true)}
       </p>
       <p className="text-muted-foreground mt-0.5">
-        {bin.count.toLocaleString("en-US")} outcomes
+        {t("monteCarlo.histogram.outcomes", { n: bin.count.toLocaleString("en-US") })}
       </p>
       <p
         className={`text-[10px] mt-1 font-medium ${
           bin.meetsTarget ? "text-green-400" : "text-red-400"
         }`}
       >
-        {bin.meetsTarget ? "Above target" : "Below target"}
+        {bin.meetsTarget
+          ? t("monteCarlo.histogram.aboveTarget")
+          : t("monteCarlo.histogram.belowTarget")}
       </p>
     </div>
   );
@@ -77,6 +80,7 @@ export function MonteCarloHistogram({
   retirementAge,
   isRunning = false,
 }: MonteCarloHistogramProps) {
+  const { t, locale } = useTranslation();
   const [scenario, setScenario] = useState<MonteCarloScenario>("base");
   const sym = CURRENCY_SYMBOLS[currency];
   const bins = distributions[scenario];
@@ -100,6 +104,11 @@ export function MonteCarloHistogram({
     [bins]
   );
 
+  const targetDisplay =
+    target >= 1_000_000
+      ? `${sym}${(target / 1_000_000).toFixed(1)}M`
+      : `${sym}${Math.round(target / 1000)}K`;
+
   return (
     <motion.div
       className="monte-histogram"
@@ -114,11 +123,13 @@ export function MonteCarloHistogram({
           </div>
           <div>
             <h4 className="text-base font-bold text-foreground">
-              Outcome Distribution
+              {t("monteCarlo.histogram.title")}
             </h4>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Portfolio values at age {retirementAge} across{" "}
-              {total.toLocaleString("en-US")} simulated paths
+              {t("monteCarlo.histogram.subtitle", {
+                age: retirementAge,
+                paths: total.toLocaleString("en-US"),
+              })}
             </p>
           </div>
         </div>
@@ -126,7 +137,7 @@ export function MonteCarloHistogram({
         <div
           className="monte-histogram-scenarios"
           role="tablist"
-          aria-label="Distribution scenario"
+          aria-label={t("monteCarlo.histogram.scenarioAria")}
         >
           {(["pessimistic", "base", "optimistic"] as MonteCarloScenario[]).map(
             (s) => (
@@ -139,7 +150,7 @@ export function MonteCarloHistogram({
                 className="monte-histogram-scenario"
                 data-active={scenario === s ? "true" : "false"}
               >
-                {MONTE_CARLO_SCENARIO_LABELS[s]}
+                {getChartScenarioLabel(locale, s)}
               </button>
             )
           )}
@@ -196,7 +207,7 @@ export function MonteCarloHistogram({
                   strokeDasharray="4 4"
                   strokeWidth={2}
                   label={{
-                    value: "Target",
+                    value: t("monteCarlo.histogram.target"),
                     position: "insideTopRight",
                     fontSize: 9,
                     fill: "#ff7040",
@@ -230,17 +241,16 @@ export function MonteCarloHistogram({
       <div className="monte-histogram-legend">
         <span className="monte-histogram-legend-item">
           <span className="monte-histogram-swatch bg-green-400/80" />
-          Above target ({total > 0 ? Math.round((aboveTarget / total) * 100) : 0}%)
+          {t("monteCarlo.histogram.aboveTargetPct", {
+            n: total > 0 ? Math.round((aboveTarget / total) * 100) : 0,
+          })}
         </span>
         <span className="monte-histogram-legend-item">
           <span className="monte-histogram-swatch bg-red-400/80" />
-          Below target
+          {t("monteCarlo.histogram.belowTarget")}
         </span>
         <span className="monte-histogram-legend-item text-muted-foreground">
-          Target: {sym}
-          {target >= 1_000_000
-            ? `${(target / 1_000_000).toFixed(1)}M`
-            : `${Math.round(target / 1000)}K`}
+          {t("monteCarlo.histogram.targetLabel", { amount: targetDisplay })}
         </span>
       </div>
     </motion.div>

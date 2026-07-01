@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface PageHeaderProps {
   icon: LucideIcon;
@@ -17,13 +18,16 @@ export function PageHeader({
   title,
   description,
   backHref = "/",
-  backLabel = "Back to dashboard",
+  backLabel,
 }: PageHeaderProps) {
+  const { t } = useTranslation();
+  const resolvedBackLabel = backLabel ?? t("common.backToDashboard");
+
   return (
     <header className="page-header">
       <Link href={backHref} className="page-header-back">
         <ArrowLeft className="w-3.5 h-3.5" size={14} />
-        {backLabel}
+        {resolvedBackLabel}
       </Link>
       <div className="page-header-main">
         <div className="page-header-icon">

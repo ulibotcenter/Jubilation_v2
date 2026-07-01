@@ -4,19 +4,38 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Command, Search } from "lucide-react";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 
 const ACTIONS = [
-  { id: "dashboard", label: "Go to Dashboard", href: "/" },
-  { id: "simulation", label: "Open Simulation", href: "/simulation" },
-  { id: "cashflow", label: "Cash Flow", href: "/cash-flow" },
-  { id: "settings", label: "Settings", href: "/settings" },
-  { id: "upgrade", label: "Plans & Upgrade", href: "/upgrade" },
-  { id: "presentation", label: "Toggle presentation mode", action: "presentation" },
-  { id: "coach", label: "Open retirement coach", action: "coach" },
+  { id: "dashboard", labelKey: "command.goDashboard" as MessageKey, href: "/" },
+  {
+    id: "simulation",
+    labelKey: "command.openSimulation" as MessageKey,
+    href: "/simulation",
+  },
+  { id: "cashflow", labelKey: "nav.cashflow" as MessageKey, href: "/cash-flow" },
+  { id: "settings", labelKey: "nav.settings" as MessageKey, href: "/settings" },
+  {
+    id: "upgrade",
+    labelKey: "command.plansUpgrade" as MessageKey,
+    href: "/upgrade",
+  },
+  {
+    id: "presentation",
+    labelKey: "command.togglePresentation" as MessageKey,
+    action: "presentation" as const,
+  },
+  {
+    id: "coach",
+    labelKey: "command.openCoach" as MessageKey,
+    action: "coach" as const,
+  },
 ] as const;
 
 export function CommandPalette() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const router = useRouter();
@@ -36,11 +55,20 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const actionsWithLabels = useMemo(
+    () =>
+      ACTIONS.map((action) => ({
+        ...action,
+        label: t(action.labelKey),
+      })),
+    [t]
+  );
+
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
-    if (!q) return ACTIONS;
-    return ACTIONS.filter((a) => a.label.toLowerCase().includes(q));
-  }, [query]);
+    if (!q) return actionsWithLabels;
+    return actionsWithLabels.filter((a) => a.label.toLowerCase().includes(q));
+  }, [query, actionsWithLabels]);
 
   if (!open) return null;
 
@@ -53,7 +81,7 @@ export function CommandPalette() {
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search actions…"
+            placeholder={t("command.searchPlaceholder")}
             className="command-palette-input"
           />
           <span className="command-palette-kbd">

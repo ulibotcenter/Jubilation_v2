@@ -73,7 +73,7 @@ export function RetirementCoach() {
             <div className="coach-panel-messages">
               {history.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Ask about contributions, expenses, FI gap, or your score.
+                  {t("ai.emptyHint")}
                 </p>
               )}
               {history.map((m) => (
@@ -87,7 +87,7 @@ export function RetirementCoach() {
             </div>
             {!unlimited && messageCount >= 5 && (
               <p className="text-[10px] text-amber-400 px-3 pb-1">
-                Free limit reached — upgrade for unlimited coach.
+                {t("ai.limitReached")}
               </p>
             )}
             <div className="coach-panel-input">

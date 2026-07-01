@@ -50,7 +50,7 @@ export function FloatingNav() {
     <nav
       className="floating-nav"
       data-collapsed={sidebarCollapsed ? "true" : "false"}
-      aria-label="Main navigation"
+      aria-label={t("nav.aria.main")}
     >
       <div className="floating-nav-glow" aria-hidden="true" />
 
@@ -88,14 +88,16 @@ export function FloatingNav() {
         type="button"
         onClick={toggleSidebarCollapsed}
         className="floating-nav-collapse"
-        aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+        aria-label={
+          sidebarCollapsed ? t("nav.aria.expand") : t("nav.aria.collapse")
+        }
       >
         {sidebarCollapsed ? (
           <PanelLeftOpen className="w-4 h-4" size={16} />
         ) : (
           <>
             <PanelLeftClose className="w-4 h-4" size={16} />
-            <span className="floating-nav-label">Collapse</span>
+            <span className="floating-nav-label">{t("nav.collapse")}</span>
           </>
         )}
       </button>

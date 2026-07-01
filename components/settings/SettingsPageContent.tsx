@@ -18,16 +18,15 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { exportRetirementReport } from "@/lib/exportReport";
 import { getCrossRate } from "@/lib/fx/convert";
-import type { AppLocale } from "@/lib/i18n/messages";
+import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { PLAN_LABELS } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
 
-const LOCALES: { code: AppLocale; label: string }[] = [
-  { code: "en", label: "English" },
-  { code: "pt", label: "Português" },
-  { code: "es", label: "Español" },
+const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
+  { code: "en", labelKey: "locale.en" },
+  { code: "pt", labelKey: "locale.pt" },
+  { code: "es", labelKey: "locale.es" },
 ];
 
 export function SettingsPageContent() {
@@ -56,12 +55,16 @@ export function SettingsPageContent() {
     try {
       const snapshot = await changeCurrency(code);
       const rate = getCrossRate(previous, code, snapshot.rates);
-      toast.success(`Currency switched to ${code}`, {
-        description: `Live rate · 1 ${previous} = ${rate.toFixed(4)} ${code}`,
+      toast.success(t("toast.currency.success", { code }), {
+        description: t("toast.currency.rate", {
+          from: previous,
+          rate: rate.toFixed(4),
+          to: code,
+        }),
       });
     } catch {
-      toast.error("Currency conversion failed", {
-        description: "Could not fetch live rates. Try again shortly.",
+      toast.error(t("toast.currency.error"), {
+        description: t("toast.currency.errorDesc"),
       });
     } finally {
       setPendingCurrency(null);
@@ -83,11 +86,14 @@ export function SettingsPageContent() {
         stressTestResults: state.stressTestResults,
         user: state.user,
       });
-      toast.success("Report exported", {
-        description: `Downloaded ${csvFilename} and ${jsonFilename}.`,
+      toast.success(t("toast.export.success"), {
+        description: t("toast.export.successDesc", {
+          csv: csvFilename,
+          json: jsonFilename,
+        }),
       });
     } catch {
-      toast.error("Export failed");
+      toast.error(t("toast.export.error"));
     } finally {
       setExporting(false);
     }
@@ -103,18 +109,17 @@ export function SettingsPageContent() {
       <PageHeader
         icon={Settings}
         title={t("nav.settings")}
-        description="Currency, language, plans, and data preferences for your retirement plan."
+        description={t("settings.description")}
       />
 
       <div className="settings-page-grid">
         <section className="settings-page-card settings-page-card--featured">
           <div className="settings-page-card-head">
             <Globe className="w-4 h-4 text-accent" size={16} />
-            <h2>Display currency</h2>
+            <h2>{t("settings.currency.title")}</h2>
           </div>
           <p className="settings-page-card-body">
-            Switching currency fetches live exchange rates and converts your
-            KPIs, portfolio values, and income goals automatically.
+            {t("settings.currency.body")}
           </p>
 
           <div className="settings-currency-options">
@@ -144,19 +149,22 @@ export function SettingsPageContent() {
           {fxSnapshot && (
             <div className="settings-fx-meta">
               <p>
-                Rates as of{" "}
+                {t("settings.currency.ratesAsOf")}{" "}
                 <span className="text-foreground font-medium">{fxDate}</span>
                 {usdToDisplay && currency !== "USD" && (
                   <>
                     {" · "}
                     <span className="tabular-nums">
-                      1 USD = {usdToDisplay.toFixed(4)} {currency}
+                      {t("settings.currency.usdRate", {
+                        rate: usdToDisplay.toFixed(4),
+                        code: currency,
+                      })}
                     </span>
                   </>
                 )}
               </p>
               <p className="text-[10px] mt-1 opacity-80">
-                Source: Frankfurter (ECB reference) · refreshed on each switch
+                {t("settings.currency.source")}
               </p>
             </div>
           )}
@@ -165,10 +173,10 @@ export function SettingsPageContent() {
         <section className="settings-page-card">
           <div className="settings-page-card-head">
             <Languages className="w-4 h-4 text-accent" size={16} />
-            <h2>Language</h2>
+            <h2>{t("settings.language.title")}</h2>
           </div>
           <p className="settings-page-card-body">
-            UI translations — more strings roll out each release.
+            {t("settings.language.body")}
           </p>
           <div className="settings-locale-options">
             {LOCALES.map((l) => (
@@ -179,7 +187,7 @@ export function SettingsPageContent() {
                 data-active={locale === l.code ? "true" : "false"}
                 onClick={() => setLocale(l.code)}
               >
-                {l.label}
+                {t(l.labelKey)}
               </button>
             ))}
           </div>
@@ -188,7 +196,7 @@ export function SettingsPageContent() {
         <section className="settings-page-card">
           <div className="settings-page-card-head">
             <SunMoon className="w-4 h-4 text-accent" size={16} />
-            <h2>Experience</h2>
+            <h2>{t("settings.experience")}</h2>
           </div>
           <label className="settings-toggle-row">
             <span>{t("explain.simple")}</span>
@@ -221,13 +229,17 @@ export function SettingsPageContent() {
         <section className="settings-page-card">
           <div className="settings-page-card-head">
             <User className="w-4 h-4 text-accent" size={16} />
-            <h2>Account</h2>
+            <h2>{t("settings.account")}</h2>
           </div>
           <p className="settings-page-card-body font-medium text-foreground">
             {user.name}
           </p>
           <p className="text-sm text-muted-foreground">{user.email}</p>
-          <span className="settings-plan-badge">{PLAN_LABELS[planTier]} plan</span>
+          <span className="settings-plan-badge">
+            {t("plan.currentBadge", {
+              plan: t(`plan.${planTier}` as MessageKey),
+            })}
+          </span>
           <Link href="/upgrade" className="btn-upgrade mt-4 inline-flex">
             <Sparkles className="w-3.5 h-3.5" size={14} />
             {t("nav.upgrade")}
@@ -237,10 +249,10 @@ export function SettingsPageContent() {
         <section className="settings-page-card">
           <div className="settings-page-card-head">
             <Download className="w-4 h-4 text-accent" size={16} />
-            <h2>Export data</h2>
+            <h2>{t("settings.export.title")}</h2>
           </div>
           <p className="settings-page-card-body">
-            Download CSV projections and a JSON snapshot of your full plan.
+            {t("settings.export.body")}
           </p>
           <button
             type="button"
@@ -249,24 +261,26 @@ export function SettingsPageContent() {
             disabled={isExporting}
           >
             <Download className="w-4 h-4" size={16} />
-            {isExporting ? "Exporting…" : "Export report"}
+            {isExporting
+              ? t("settings.export.exporting")
+              : t("settings.export.button")}
           </button>
         </section>
 
         <section className="settings-page-card">
           <div className="settings-page-card-head">
             <PanelLeft className="w-4 h-4 text-accent" size={16} />
-            <h2>Navigation</h2>
+            <h2>{t("settings.navigation.title")}</h2>
           </div>
           <p className="settings-page-card-body">
-            Desktop floating nav is{" "}
-            <span className="text-foreground font-medium">
-              {sidebarCollapsed ? "collapsed" : "expanded"}
-            </span>
-            . Use the control at the bottom of the left menu to toggle.
+            {t("settings.navigation.body", {
+              state: sidebarCollapsed
+                ? t("settings.navigation.collapsed")
+                : t("settings.navigation.expanded"),
+            })}
           </p>
           <p className="text-[11px] text-muted-foreground mt-3 flex items-center gap-1">
-            Jubilation V2 Beta · v0.2.0
+            {t("app.version")}
             <ChevronDown className="w-3 h-3 opacity-40" size={12} />
             <span className="text-accent">Bloco 1+2</span>
           </p>

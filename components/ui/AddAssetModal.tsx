@@ -22,6 +22,13 @@ import {
 } from "@/lib/marketClient";
 import type { MarketSearchResult } from "@/lib/market/types";
 import {
+  getAssetClassLabel,
+  getPhysicalPresetDefaultName,
+  getPhysicalPresetDescription,
+  getPhysicalPresetLabel,
+} from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import {
   generatePhysicalTicker,
   PHYSICAL_ASSET_PRESETS,
   type PhysicalAssetPreset,
@@ -32,8 +39,6 @@ import {
   type PortfolioAsset,
   type PriceSource,
 } from "@/types";
-
-// i18n-ready: labels → future next-intl keys (portfolio.add.*)
 
 interface AddAssetModalProps {
   open: boolean;
@@ -57,6 +62,7 @@ export function AddAssetModal({
   onClose,
   mode = "real",
 }: AddAssetModalProps) {
+  const { t, locale } = useTranslation();
   const currency = useAppStore((s) => s.currency);
   const realPortfolio = useAppStore((s) => s.portfolio);
   const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
@@ -160,8 +166,11 @@ export function AddAssetModal({
     };
 
     addAsset(asset);
-    toast.success(`${asset.ticker} added`, {
-      description: `${asset.name} · ${asset.assetClass}`,
+    toast.success(t("toast.portfolio.added", { ticker: asset.ticker }), {
+      description: t("toast.portfolio.addedDesc", {
+        name: asset.name,
+        assetClass: getAssetClassLabel(locale, asset.assetClass),
+      }),
     });
     resetAll();
     onClose();
@@ -187,15 +196,15 @@ export function AddAssetModal({
     const cost = parseFloat(costBasis);
 
     if (!Number.isFinite(qty) || qty <= 0) {
-      toast.error("Enter a valid quantity");
+      toast.error(t("toast.portfolio.invalidQuantity"));
       return;
     }
     if (!Number.isFinite(price) || price < 0) {
-      toast.error("Enter a valid current price");
+      toast.error(t("toast.portfolio.invalidPrice"));
       return;
     }
     if (!Number.isFinite(cost) || cost < 0) {
-      toast.error("Enter a valid average cost");
+      toast.error(t("toast.portfolio.invalidCost"));
       return;
     }
 
@@ -217,15 +226,15 @@ export function AddAssetModal({
     const cost = parseFloat(costBasis);
 
     if (!ticker.trim() || !name.trim() || !Number.isFinite(qty) || qty <= 0) {
-      toast.error("Check ticker, name, and quantity");
+      toast.error(t("toast.portfolio.checkFields"));
       return;
     }
     if (!Number.isFinite(price) || price < 0) {
-      toast.error("Enter a valid current price");
+      toast.error(t("toast.portfolio.invalidPrice"));
       return;
     }
     if (!Number.isFinite(cost) || cost < 0) {
-      toast.error("Enter a valid average cost");
+      toast.error(t("toast.portfolio.invalidCost"));
       return;
     }
 
@@ -242,7 +251,7 @@ export function AddAssetModal({
 
   const handlePhysicalPreset = (preset: PhysicalAssetPreset) => {
     setPhysicalPreset(preset);
-    setPhysicalName(preset.defaultName);
+    setPhysicalName(getPhysicalPresetDefaultName(locale, preset.id));
     setPurchasePrice("");
     setCurrentValue("");
   };
@@ -255,15 +264,15 @@ export function AddAssetModal({
     const value = parseFloat(currentValue);
 
     if (!physicalName.trim()) {
-      toast.error("Enter a name for this asset");
+      toast.error(t("toast.portfolio.invalidName"));
       return;
     }
     if (!Number.isFinite(purchase) || purchase < 0) {
-      toast.error("Enter a valid purchase price");
+      toast.error(t("toast.portfolio.invalidPurchase"));
       return;
     }
     if (!Number.isFinite(value) || value < 0) {
-      toast.error("Enter a valid current value");
+      toast.error(t("toast.portfolio.invalidValue"));
       return;
     }
 
@@ -283,10 +292,10 @@ export function AddAssetModal({
     });
   };
 
-  const tabs: { id: TabId; label: string }[] = [
-    { id: "search", label: "Search & add" },
-    { id: "physical", label: "Physical & other" },
-    { id: "manual", label: "Manual entry" },
+  const tabs: { id: TabId; labelKey: "portfolio.add.tab.search" | "portfolio.add.tab.physical" | "portfolio.add.tab.manual" }[] = [
+    { id: "search", labelKey: "portfolio.add.tab.search" },
+    { id: "physical", labelKey: "portfolio.add.tab.physical" },
+    { id: "manual", labelKey: "portfolio.add.tab.manual" },
   ];
 
   return (
@@ -316,37 +325,37 @@ export function AddAssetModal({
             <div className="add-asset-modal-header">
               <div>
                 <h2 id="add-asset-title" className="text-lg font-bold text-foreground">
-                  Add holding
+                  {t("portfolio.add.title")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Search markets, add real estate & personal assets, or enter manually
+                  {t("portfolio.add.subtitle")}
                 </p>
               </div>
               <button
                 type="button"
                 className="btn-ghost p-2"
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={t("common.close")}
               >
                 <X className="w-5 h-5" size={20} />
               </button>
             </div>
 
             <div className="add-asset-tabs" role="tablist">
-              {tabs.map((t) => (
+              {tabs.map((tabItem) => (
                 <button
-                  key={t.id}
+                  key={tabItem.id}
                   type="button"
                   role="tab"
-                  aria-selected={tab === t.id}
-                  data-active={tab === t.id ? "true" : "false"}
+                  aria-selected={tab === tabItem.id}
+                  data-active={tab === tabItem.id ? "true" : "false"}
                   className="add-asset-tab"
                   onClick={() => {
-                    setTab(t.id);
+                    setTab(tabItem.id);
                     setSelectedSearch(null);
                   }}
                 >
-                  {t.label}
+                  {t(tabItem.labelKey)}
                 </button>
               ))}
             </div>
@@ -363,7 +372,7 @@ export function AddAssetModal({
                     onClick={() => setSelectedSearch(null)}
                   >
                     <ArrowLeft className="w-3.5 h-3.5" size={14} />
-                    Back to results
+                    {t("portfolio.add.backResults")}
                   </button>
 
                   <div className="add-asset-confirm-header">
@@ -388,7 +397,7 @@ export function AddAssetModal({
 
                   <div className="add-asset-form-grid">
                     <label className="add-asset-field">
-                      <span>Quantity</span>
+                      <span>{t("portfolio.add.quantity")}</span>
                       <input
                         type="number"
                         min="0"
@@ -400,19 +409,19 @@ export function AddAssetModal({
                       />
                     </label>
                     <label className="add-asset-field">
-                      <span>Avg. cost / unit</span>
+                      <span>{t("portfolio.add.avgCost")}</span>
                       <input
                         type="number"
                         min="0"
                         step="any"
                         value={costBasis}
                         onChange={(e) => setCostBasis(e.target.value)}
-                        placeholder="Your average buy price"
+                        placeholder={t("portfolio.add.avgCostPlaceholder")}
                         required
                       />
                     </label>
                     <label className="add-asset-field">
-                      <span>Current price</span>
+                      <span>{t("portfolio.add.currentPrice")}</span>
                       <input
                         type="number"
                         min="0"
@@ -425,13 +434,14 @@ export function AddAssetModal({
                   </div>
 
                   <p className="text-[11px] text-muted-foreground">
-                    Market quote from {selectedSearch.exchange} · you can adjust
-                    quantity and cost basis before adding.
+                    {t("portfolio.add.marketQuote", {
+                      exchange: selectedSearch.exchange,
+                    })}
                   </p>
 
                   <button type="submit" className="btn-primary w-full">
                     <Plus className="w-4 h-4" size={16} />
-                    Add to portfolio
+                    {t("portfolio.add.submit")}
                   </button>
                 </form>
               ) : (
@@ -445,7 +455,7 @@ export function AddAssetModal({
                       type="search"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="NVDA, SPY, PETR4, VALE3, BTC, GLD…"
+                      placeholder={t("portfolio.add.searchPlaceholder")}
                       className="search-input"
                       autoFocus
                     />
@@ -455,14 +465,13 @@ export function AddAssetModal({
                     {isSearching && (
                       <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" size={16} />
-                        Searching markets…
+                        {t("portfolio.add.searching")}
                       </div>
                     )}
 
                     {!isSearching && query && results.length === 0 && (
                       <p className="text-center text-sm text-muted-foreground py-8">
-                        No results. Try a ticker symbol, add a physical asset, or
-                        use manual entry.
+                        {t("portfolio.add.noResults")}
                       </p>
                     )}
 
@@ -511,7 +520,7 @@ export function AddAssetModal({
                     onClick={() => setPhysicalPreset(null)}
                   >
                     <ArrowLeft className="w-3.5 h-3.5" size={14} />
-                    Choose another type
+                    {t("portfolio.add.chooseType")}
                   </button>
 
                   <div className="add-asset-physical-selected">
@@ -521,20 +530,20 @@ export function AddAssetModal({
                     })()}
                     <div>
                       <p className="font-semibold text-sm text-foreground">
-                        {physicalPreset.label}
+                        {getPhysicalPresetLabel(locale, physicalPreset.id)}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        {physicalPreset.description}
+                        {getPhysicalPresetDescription(locale, physicalPreset.id)}
                       </p>
                     </div>
                   </div>
 
                   <label className="add-asset-field">
-                    <span>Asset name</span>
+                    <span>{t("portfolio.add.assetName")}</span>
                     <input
                       value={physicalName}
                       onChange={(e) => setPhysicalName(e.target.value)}
-                      placeholder="e.g. Beach house, 2021 Tesla Model 3"
+                      placeholder={t("portfolio.add.assetNamePlaceholder")}
                       required
                       autoFocus
                     />
@@ -542,46 +551,44 @@ export function AddAssetModal({
 
                   <div className="add-asset-form-grid">
                     <label className="add-asset-field">
-                      <span>Purchase price</span>
+                      <span>{t("portfolio.add.purchasePrice")}</span>
                       <input
                         type="number"
                         min="0"
                         step="any"
                         value={purchasePrice}
                         onChange={(e) => setPurchasePrice(e.target.value)}
-                        placeholder="Original cost"
+                        placeholder={t("portfolio.add.purchasePricePlaceholder")}
                         required
                       />
                     </label>
                     <label className="add-asset-field">
-                      <span>Current value</span>
+                      <span>{t("portfolio.add.currentValue")}</span>
                       <input
                         type="number"
                         min="0"
                         step="any"
                         value={currentValue}
                         onChange={(e) => setCurrentValue(e.target.value)}
-                        placeholder="Estimated value today"
+                        placeholder={t("portfolio.add.currentValuePlaceholder")}
                         required
                       />
                     </label>
                   </div>
 
                   <p className="text-[11px] text-muted-foreground">
-                    Physical assets use manual valuation — refresh prices won&apos;t
-                    update them. Included in net worth and allocation.
+                    {t("portfolio.add.physicalNote")}
                   </p>
 
                   <button type="submit" className="btn-primary w-full mt-2">
                     <Plus className="w-4 h-4" size={16} />
-                    Add to portfolio
+                    {t("portfolio.add.submit")}
                   </button>
                 </form>
               ) : (
                 <div className="add-asset-physical-panel">
                   <p className="text-xs text-muted-foreground mb-3">
-                    Track homes, vehicles, and other assets not listed on public
-                    markets — similar to ProjectionLab&apos;s real assets.
+                    {t("portfolio.add.physicalIntro")}
                   </p>
                   <div className="add-asset-preset-grid">
                     {PHYSICAL_ASSET_PRESETS.map((preset) => {
@@ -595,10 +602,10 @@ export function AddAssetModal({
                         >
                           <Icon className="w-5 h-5 text-accent" size={20} />
                           <span className="font-semibold text-sm text-foreground">
-                            {preset.label}
+                            {getPhysicalPresetLabel(locale, preset.id)}
                           </span>
                           <span className="text-[10px] text-muted-foreground leading-tight">
-                            {preset.description}
+                            {getPhysicalPresetDescription(locale, preset.id)}
                           </span>
                         </button>
                       );
@@ -610,16 +617,16 @@ export function AddAssetModal({
               <form className="add-asset-form" onSubmit={handleManualSubmit}>
                 <div className="add-asset-form-grid">
                   <label className="add-asset-field">
-                    <span>Ticker</span>
+                    <span>{t("portfolio.add.ticker")}</span>
                     <input
                       value={ticker}
                       onChange={(e) => setTicker(e.target.value)}
-                      placeholder="e.g. AAPL"
+                      placeholder={t("portfolio.add.tickerPlaceholder")}
                       required
                     />
                   </label>
                   <label className="add-asset-field">
-                    <span>Asset class</span>
+                    <span>{t("portfolio.add.assetClass")}</span>
                     <select
                       value={assetClass}
                       onChange={(e) =>
@@ -628,7 +635,7 @@ export function AddAssetModal({
                     >
                       {ASSET_CLASS_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
-                          {opt.label} — {opt.description}
+                          {getAssetClassLabel(locale, opt.value)}
                         </option>
                       ))}
                     </select>
@@ -636,18 +643,18 @@ export function AddAssetModal({
                 </div>
 
                 <label className="add-asset-field">
-                  <span>Name</span>
+                  <span>{t("portfolio.add.name")}</span>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Company or fund name"
+                    placeholder={t("portfolio.add.namePlaceholder")}
                     required
                   />
                 </label>
 
                 <div className="add-asset-form-grid">
                   <label className="add-asset-field">
-                    <span>Quantity</span>
+                    <span>{t("portfolio.add.quantity")}</span>
                     <input
                       type="number"
                       min="0"
@@ -658,26 +665,26 @@ export function AddAssetModal({
                     />
                   </label>
                   <label className="add-asset-field">
-                    <span>Avg. cost / unit</span>
+                    <span>{t("portfolio.add.avgCost")}</span>
                     <input
                       type="number"
                       min="0"
                       step="any"
                       value={costBasis}
                       onChange={(e) => setCostBasis(e.target.value)}
-                      placeholder="Your average buy price"
+                      placeholder={t("portfolio.add.avgCostPlaceholder")}
                       required
                     />
                   </label>
                   <label className="add-asset-field">
-                    <span>Current price</span>
+                    <span>{t("portfolio.add.currentPrice")}</span>
                     <input
                       type="number"
                       min="0"
                       step="any"
                       value={currentPrice}
                       onChange={(e) => setCurrentPrice(e.target.value)}
-                      placeholder="Market price"
+                      placeholder={t("portfolio.add.marketPricePlaceholder")}
                       required
                     />
                   </label>
@@ -685,7 +692,7 @@ export function AddAssetModal({
 
                 <button type="submit" className="btn-primary w-full mt-2">
                   <Plus className="w-4 h-4" size={16} />
-                  Add to portfolio
+                  {t("portfolio.add.submit")}
                 </button>
               </form>
             )}

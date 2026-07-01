@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "sonner";
+import { ThemeToaster } from "@/components/platform/ThemeToaster";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -83,7 +83,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  colorScheme: "dark",
+  colorScheme: "dark light",
 };
 
 export default function RootLayout({
@@ -94,28 +94,19 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var r=localStorage.getItem('jubilation-v2-state');var s=r?JSON.parse(r):null;var st=s&&s.state;var th=(st&&st.theme)||'dark';var loc=(st&&st.locale)||'en';var el=document.documentElement;el.classList.remove('dark','light');el.classList.add(th);el.style.colorScheme=th;el.lang=loc;}catch(e){document.documentElement.classList.add('dark');}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground">
         {children}
-        <Toaster
-          theme="dark"
-          position="top-right"
-          richColors
-          closeButton
-          expand={false}
-          visibleToasts={4}
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: "var(--surface-elevated)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            },
-          }}
-          className="!top-[calc(var(--topbar-height)+0.5rem)] sm:!top-4"
-        />
+        <ThemeToaster />
       </body>
     </html>
   );

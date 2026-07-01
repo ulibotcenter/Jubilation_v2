@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, Minus, Plus } from "lucide-react";
 import { computePlaygroundDiff } from "@/lib/playgroundDiff";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrencyValue, type KPIField } from "@/types";
 
@@ -25,16 +27,18 @@ function DeltaBadge({
   delta,
   currency,
   format = "currency",
+  noChangeLabel,
 }: {
   delta: number;
   currency: ReturnType<typeof useAppStore.getState>["currency"];
   format?: "currency" | "integer" | "percent";
+  noChangeLabel: string;
 }) {
   if (delta === 0) {
     return (
       <span className="playground-diff-neutral">
         <Minus className="w-3 h-3" size={12} />
-        No change
+        {noChangeLabel}
       </span>
     );
   }
@@ -64,6 +68,7 @@ function DeltaBadge({
 }
 
 export function PlaygroundDiffPanel() {
+  const { t } = useTranslation();
   const realKpis = useAppStore((s) => s.kpis);
   const realProjections = useAppStore((s) => s.projections);
   const realPortfolio = useAppStore((s) => s.portfolio);
@@ -91,49 +96,71 @@ export function PlaygroundDiffPanel() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 }}
-      aria-label="Scenario vs real portfolio"
+      aria-label={t("simulation.diff.title")}
     >
       <div className="playground-diff-header">
         <ArrowRightLeft className="w-4 h-4 text-accent" size={16} />
         <div>
-          <h2 className="playground-diff-title">Vs real portfolio</h2>
+          <h2 className="playground-diff-title">{t("simulation.diff.title")}</h2>
           <p className="playground-diff-subtitle">
             {diff.hasChanges
-              ? "How this scenario differs from your tracked plan"
-              : "Matches your real portfolio — start editing to explore"}
+              ? t("simulation.diff.subtitle.differs")
+              : t("simulation.diff.subtitle.matches")}
           </p>
         </div>
       </div>
 
       <div className="playground-diff-highlights">
         <div className="playground-diff-highlight">
-          <p className="playground-diff-highlight-label">Projected at retirement</p>
-          <DeltaBadge delta={diff.projectedDelta} currency={currency} />
+          <p className="playground-diff-highlight-label">
+            {t("simulation.diff.projectedAtRetirement")}
+          </p>
+          <DeltaBadge
+            delta={diff.projectedDelta}
+            currency={currency}
+            noChangeLabel={t("simulation.diff.noChange")}
+          />
         </div>
         <div className="playground-diff-highlight">
-          <p className="playground-diff-highlight-label">Net worth today</p>
-          <DeltaBadge delta={diff.netWorthDelta} currency={currency} />
+          <p className="playground-diff-highlight-label">
+            {t("simulation.diff.netWorthToday")}
+          </p>
+          <DeltaBadge
+            delta={diff.netWorthDelta}
+            currency={currency}
+            noChangeLabel={t("simulation.diff.noChange")}
+          />
         </div>
         <div className="playground-diff-highlight">
-          <p className="playground-diff-highlight-label">Holdings</p>
+          <p className="playground-diff-highlight-label">
+            {t("simulation.diff.holdings")}
+          </p>
           <DeltaBadge
             delta={diff.holdingsDelta}
             currency={currency}
             format="integer"
+            noChangeLabel={t("simulation.diff.noChange")}
           />
           <p className="playground-diff-hint">
-            {diff.simHoldings} in sandbox · {diff.realHoldings} tracked
+            {t("simulation.diff.holdingsHint", {
+              sandbox: diff.simHoldings,
+              real: diff.realHoldings,
+            })}
           </p>
         </div>
       </div>
 
       {changedKpis.length > 0 && (
         <div className="playground-diff-assumptions">
-          <p className="playground-diff-assumptions-label">Changed assumptions</p>
+          <p className="playground-diff-assumptions-label">
+            {t("simulation.diff.changedAssumptions")}
+          </p>
           <ul className="playground-diff-list">
             {changedKpis.map((k) => (
               <li key={k.field} className="playground-diff-row">
-                <span className="playground-diff-row-label">{k.label}</span>
+                <span className="playground-diff-row-label">
+                  {t(`kpi.field.${k.field}` as MessageKey)}
+                </span>
                 <span className="playground-diff-row-values tabular-nums">
                   <span className="text-muted-foreground">
                     {formatKpiValue(k.field, k.real, currency)}

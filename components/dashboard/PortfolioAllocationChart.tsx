@@ -2,8 +2,10 @@
 
 import { useMemo } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { getAssetClassLabel } from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { CLASS_HEX } from "@/lib/portfolioColors";
-import { ASSET_CLASS_LABELS, formatCurrencyValue, type AssetClass, type Currency } from "@/types";
+import { formatCurrencyValue, type AssetClass, type Currency } from "@/types";
 
 interface Segment {
   assetClass: AssetClass;
@@ -44,13 +46,16 @@ export function PortfolioAllocationChart({
   currency,
   totalValue,
 }: PortfolioAllocationChartProps) {
+  const { t, locale } = useTranslation();
+
   const data = useMemo(
     () =>
       segments.map((s) => ({
         ...s,
-        name: s.label,
+        name: getAssetClassLabel(locale, s.assetClass),
+        label: getAssetClassLabel(locale, s.assetClass),
       })),
-    [segments]
+    [segments, locale]
   );
 
   if (segments.length === 0 || totalValue <= 0) return null;
@@ -84,7 +89,7 @@ export function PortfolioAllocationChart({
         </ResponsiveContainer>
         <div className="portfolio-allocation-center" aria-hidden="true">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Total
+            {t("portfolio.allocation.total")}
           </p>
           <p className="text-sm font-bold text-foreground tabular-nums">
             {formatCurrencyValue(totalValue, currency, true)}
@@ -100,7 +105,7 @@ export function PortfolioAllocationChart({
               style={{ backgroundColor: CLASS_HEX[seg.assetClass] }}
             />
             <span className="text-xs text-muted-foreground flex-1">
-              {ASSET_CLASS_LABELS[seg.assetClass]}
+              {getAssetClassLabel(locale, seg.assetClass)}
             </span>
             <span className="text-xs font-semibold text-foreground tabular-nums">
               {seg.pct.toFixed(1)}%

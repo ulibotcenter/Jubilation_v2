@@ -12,17 +12,19 @@ import {
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MonteCarloHistogram } from "@/components/ui/MonteCarloHistogram";
+import {
+  getChartScenarioLabel,
+  getStressTestDescription,
+  getStressTestLabel,
+} from "@/lib/i18n/resolve";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import {
-  CURRENCY_SYMBOLS,
-  MONTE_CARLO_SCENARIO_LABELS,
   STRESS_TESTS,
   formatCurrencyValue,
   type MonteCarloScenario,
   type StressTestId,
 } from "@/types";
-
-// i18n-ready: strings → future next-intl keys (monteCarlo.*)
 
 const SCENARIO_CLASS: Record<MonteCarloScenario, string> = {
   pessimistic: "scenario-pessimistic",
@@ -36,11 +38,11 @@ const SCENARIO_BORDER: Record<MonteCarloScenario, string> = {
   optimistic: "border-green-500/25",
 };
 
-function SuccessBar({ rate }: { rate: number }) {
+function SuccessBar({ rate, label }: { rate: number; label: string }) {
   return (
     <div className="mt-2">
       <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-        <span>Success rate</span>
+        <span>{label}</span>
         <span className="font-semibold text-foreground tabular-nums">
           {rate}%
         </span>
@@ -62,6 +64,7 @@ interface MonteCarloCardProps {
 }
 
 export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
+  const { t, locale } = useTranslation();
   const currency = useAppStore((s) => s.currency);
   const realKpis = useAppStore((s) => s.kpis);
   const simKpis = useAppStore((s) => s.simPlayground.kpis);
@@ -84,22 +87,24 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
 
   const handleRun = async () => {
     await runMonteCarlo();
-    toast.success("Monte Carlo simulation complete", {
-      description: "1,000 iterations across 3 scenarios.",
+    toast.success(t("toast.monteCarlo.complete"), {
+      description: t("toast.monteCarlo.completeDesc"),
     });
   };
 
   const handleStressTest = (id: StressTestId) => {
     runStressTestById(id);
-    const test = STRESS_TESTS.find((t) => t.id === id)!;
+    const label = getStressTestLabel(locale, id);
     const latest = useAppStore
       .getState()
       .stressTestResults.find((r) => r.testId === id);
     if (latest) {
-      toast.info(`${test.label} stress test`, {
+      toast.info(t("toast.monteCarlo.stress", { label }), {
         description: latest.stillOnTrack
-          ? "Your plan still holds under this scenario."
-          : `Projected shortfall: ${formatCurrencyValue(latest.shortfall, currency)}`,
+          ? t("toast.monteCarlo.stillOnTrack")
+          : t("toast.monteCarlo.shortfall", {
+              amount: formatCurrencyValue(latest.shortfall, currency),
+            }),
       });
     }
   };
@@ -118,7 +123,7 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      aria-label="Monte Carlo simulation and stress tests"
+      aria-label={t("monteCarlo.aria")}
     >
       {/* ── Header ── */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-6">
@@ -128,16 +133,17 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
           </div>
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-foreground">
-              Monte Carlo Simulation
+              {t("monteCarlo.title")}
             </h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-              Probabilistic retirement outcomes across pessimistic, base, and
-              optimistic scenarios — {monteCarlo.iterations.toLocaleString("en-US")}{" "}
-              iterations each.
+              {t("monteCarlo.subtitle", {
+                iterations: monteCarlo.iterations.toLocaleString(locale),
+              })}
             </p>
             <p className="text-xs text-muted mt-1.5">
-              Target: {formatCurrencyValue(retirementTarget, currency)} (25× annual
-              income goal)
+              {t("monteCarlo.targetHint", {
+                amount: formatCurrencyValue(retirementTarget, currency),
+              })}
             </p>
           </div>
         </div>
@@ -151,12 +157,12 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
           {monteCarlo.isRunning ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" size={20} />
-              Running simulation…
+              {t("monteCarlo.running")}
             </>
           ) : (
             <>
               <Play className="w-5 h-5" size={20} />
-              Run Monte Carlo
+              {t("monteCarlo.run")}
               <kbd className="monte-kbd hidden sm:inline">M</kbd>
             </>
           )}
@@ -167,15 +173,14 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
         <div className="stale-simulation-banner mb-5" role="status">
           <AlertTriangle className="w-4 h-4 text-warning shrink-0" size={16} />
           <p className="text-sm text-foreground">
-            <span className="font-semibold">Assumptions changed</span>
+            <span className="font-semibold">{t("monteCarlo.stale.title")}</span>
             <span className="text-muted-foreground">
-              {" "}
-              — your KPIs were updated since the last run (
-              {new Date(monteCarlo.lastRunAt!).toLocaleString("en-US", {
-                dateStyle: "medium",
-                timeStyle: "short",
+              {t("monteCarlo.stale.body", {
+                date: new Date(monteCarlo.lastRunAt!).toLocaleString(locale, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }),
               })}
-              ). Re-run to refresh probabilistic outcomes.
             </span>
           </p>
           <button
@@ -184,7 +189,7 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
             disabled={monteCarlo.isRunning}
             className="btn-primary !px-4 !py-2 text-sm shrink-0"
           >
-            Re-run
+            {t("monteCarlo.rerun")}
           </button>
         </div>
       )}
@@ -193,10 +198,10 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
       {!monteCarlo.hasRun && !monteCarlo.isRunning ? (
         <EmptyState
           icon={BarChart3}
-          title="Ready to simulate your retirement"
-          description="Model 1,000 probabilistic outcomes across pessimistic, base, and optimistic scenarios — based on your current assumptions."
+          title={t("monteCarlo.ready.title")}
+          description={t("monteCarlo.ready.desc")}
           action={{
-            label: "Run Monte Carlo",
+            label: t("monteCarlo.run"),
             onClick: handleRun,
           }}
         />
@@ -229,22 +234,25 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
               <span
                 className={`scenario-badge ${SCENARIO_CLASS[result.scenario]}`}
               >
-                {MONTE_CARLO_SCENARIO_LABELS[result.scenario]}
+                {getChartScenarioLabel(locale, result.scenario)}
               </span>
 
               <p className="text-2xl sm:text-3xl font-bold text-foreground mt-4 tabular-nums">
                 {formatCurrencyValue(result.medianValue, currency, true)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Median portfolio at age {kpis.retirementAge}
+                {t("monteCarlo.medianAtAge", { n: kpis.retirementAge })}
               </p>
 
-              <SuccessBar rate={result.successRate} />
+              <SuccessBar
+                rate={result.successRate}
+                label={t("monteCarlo.successRate")}
+              />
 
               <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    10th %ile
+                    {t("monteCarlo.percentile10")}
                   </p>
                   <p className="text-sm font-semibold text-foreground tabular-nums mt-0.5">
                     {formatCurrencyValue(result.percentile10, currency, true)}
@@ -252,7 +260,7 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    90th %ile
+                    {t("monteCarlo.percentile90")}
                   </p>
                   <p className="text-sm font-semibold text-foreground tabular-nums mt-0.5">
                     {formatCurrencyValue(result.percentile90, currency, true)}
@@ -285,10 +293,11 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
 
       {monteCarlo.lastRunAt && (
         <p className="text-[10px] text-muted text-right mt-3">
-          Last run:{" "}
-          {new Date(monteCarlo.lastRunAt).toLocaleString("en-US", {
-            dateStyle: "medium",
-            timeStyle: "short",
+          {t("monteCarlo.lastRun", {
+            date: new Date(monteCarlo.lastRunAt).toLocaleString(locale, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            }),
           })}
         </p>
       )}
@@ -304,10 +313,10 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
           />
           <div>
             <h4 className="text-base sm:text-lg font-bold text-foreground">
-              Stress Tests
+              {t("monteCarlo.stress.title")}
             </h4>
             <p className="text-sm text-muted-foreground mt-0.5">
-              How does your plan hold up under adverse conditions?
+              {t("monteCarlo.stress.desc")}
             </p>
           </div>
         </div>
@@ -331,9 +340,11 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
                     : "bg-red-500/5"
                 }`}
               >
-                <span className="font-semibold text-sm">{test.label}</span>
+                <span className="font-semibold text-sm">
+                  {getStressTestLabel(locale, test.id)}
+                </span>
                 <span className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed font-normal">
-                  {test.description}
+                  {getStressTestDescription(locale, test.id)}
                 </span>
                 {result && (
                   <span
@@ -346,7 +357,9 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
                     ) : (
                       <XCircle className="w-3 h-3" size={12} />
                     )}
-                    {result.stillOnTrack ? "On track" : "At risk"}
+                    {result.stillOnTrack
+                      ? t("monteCarlo.stress.onTrack")
+                      : t("monteCarlo.stress.atRisk")}
                   </span>
                 )}
               </motion.button>
@@ -382,38 +395,33 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
                   {activeResult.stillOnTrack ? (
                     <>
                       <p className="font-semibold text-green-400">
-                        Plan resilient under stress
+                        {t("monteCarlo.stress.resilient.title")}
                       </p>
                       <p className="text-muted-foreground mt-1">
-                        Stressed projection:{" "}
-                        <span className="text-foreground font-medium">
-                          {formatCurrencyValue(
+                        {t("monteCarlo.stress.resilient.desc", {
+                          stressed: formatCurrencyValue(
                             activeResult.stressedValue,
                             currency
-                          )}
-                        </span>{" "}
-                        at retirement (original:{" "}
-                        {formatCurrencyValue(
-                          activeResult.originalValue,
-                          currency
-                        )}
-                        ).
+                          ),
+                          original: formatCurrencyValue(
+                            activeResult.originalValue,
+                            currency
+                          ),
+                        })}
                       </p>
                     </>
                   ) : (
                     <>
                       <p className="font-semibold text-red-400">
-                        Plan at risk under this scenario
+                        {t("monteCarlo.stress.atRisk.title")}
                       </p>
                       <p className="text-muted-foreground mt-1">
-                        Projected shortfall of{" "}
-                        <span className="text-foreground font-medium">
-                          {formatCurrencyValue(
+                        {t("monteCarlo.stress.atRisk.desc", {
+                          amount: formatCurrencyValue(
                             activeResult.shortfall,
                             currency
-                          )}
-                        </span>{" "}
-                        vs. retirement target.
+                          ),
+                        })}
                       </p>
                     </>
                   )}

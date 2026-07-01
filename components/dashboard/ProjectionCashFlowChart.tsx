@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { CashFlowTooltip } from "@/components/ui/CashFlowTooltip";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   CURRENCY_SYMBOLS,
   formatCurrencyValue,
@@ -30,6 +31,7 @@ export function ProjectionCashFlowChart({
   currency,
   projectionRevision,
 }: ProjectionCashFlowChartProps) {
+  const { t } = useTranslation();
   const sym = CURRENCY_SYMBOLS[currency];
 
   const flowData = useMemo(
@@ -56,13 +58,17 @@ export function ProjectionCashFlowChart({
 
   if (flowData.length === 0) return null;
 
+  const monthlyNeed = formatCurrencyValue(
+    (flowData[0]?.requiredIncome ?? 0) / 12,
+    currency
+  );
+
   return (
     <div className="cash-flow-chart-wrap">
       <div className="cash-flow-chart-header">
-        <p className="cash-flow-chart-title">Annual cash flow</p>
+        <p className="cash-flow-chart-title">{t("chart.cashflow.title")}</p>
         <p className="cash-flow-chart-subtitle">
-          Stacked bar = living expenses + invested · Blue = market returns on
-          portfolio
+          {t("chart.cashflow.subtitleDetail")}
         </p>
       </div>
       <div className="cash-flow-chart-container">
@@ -105,7 +111,7 @@ export function ProjectionCashFlowChart({
             />
             <Bar
               dataKey="expenses"
-              name="Living expenses"
+              name={t("chart.cashflow.living")}
               stackId="income"
               fill="#f87171"
               radius={[0, 0, 0, 0]}
@@ -113,7 +119,7 @@ export function ProjectionCashFlowChart({
             />
             <Bar
               dataKey="invested"
-              name="Invested"
+              name={t("chart.cashflow.invested")}
               stackId="income"
               fill="#22c55e"
               radius={[3, 3, 0, 0]}
@@ -121,7 +127,7 @@ export function ProjectionCashFlowChart({
             />
             <Bar
               dataKey="returns"
-              name="Market returns"
+              name={t("chart.cashflow.returns")}
               fill="#60a5fa"
               radius={[3, 3, 0, 0]}
               maxBarSize={28}
@@ -130,16 +136,7 @@ export function ProjectionCashFlowChart({
         </ResponsiveContainer>
       </div>
       <p className="cash-flow-chart-footnote">
-        Income need{" "}
-        <span className="text-foreground font-semibold tabular-nums">
-          {formatCurrencyValue(
-            (flowData[0]?.requiredIncome ?? 0) / 12,
-            currency
-          )}
-          /mo
-        </span>{" "}
-        ≈ expenses + contributions · Returns vary with portfolio (variable
-        income contrast)
+        {t("chart.cashflow.footnote", { amount: monthlyNeed })}
       </p>
     </div>
   );

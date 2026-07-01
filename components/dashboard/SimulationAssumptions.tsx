@@ -1,11 +1,10 @@
 "use client";
 
 import { Filter, PiggyBank, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { isScopeFiltered, resolveSimulationKpis } from "@/lib/simulationScope";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCY_SYMBOLS, formatCurrencyValue } from "@/types";
-
-// i18n-ready: labels → future next-intl keys (simulation.assumptions.*)
 
 interface SimulationAssumptionsProps {
   mode?: "real" | "playground";
@@ -14,6 +13,7 @@ interface SimulationAssumptionsProps {
 export function SimulationAssumptions({
   mode = "real",
 }: SimulationAssumptionsProps) {
+  const { t } = useTranslation();
   const realKpis = useAppStore((s) => s.kpis);
   const simKpis = useAppStore((s) => s.simPlayground.kpis);
   const kpis = mode === "playground" ? simKpis : realKpis;
@@ -32,36 +32,43 @@ export function SimulationAssumptions({
   const items = [
     {
       icon: Wallet,
-      label: filtered ? "Scoped net worth" : "Starting net worth",
+      label: filtered
+        ? t("simulation.assumptions.scopedNetWorth")
+        : t("simulation.assumptions.startingNetWorth"),
       value: formatCurrencyValue(effectiveKpis.currentNetWorth, currency, true),
       hint: filtered
-        ? `KPI ${formatCurrencyValue(kpis.currentNetWorth, currency, true)} adjusted for scope`
+        ? t("simulation.assumptions.kpiAdjustedForScope", {
+            amount: formatCurrencyValue(kpis.currentNetWorth, currency, true),
+          })
         : undefined,
     },
     {
       icon: PiggyBank,
-      label: "Monthly savings",
-      value: `${sym}${kpis.monthlyContribution.toLocaleString("en-US")}/mo`,
+      label: t("simulation.assumptions.monthlySavings"),
+      value: `${sym}${kpis.monthlyContribution.toLocaleString("en-US")}${t("common.perMonth")}`,
     },
     {
       icon: TrendingUp,
-      label: "Expected CAGR",
+      label: t("kpi.field.expectedCAGR"),
       value: `${kpis.expectedCAGR.toFixed(1)}%`,
     },
     {
       icon: TrendingDown,
-      label: "Inflation",
+      label: t("simulation.assumptions.inflation"),
       value: `${kpis.annualInflation.toFixed(1)}%`,
     },
   ];
 
   return (
-    <div className="sim-assumptions" aria-label="Simulation assumptions">
+    <div className="sim-assumptions" aria-label={t("simulation.assumptions.ariaLabel")}>
       {filtered && (
         <div className="sim-assumptions-scope-badge col-span-2 sm:col-span-4">
           <Filter className="w-3 h-3 text-accent" size={12} />
           <span>
-            {includedIds.length} of {portfolio.length} assets in projection
+            {t("simulation.assumptions.assetsInProjection", {
+              included: includedIds.length,
+              total: portfolio.length,
+            })}
           </span>
         </div>
       )}

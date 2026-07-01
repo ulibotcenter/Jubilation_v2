@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface EditableNumberProps {
   value: number;
@@ -84,6 +85,7 @@ export function EditableNumber({
   compact = false,
   disabled = false,
 }: EditableNumberProps) {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +190,7 @@ export function EditableNumber({
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           className={`editable-number-input text-inherit font-inherit ${inputClassName}`}
-          aria-label="Edit value"
+          aria-label={t("common.editValue")}
         />
       ) : (
         <button
@@ -196,7 +198,10 @@ export function EditableNumber({
           onClick={startEditing}
           disabled={disabled}
           className={`editable-number-input text-left cursor-text font-inherit disabled:cursor-not-allowed disabled:opacity-50 ${inputClassName}`}
-          aria-label={`Edit value, currently ${displayValue}${suffix ?? ""}`}
+          aria-label={t("common.editValueCurrent", {
+            value: displayValue,
+            suffix: suffix ?? "",
+          })}
         >
           {format === "currency"
             ? displayValue.replace(currencySymbol, "")

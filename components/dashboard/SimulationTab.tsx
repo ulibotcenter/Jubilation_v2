@@ -5,6 +5,7 @@ import { ProjectionChartCard } from "@/components/dashboard/ProjectionChartCard"
 import { ProjectionTable } from "@/components/dashboard/ProjectionTable";
 import { SimulationAssumptions } from "@/components/dashboard/SimulationAssumptions";
 import { MonteCarloCard } from "@/components/ui/MonteCarloCard";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrencyValue } from "@/types";
 
@@ -17,6 +18,7 @@ export function SimulationTab({
   mode = "real",
   hideChart = false,
 }: SimulationTabProps) {
+  const { t } = useTranslation();
   const currency = useAppStore((s) => s.currency);
 
   const chartData = useAppStore((s) =>
@@ -36,6 +38,33 @@ export function SimulationTab({
 
   const finalRow = projections[projections.length - 1];
 
+  const stats = [
+    {
+      key: "atRetirement",
+      label: t("simulation.stat.atRetirement"),
+      value: finalRow
+        ? formatCurrencyValue(finalRow.portfolioValue, currency, true)
+        : "—",
+    },
+    {
+      key: "inflationAdj",
+      label: t("simulation.stat.inflationAdj"),
+      value: finalRow
+        ? formatCurrencyValue(finalRow.inflationAdjusted, currency, true)
+        : "—",
+    },
+    {
+      key: "yearsLeft",
+      label: t("simulation.stat.yearsLeft"),
+      value: `${kpis.retirementAge - kpis.currentAge}`,
+    },
+    {
+      key: "realCagr",
+      label: t("simulation.stat.realCagr"),
+      value: `${(kpis.expectedCAGR - kpis.annualInflation).toFixed(1)}%`,
+    },
+  ] as const;
+
   return (
     <div className="space-y-6">
       {mode !== "playground" && <SimulationAssumptions mode={mode} />}
@@ -44,30 +73,9 @@ export function SimulationTab({
         key={`stats-${projectionRevision}`}
         className="grid grid-cols-2 sm:grid-cols-4 gap-3"
       >
-        {[
-          {
-            label: "At Retirement",
-            value: finalRow
-              ? formatCurrencyValue(finalRow.portfolioValue, currency, true)
-              : "—",
-          },
-          {
-            label: "Inflation-Adj.",
-            value: finalRow
-              ? formatCurrencyValue(finalRow.inflationAdjusted, currency, true)
-              : "—",
-          },
-          {
-            label: "Years Left",
-            value: `${kpis.retirementAge - kpis.currentAge}`,
-          },
-          {
-            label: "Real CAGR",
-            value: `${(kpis.expectedCAGR - kpis.annualInflation).toFixed(1)}%`,
-          },
-        ].map((stat, i) => (
+        {stats.map((stat, i) => (
           <motion.div
-            key={stat.label}
+            key={stat.key}
             className="rounded-xl border border-border bg-surface px-3 py-3 sm:p-4"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -86,8 +94,11 @@ export function SimulationTab({
       {!hideChart && (
         <ProjectionChartCard
           mode={mode}
-          title="Retirement Projection"
-          subtitle={`Portfolio growth from age ${kpis.currentAge} to ${kpis.retirementAge}`}
+          title={t("simulation.projection.title")}
+          subtitle={t("simulation.projection.subtitle", {
+            from: kpis.currentAge,
+            to: kpis.retirementAge,
+          })}
           chartData={chartData}
           projections={projections}
           kpis={kpis}
