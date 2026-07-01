@@ -1,66 +1,50 @@
 import {
+  buildProjectionEngineConfig,
+  buildSingleBucketConfig,
+  percentile,
+  runProjectionEngine,
+  simulateMonteCarloPathsByAge,
+  type ProjectionEngineConfig,
+} from "@/lib/projectionEngine";
+import {
   generateChartData,
   type ChartDataPoint,
   type KPIValues,
+  type PortfolioAsset,
   type ProjectionYear,
 } from "@/types";
 
-/** @deprecated Use kpis.lifeExpectancy — kept for test fallbacks */
-export const PROJECTION_END_AGE = 90;
+export interface ProjectionOptions {
+  portfolio?: PortfolioAsset[];
+  includedAssetIds?: string[];
+  outsidePortfolio?: number;
+}
+
+function resolveEngineConfig(
+  kpis: KPIValues,
+  options?: ProjectionOptions
+): ProjectionEngineConfig {
+  if (
+    options?.portfolio &&
+    options.includedAssetIds &&
+    options.includedAssetIds.length > 0
+  ) {
+    return buildProjectionEngineConfig(
+      kpis,
+      options.portfolio,
+      options.includedAssetIds,
+      options.outsidePortfolio ?? 0
+    );
+  }
+  return buildSingleBucketConfig(kpis);
+}
 
 /** Accumulation + drawdown through user-defined life expectancy */
-export function generateExtendedProjections(kpis: KPIValues): ProjectionYear[] {
-  const projections: ProjectionYear[] = [];
-  const annualContribution = kpis.monthlyContribution * 12;
-  const annualLiving = kpis.monthlyExpenses * 12;
-  const realReturn = (kpis.expectedCAGR - kpis.annualInflation) / 100;
-  const endAge = kpis.lifeExpectancy;
-
-  let portfolioValue = kpis.currentNetWorth;
-  let annualWithdrawal = 0;
-  const startYear = new Date().getFullYear();
-
-  for (let age = kpis.currentAge; age <= endAge; age++) {
-    const i = age - kpis.currentAge;
-    const year = startYear + i;
-    const isRetired = age >= kpis.retirementAge;
-    const returns = i === 0 ? 0 : portfolioValue * realReturn;
-    const contributions = i === 0 || isRetired ? 0 : annualContribution;
-    const expenses = i === 0 ? 0 : isRetired ? 0 : annualLiving;
-
-    if (isRetired && annualWithdrawal === 0) {
-      annualWithdrawal =
-        kpis.desiredMonthlyIncome > 0
-          ? kpis.desiredMonthlyIncome * 12
-          : Math.round(portfolioValue * 0.04);
-    }
-
-    const withdrawals = i === 0 || !isRetired ? 0 : annualWithdrawal;
-    const invested = contributions;
-    const requiredIncome = expenses + invested;
-
-    if (i > 0) {
-      portfolioValue =
-        portfolioValue + returns + contributions - withdrawals;
-      portfolioValue = Math.max(0, portfolioValue);
-    }
-
-    const inflationFactor = Math.pow(1 + kpis.annualInflation / 100, i);
-
-    projections.push({
-      year,
-      age,
-      portfolioValue: Math.round(portfolioValue),
-      contributions: Math.round(contributions),
-      returns: Math.round(returns),
-      inflationAdjusted: Math.round(portfolioValue / inflationFactor),
-      expenses: Math.round(expenses + withdrawals),
-      invested: Math.round(invested),
-      requiredIncome: Math.round(requiredIncome),
-    });
-  }
-
-  return projections;
+export function generateExtendedProjections(
+  kpis: KPIValues,
+  options?: ProjectionOptions
+): ProjectionYear[] {
+  return runProjectionEngine(resolveEngineConfig(kpis, options));
 }
 
 export function chartDataWithMcBands(
@@ -68,10 +52,36 @@ export function chartDataWithMcBands(
   mcP10?: number,
   mcP90?: number,
   anchorAge?: number,
-  mcMedian?: number
+  mcMedian?: number,
+  engineConfig?: ProjectionEngineConfig
 ): ChartDataPoint[] {
   const base = generateChartData(projections);
   if (mcP10 == null || mcP90 == null) return base;
+
+  // Prefer per-age path percentiles when engine config is available
+  if (engineConfig) {
+    const pathsByAge = simulateMonteCarloPathsByAge(engineConfig, {
+      iterations: 400,
+      volatility: 0.15,
+    });
+    return base.map((point) => {
+      if (anchorAge != null && point.age > anchorAge) {
+        return { ...point, pessimistic: undefined, optimistic: undefined, band: 0 };
+      }
+      const values = [...(pathsByAge.get(point.age) ?? [])].sort(
+        (a, b) => a - b
+      );
+      if (values.length === 0) return point;
+      const pessimistic = Math.round(percentile(values, 0.1));
+      const optimistic = Math.round(percentile(values, 0.9));
+      return {
+        ...point,
+        pessimistic,
+        optimistic,
+        band: optimistic - pessimistic,
+      };
+    });
+  }
 
   const spreadBase = mcMedian ?? mcP10;
   if (spreadBase <= 0) return base;
@@ -79,6 +89,9 @@ export function chartDataWithMcBands(
   const p10Ratio = mcP10 / spreadBase;
   const p90Ratio = mcP90 / spreadBase;
   return base.map((p) => {
+    if (anchorAge != null && p.age > anchorAge) {
+      return { ...p, pessimistic: undefined, optimistic: undefined, band: 0 };
+    }
     const pessimistic = Math.round(p.value * p10Ratio);
     const optimistic = Math.round(p.value * p90Ratio);
     return {

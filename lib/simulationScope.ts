@@ -11,18 +11,14 @@ export function resolveSimulationKpis(
   includedAssetIds: string[],
   outsidePortfolio?: number
 ): KPIValues {
-  const included = new Set(includedAssetIds);
   const totalPortfolio = calculatePortfolioValue(portfolio);
-  const filteredPortfolio = calculatePortfolioValue(
-    portfolio.filter((a) => included.has(a.id))
-  );
   const outside =
     outsidePortfolio ??
     Math.max(0, Math.round(kpis.currentNetWorth - totalPortfolio));
 
   return {
     ...kpis,
-    currentNetWorth: Math.round(filteredPortfolio + outside),
+    currentNetWorth: Math.round(totalPortfolio + outside),
   };
 }
 

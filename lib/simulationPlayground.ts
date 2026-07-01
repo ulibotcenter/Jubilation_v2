@@ -1,5 +1,6 @@
 import { getDefaultIncludedAssetIds } from "@/lib/simulationScope";
-import { generateExtendedProjections } from "@/lib/projectionsExtended";
+import { buildProjectionEngineConfig } from "@/lib/projectionEngine";
+import { chartDataWithMcBands, generateExtendedProjections } from "@/lib/projectionsExtended";
 import { syncNetWorthWithPortfolio } from "@/lib/netWorthSync";
 import { resolveSimulationKpis } from "@/lib/simulationScope";
 import {
@@ -7,7 +8,6 @@ import {
   applyPortfolioCagrToKpis,
   normalizePortfolioCagr,
 } from "@/lib/portfolioCagr";
-import { chartDataWithMcBands } from "@/lib/projectionsExtended";
 import {
   DEFAULT_KPI_VALUES,
   normalizeKpiValues,
@@ -123,7 +123,17 @@ export function buildPlaygroundProjections(state: {
     portfolio,
     state.simulationIncludedAssetIds
   );
-  const projections = generateExtendedProjections(effectiveKpis);
+  const engineConfig = buildProjectionEngineConfig(
+    effectiveKpis,
+    portfolio,
+    state.simulationIncludedAssetIds,
+    state.kpiOutsidePortfolio
+  );
+  const projections = generateExtendedProjections(effectiveKpis, {
+    portfolio,
+    includedAssetIds: state.simulationIncludedAssetIds,
+    outsidePortfolio: state.kpiOutsidePortfolio,
+  });
   const mcBase =
     state.monteCarlo?.hasRun && (state.monteCarlo.results?.length ?? 0) > 0
       ? state.monteCarlo.results.find((r) => r.scenario === "base")
@@ -133,11 +143,13 @@ export function buildPlaygroundProjections(state: {
     mcBase?.percentile10,
     mcBase?.percentile90,
     effectiveKpis.retirementAge,
-    mcBase?.medianValue
+    mcBase?.medianValue,
+    engineConfig
   );
   return {
     kpis: syncedKpis,
     effectiveKpis,
+    engineConfig,
     projections,
     chartData,
   };

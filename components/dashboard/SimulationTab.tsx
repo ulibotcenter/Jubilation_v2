@@ -8,7 +8,7 @@ import { MonteCarloCard } from "@/components/ui/MonteCarloCard";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { getChartHorizonAge } from "@/lib/projectionUtils";
-import { formatCurrencyValue } from "@/types";
+import { formatCurrencyValue, type ProjectionYear } from "@/types";
 
 interface SimulationTabProps {
   mode?: "real" | "playground";
@@ -39,7 +39,7 @@ export function SimulationTab({
 
   const chartHorizon = getChartHorizonAge(projections, kpis);
   const finalRow =
-    projections.find((p) => p.age === kpis.retirementAge) ??
+    projections.find((p: ProjectionYear) => p.age === kpis.retirementAge) ??
     projections[projections.length - 1];
 
   const stats = [

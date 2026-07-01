@@ -15,7 +15,7 @@ import { MilestoneTimeline } from "@/components/dashboard/MilestoneTimeline";
 import { computeFITargetFromDesired } from "@/lib/incomeGoals";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
-import { formatCurrencyValue } from "@/types";
+import { formatCurrencyValue, type ProjectionYear } from "@/types";
 
 function ProgressRing({
   progress,
@@ -120,7 +120,8 @@ export function RetirementHero() {
           ? computeFITargetFromDesired(kpis.desiredMonthlyIncome)
           : kpis.currentNetWorth * 25;
       const projected =
-        projections.find((p) => p.age === kpis.retirementAge)?.portfolioValue ??
+        projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
+          ?.portfolioValue ??
         0;
       const rawScore =
         targetValue > 0 ? Math.min(100, (projected / targetValue) * 100) : 0;
@@ -273,6 +274,7 @@ export function useHeroProjectedValue() {
   const projections = useAppStore((s) => s.projections);
   const kpis = useAppStore((s) => s.kpis);
   return (
-    projections.find((p) => p.age === kpis.retirementAge)?.portfolioValue ?? 0
+    projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
+      ?.portfolioValue ?? 0
   );
 }

@@ -6,7 +6,7 @@ import { buildShareText } from "@/lib/shareSnapshot";
 import { canAccess } from "@/lib/plans";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
-import { CURRENCY_SYMBOLS } from "@/types";
+import { CURRENCY_SYMBOLS, type ProjectionYear } from "@/types";
 
 export function ShareSnapshotButton() {
   const { t } = useTranslation();
@@ -14,7 +14,8 @@ export function ShareSnapshotButton() {
   const projections = useAppStore((s) => s.projections);
   const plan = useAppStore((s) => s.planTier);
   const projected =
-    projections.find((p) => p.age === kpis.retirementAge)?.portfolioValue ?? 0;
+    projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
+      ?.portfolioValue ?? 0;
   const sym = CURRENCY_SYMBOLS[useAppStore((s) => s.currency)];
 
   const share = async () => {

@@ -108,11 +108,14 @@ export function ProjectionTable({ mode = "real" }: ProjectionTableProps) {
   }, []);
 
   const showCollapsed = isMobile && !expanded;
-  const tableRows = useMemo(
+  const tableRows: TableRow[] = useMemo(
     () =>
       showCollapsed
         ? buildCollapsedRows(projections)
-        : projections.map((row) => ({ kind: "data" as const, row })),
+        : projections.map((row: ProjectionYear) => ({
+            kind: "data" as const,
+            row,
+          })),
     [showCollapsed, projections, kpis.retirementAge]
   );
 
@@ -156,7 +159,7 @@ export function ProjectionTable({ mode = "real" }: ProjectionTableProps) {
             </tr>
           </thead>
           <tbody>
-            {tableRows.map((entry, i) =>
+            {tableRows.map((entry: TableRow, i: number) =>
               entry.kind === "gap" ? (
                 <tr key={`gap-${i}`} className="projection-table-gap">
                   <td colSpan={6}>

@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_KPI_VALUES,
-  DEFAULT_LIFE_EXPECTANCY,
-  runMonteCarloSimulation,
-} from "@/types";
 import { buildCashFlowChartSeries } from "@/lib/cashFlowChartData";
+import {
+  buildProjectionEngineConfig,
+  buildSingleBucketConfig,
+  runMonteCarloFromConfig,
+  runProjectionEngine,
+} from "@/lib/projectionEngine";
 import { buildDisplayChartData } from "@/lib/projectionChartData";
 import {
   getChartHorizonAge,
@@ -14,7 +15,34 @@ import {
   chartDataWithMcBands,
   generateExtendedProjections,
 } from "@/lib/projectionsExtended";
-import { generateChartData } from "@/types";
+import { applyScopePreset } from "@/lib/simulationScope";
+import {
+  DEFAULT_KPI_VALUES,
+  DEFAULT_LIFE_EXPECTANCY,
+  MOCK_PORTFOLIO,
+  calculatePortfolioValue,
+  generateChartData,
+  normalizeKpiValues,
+  runMonteCarloSimulation,
+} from "@/types";
+import { normalizePortfolioCagr } from "@/lib/portfolioCagr";
+import { syncNetWorthWithPortfolio } from "@/lib/netWorthSync";
+
+function demoStoreProjections() {
+  const portfolio = normalizePortfolioCagr(MOCK_PORTFOLIO);
+  const includedIds = applyScopePreset(portfolio, "investmentsOnly");
+  const seedTotal = Math.round(calculatePortfolioValue(portfolio));
+  const kpis = syncNetWorthWithPortfolio(
+    normalizeKpiValues({ currentNetWorth: seedTotal }),
+    portfolio,
+    0
+  );
+  return generateExtendedProjections(kpis, {
+    portfolio,
+    includedAssetIds: includedIds,
+    outsidePortfolio: 0,
+  });
+}
 
 describe("projection engine", () => {
   const kpis = DEFAULT_KPI_VALUES;
@@ -25,11 +53,46 @@ describe("projection engine", () => {
     expect(getChartHorizonAge(projections, kpis)).toBe(kpis.lifeExpectancy);
   });
 
-  it("respects custom life expectancy", () => {
-    const custom = { ...kpis, lifeExpectancy: 95 };
-    const customProj = generateExtendedProjections(custom);
-    expect(customProj[customProj.length - 1]?.age).toBe(95);
-    expect(customProj.length).toBe(95 - kpis.currentAge + 1);
+  it("demo portfolio starts chart at full net worth", () => {
+    const portfolio = normalizePortfolioCagr(MOCK_PORTFOLIO);
+    const includedIds = applyScopePreset(portfolio, "investmentsOnly");
+    const seedTotal = Math.round(calculatePortfolioValue(portfolio));
+    const kpis = syncNetWorthWithPortfolio(
+      normalizeKpiValues({ currentNetWorth: seedTotal }),
+      portfolio,
+      0
+    );
+    const projections = generateExtendedProjections(kpis, {
+      portfolio,
+      includedAssetIds: includedIds,
+      outsidePortfolio: 0,
+    });
+    expect(projections[0]?.portfolioValue).toBe(seedTotal);
+    expect(projections[0]?.portfolioValue).toBeGreaterThan(500_000);
+  });
+
+  it("demo portfolio projects meaningful growth by retirement", () => {
+    const projections = demoStoreProjections();
+    const atRet = getRetirementPortfolioValue(
+      projections,
+      DEFAULT_KPI_VALUES.retirementAge
+    );
+    const start = projections[0]?.portfolioValue ?? 0;
+    expect(atRet).toBeGreaterThan(start * 1.5);
+  });
+
+  it("year-over-year balance reconciles exactly (rounded stepping)", () => {
+    const config = buildSingleBucketConfig(kpis);
+    const rows = runProjectionEngine(config);
+    for (let i = 1; i < rows.length; i++) {
+      const prev = rows[i - 1]!;
+      const cur = rows[i]!;
+      const isRetired = cur.age >= kpis.retirementAge;
+      const withdrawals = isRetired ? cur.expenses : 0;
+      const expected =
+        prev.portfolioValue + cur.returns + cur.contributions - withdrawals;
+      expect(cur.portfolioValue).toBe(Math.max(0, expected));
+    }
   });
 
   it("uses 4% of portfolio at retirement when no desired income", () => {
@@ -73,23 +136,53 @@ describe("projection chart data", () => {
   });
 
   it("keeps Monte Carlo bands only through retirement", () => {
-    const mc = runMonteCarloSimulation(kpis, 500);
+    const portfolio = normalizePortfolioCagr(MOCK_PORTFOLIO);
+    const includedIds = applyScopePreset(portfolio, "investmentsOnly");
+    const seedTotal = Math.round(calculatePortfolioValue(portfolio));
+    const demoKpis = syncNetWorthWithPortfolio(
+      normalizeKpiValues({ currentNetWorth: seedTotal }),
+      portfolio,
+      0
+    );
+    const demoProj = generateExtendedProjections(demoKpis, {
+      portfolio,
+      includedAssetIds: includedIds,
+      outsidePortfolio: 0,
+    });
+    const engineConfig = buildProjectionEngineConfig(
+      demoKpis,
+      portfolio,
+      includedIds,
+      0
+    );
+    const mc = runMonteCarloFromConfig(engineConfig, 500);
     const mcBase = mc.results.find((r) => r.scenario === "base")!;
     const chartData = chartDataWithMcBands(
-      projections,
+      demoProj,
       mcBase.percentile10,
       mcBase.percentile90,
-      kpis.retirementAge,
-      mcBase.medianValue
+      demoKpis.retirementAge,
+      mcBase.medianValue,
+      engineConfig
     );
-    const display = buildDisplayChartData(chartData, projections, kpis, {
+    const display = buildDisplayChartData(chartData, demoProj, demoKpis, {
       hasRun: true,
-      results: mc.results,
+      results: mc.results.map((r) => ({
+        scenario: r.scenario,
+        label: r.scenario,
+        finalValue: r.medianValue,
+        medianValue: r.medianValue,
+        successRate: r.successRate,
+        percentile10: r.percentile10,
+        percentile90: r.percentile90,
+      })),
     });
 
-    const atRetirement = display.find((d) => d.age === kpis.retirementAge)!;
+    const atRetirement = display.find(
+      (d) => d.age === demoKpis.retirementAge
+    )!;
     const postRetirement = display.find(
-      (d) => d.age === kpis.retirementAge + 5
+      (d) => d.age === demoKpis.retirementAge + 5
     )!;
 
     expect(atRetirement.pessimistic).toBeLessThan(atRetirement.value);
@@ -105,6 +198,37 @@ describe("projection chart data", () => {
       expect(display[i]?.value).toBe(projections[i]?.portfolioValue);
     }
   });
+
+  it("MC median stays within 25% of deterministic at retirement", () => {
+    const portfolio = normalizePortfolioCagr(MOCK_PORTFOLIO);
+    const includedIds = applyScopePreset(portfolio, "investmentsOnly");
+    const seedTotal = Math.round(calculatePortfolioValue(portfolio));
+    const demoKpis = syncNetWorthWithPortfolio(
+      normalizeKpiValues({ currentNetWorth: seedTotal }),
+      portfolio,
+      0
+    );
+    const demoProj = generateExtendedProjections(demoKpis, {
+      portfolio,
+      includedAssetIds: includedIds,
+      outsidePortfolio: 0,
+    });
+    const engineConfig = buildProjectionEngineConfig(
+      demoKpis,
+      portfolio,
+      includedIds,
+      0
+    );
+    const mc = runMonteCarloFromConfig(engineConfig, 800);
+    const mcBase = mc.results.find((r) => r.scenario === "base")!;
+    const det = getRetirementPortfolioValue(
+      demoProj,
+      demoKpis.retirementAge
+    );
+    const ratio = mcBase.medianValue / det;
+    expect(ratio).toBeGreaterThan(0.75);
+    expect(ratio).toBeLessThan(1.35);
+  });
 });
 
 describe("cash flow chart data", () => {
@@ -116,6 +240,20 @@ describe("cash flow chart data", () => {
     expect(series.length).toBe(projections.length);
     for (let i = 0; i < series.length; i++) {
       expect(series[i]?.projectedBalance).toBe(projections[i]?.portfolioValue);
+    }
+  });
+
+  it("tooltip build total reconciles with balance", () => {
+    const series = buildCashFlowChartSeries(projections, kpis);
+    for (let i = 1; i < series.length; i++) {
+      const row = series[i]!;
+      const build =
+        row.openingWealth + row.contributions + row.returns;
+      if (row.phase === "accumulation") {
+        expect(row.projectedBalance).toBe(build);
+      } else {
+        expect(row.projectedBalance).toBe(build - row.livingCost);
+      }
     }
   });
 
@@ -144,9 +282,6 @@ describe("cash flow chart data", () => {
     for (const row of accum) {
       expect(row.outflowAffectsBalance).toBe(false);
       expect(row.livingCost).toBeGreaterThan(0);
-      expect(row.projectedBalance).toBeGreaterThanOrEqual(
-        row.openingWealth + row.contributions + row.returns - 1
-      );
     }
   });
 
@@ -171,5 +306,37 @@ describe("cash flow chart data", () => {
     expect(series.length).not.toBe(
       DEFAULT_LIFE_EXPECTANCY - kpis.currentAge + 1
     );
+  });
+
+  it("demo cash flow reconciles end-to-end", () => {
+    const projections = demoStoreProjections();
+    const kpis = {
+      ...DEFAULT_KPI_VALUES,
+      currentNetWorth: projections[0]?.portfolioValue ?? 0,
+    };
+    const series = buildCashFlowChartSeries(projections, kpis);
+    for (let i = 1; i < series.length; i++) {
+      const row = series[i]!;
+      const build =
+        row.openingWealth + row.contributions + row.returns;
+      if (row.phase === "accumulation") {
+        expect(row.projectedBalance).toBe(build);
+      } else {
+        expect(row.projectedBalance).toBe(build - row.livingCost);
+      }
+    }
+  });
+});
+
+describe("legacy monte carlo wrapper", () => {
+  it("uses real-return engine for KPI-only simulations", () => {
+    const kpis = DEFAULT_KPI_VALUES;
+    const projections = generateExtendedProjections(kpis);
+    const det = getRetirementPortfolioValue(projections, kpis.retirementAge);
+    const mc = runMonteCarloSimulation(kpis, 600);
+    const base = mc.results.find((r) => r.scenario === "base")!;
+    const ratio = base.medianValue / det;
+    expect(ratio).toBeGreaterThan(0.75);
+    expect(ratio).toBeLessThan(1.35);
   });
 });

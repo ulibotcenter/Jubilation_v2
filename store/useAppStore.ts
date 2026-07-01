@@ -22,6 +22,10 @@ import type { CoachMessage } from "@/lib/ai/retirementCoach";
 import type { AppLocale } from "@/lib/i18n/messages";
 import type { PlanTier } from "@/lib/plans";
 import {
+  buildProjectionEngineConfig,
+  runMonteCarloFromConfig,
+} from "@/lib/projectionEngine";
+import {
   chartDataWithMcBands,
   generateExtendedProjections,
 } from "@/lib/projectionsExtended";
@@ -33,7 +37,7 @@ import {
   type SimulationPlaygroundState,
 } from "@/lib/simulationPlayground";
 import {
-  getDefaultIncludedAssetIds,
+  applyScopePreset,
   resolveSimulationKpis,
 } from "@/lib/simulationScope";
 import {
@@ -53,18 +57,42 @@ import {
   type NavItemId,
   type OnboardingStep,
   type PortfolioAsset,
+  type ProjectionYear,
   type StressTestId,
   calculatePortfolioValue,
   generateChartData,
-  generateProjections,
   MOCK_PORTFOLIO,
+  MONTE_CARLO_SCENARIO_LABELS,
+  buildDistributionBins,
   normalizeKpiValues,
-  runMonteCarloSimulation,
   runStressTest,
 } from "@/types";
 
+function monteCarloOutputFromEngine(
+  engineConfig: ReturnType<typeof buildProjectionEngineConfig>,
+  iterations = 1000
+) {
+  const output = runMonteCarloFromConfig(engineConfig, iterations);
+  const distributions = {} as Record<MonteCarloScenario, DistributionBin[]>;
+  for (const row of output.results) {
+    distributions[row.scenario] = buildDistributionBins(
+      output.finalValuesByScenario[row.scenario],
+      output.target
+    );
+  }
+  return {
+    results: output.results.map((row) => ({
+      ...row,
+      label: MONTE_CARLO_SCENARIO_LABELS[row.scenario],
+      finalValue: row.medianValue,
+    })),
+    distributions,
+    target: output.target,
+  };
+}
+
 /** Bump when default demo portfolio / KPIs change — migrates persisted local data */
-const DEMO_SEED_VERSION = 4;
+const DEMO_SEED_VERSION = 5;
 
 export interface NetWorthSnapshot {
   id: string;
@@ -136,7 +164,17 @@ function buildProjectionsFromState(state: {
     portfolio,
     state.simulationIncludedAssetIds
   );
-  const projections = generateExtendedProjections(effectiveKpis);
+  const engineConfig = buildProjectionEngineConfig(
+    effectiveKpis,
+    portfolio,
+    state.simulationIncludedAssetIds,
+    state.kpiOutsidePortfolio
+  );
+  const projections = generateExtendedProjections(effectiveKpis, {
+    portfolio,
+    includedAssetIds: state.simulationIncludedAssetIds,
+    outsidePortfolio: state.kpiOutsidePortfolio,
+  });
   const mcBase =
     state.monteCarlo?.hasRun && (state.monteCarlo.results?.length ?? 0) > 0
       ? state.monteCarlo.results.find((r) => r.scenario === "base")
@@ -146,11 +184,13 @@ function buildProjectionsFromState(state: {
     mcBase?.percentile10,
     mcBase?.percentile90,
     effectiveKpis.retirementAge,
-    mcBase?.medianValue
+    mcBase?.medianValue,
+    engineConfig
   );
   return {
     kpis: syncedKpis,
     effectiveKpis,
+    engineConfig,
     projections,
     chartData,
   };
@@ -217,7 +257,7 @@ export interface AppStore {
   portfolioLastRefreshedAt: string | null;
   isRefreshingPrices: boolean;
   simulationIncludedAssetIds: string[];
-  projections: ReturnType<typeof generateProjections>;
+  projections: ProjectionYear[];
   chartData: ReturnType<typeof generateChartData>;
   monteCarlo: MonteCarloState;
   activeStressTest: StressTestId | null;
@@ -362,7 +402,8 @@ function rebuildSimPlayground(
 }
 
 const SEED_PORTFOLIO = normalizePortfolioCagr(MOCK_PORTFOLIO);
-const defaultIncludedIds = getDefaultIncludedAssetIds(SEED_PORTFOLIO);
+/** Investable assets drive growth; real estate & personal stay in static bucket */
+const defaultIncludedIds = applyScopePreset(SEED_PORTFOLIO, "investmentsOnly");
 const seedPortfolioTotal = calculatePortfolioValue(SEED_PORTFOLIO);
 const seedKpis = normalizeKpiValues({
   currentNetWorth: Math.round(seedPortfolioTotal),
@@ -927,8 +968,8 @@ export const useAppStore = create<AppStore>()(
         }));
         await new Promise((r) => setTimeout(r, 1200));
         const state = get();
-        const { effectiveKpis } = buildProjectionsFromState(state);
-        const output = runMonteCarloSimulation(effectiveKpis);
+        const builtState = buildProjectionsFromState(state);
+        const output = monteCarloOutputFromEngine(builtState.engineConfig);
         const built = buildProjectionsFromState({
           ...state,
           monteCarlo: { hasRun: true, results: output.results },
@@ -1182,10 +1223,8 @@ export const useAppStore = create<AppStore>()(
         });
         await new Promise((r) => setTimeout(r, 1200));
         const current = get();
-        const { effectiveKpis } = buildPlaygroundProjections(
-          current.simPlayground
-        );
-        const output = runMonteCarloSimulation(effectiveKpis);
+        const builtPg = buildPlaygroundProjections(current.simPlayground);
+        const output = monteCarloOutputFromEngine(builtPg.engineConfig);
         const built = buildPlaygroundProjections({
           ...current.simPlayground,
           monteCarlo: { hasRun: true, results: output.results },
@@ -1245,8 +1284,7 @@ export const useAppStore = create<AppStore>()(
         );
         const simulationIncludedAssetIds = needsDemoMigration
           ? defaultIncludedIds
-          : (p?.simulationIncludedAssetIds ??
-            getDefaultIncludedAssetIds(portfolio));
+          : (p?.simulationIncludedAssetIds ?? defaultIncludedIds);
         const kpiOutsidePortfolio = needsDemoMigration
           ? 0
           : (p?.kpiOutsidePortfolio ?? 0);

@@ -7,6 +7,7 @@ import { coachReply, type CoachMessage } from "@/lib/ai/retirementCoach";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { canAccess } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
+import type { ProjectionYear } from "@/types";
 
 export function RetirementCoach() {
   const open = useAppStore((s) => s.coachOpen);
@@ -20,7 +21,8 @@ export function RetirementCoach() {
   const [draft, setDraft] = useState("");
 
   const projected =
-    projections.find((p) => p.age === kpis.retirementAge)?.portfolioValue ?? 0;
+    projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
+      ?.portfolioValue ?? 0;
   const unlimited = canAccess(plan, "ai_coach_unlimited");
   const messageCount = history.filter((m) => m.role === "user").length;
 
