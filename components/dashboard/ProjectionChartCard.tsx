@@ -26,6 +26,8 @@ import { ChartSkeleton } from "@/components/ui/ChartSkeleton";
 import { ChartTooltip } from "@/components/ui/ChartTooltip";
 import { SimulationAssetFilter } from "@/components/ui/SimulationAssetFilter";
 import { getChartScenarioLabel } from "@/lib/i18n/resolve";
+import { getRetirementProjectionRow } from "@/lib/projectionUtils";
+import { buildDisplayChartData } from "@/lib/projectionChartData";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import {
@@ -93,12 +95,24 @@ export function ProjectionChartCard({
   }, [projectionRevision]);
 
   const sym = CURRENCY_SYMBOLS[currency];
-  const finalRow = projections[projections.length - 1];
+  const finalRow = getRetirementProjectionRow(
+    projections,
+    kpis.retirementAge
+  );
   const mcReady =
     monteCarlo.hasRun && (monteCarlo.results?.length ?? 0) > 0;
 
+  const displayChartData = useMemo(
+    () =>
+      buildDisplayChartData(chartData, projections, kpis, {
+        hasRun: monteCarlo.hasRun,
+        results: monteCarlo.results,
+      }),
+    [chartData, projections, kpis, monteCarlo.hasRun, monteCarlo.results]
+  );
+
   const hasMcBands = useMemo(() => {
-    const fromChart = chartData.some(
+    const fromChart = displayChartData.some(
       (d) =>
         d.pessimistic != null &&
         d.optimistic != null &&
@@ -113,7 +127,7 @@ export function ProjectionChartCard({
       base.percentile10 !== base.percentile90 &&
       base.percentile10 > 0
     );
-  }, [chartData, mcReady, monteCarlo.results]);
+  }, [displayChartData, mcReady, monteCarlo.results]);
 
   useEffect(() => {
     if (hasMcBands) {
@@ -133,7 +147,7 @@ export function ProjectionChartCard({
   );
 
   const peakValue = useMemo(() => {
-    const values = chartData.flatMap((d) => {
+    const values = displayChartData.flatMap((d) => {
       const pts = [d.value];
       if (effectiveVisibility.pessimistic && d.pessimistic != null)
         pts.push(d.pessimistic);
@@ -142,7 +156,7 @@ export function ProjectionChartCard({
       return pts;
     });
     return Math.max(...values, 0);
-  }, [chartData, effectiveVisibility]);
+  }, [displayChartData, effectiveVisibility]);
 
   const handleRunMonteCarlo = async () => {
     const runMc = mode === "playground" ? runSimMc : runRealMc;
@@ -260,7 +274,7 @@ export function ProjectionChartCard({
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             key={`chart-${mode}-${projectionRevision}`}
-            data={chartData}
+            data={displayChartData}
             margin={{ top: 8, right: 12, left: 4, bottom: 4 }}
           >
             <defs>
@@ -394,7 +408,9 @@ export function ProjectionChartCard({
 
       {showCashFlow && (
         <ProjectionCashFlowChart
-          chartData={chartData}
+          chartData={displayChartData}
+          projections={projections}
+          kpis={kpis}
           currency={currency}
           projectionRevision={projectionRevision}
         />

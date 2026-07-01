@@ -131,7 +131,9 @@ export function buildPlaygroundProjections(state: {
   const chartData = chartDataWithMcBands(
     projections,
     mcBase?.percentile10,
-    mcBase?.percentile90
+    mcBase?.percentile90,
+    effectiveKpis.retirementAge,
+    mcBase?.medianValue
   );
   return {
     kpis: syncedKpis,

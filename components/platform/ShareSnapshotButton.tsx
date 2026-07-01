@@ -13,7 +13,8 @@ export function ShareSnapshotButton() {
   const kpis = useAppStore((s) => s.kpis);
   const projections = useAppStore((s) => s.projections);
   const plan = useAppStore((s) => s.planTier);
-  const projected = projections[projections.length - 1]?.portfolioValue ?? 0;
+  const projected =
+    projections.find((p) => p.age === kpis.retirementAge)?.portfolioValue ?? 0;
   const sym = CURRENCY_SYMBOLS[useAppStore((s) => s.currency)];
 
   const share = async () => {

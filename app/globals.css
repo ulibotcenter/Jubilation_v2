@@ -2703,6 +2703,128 @@ body::before {
   line-height: 1.45;
 }
 
+.cash-flow-chart-container--tall {
+  height: 11rem;
+}
+
+@media (min-width: 640px) {
+  .cash-flow-chart-container--tall {
+    height: 13rem;
+  }
+}
+
+/* ─── Welcome floating menu (new users) ─── */
+
+.welcome-float {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 45;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 1rem 1rem 0.875rem;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+}
+
+@media (min-width: 768px) {
+  .welcome-float {
+    right: 1.5rem;
+    bottom: 1.5rem;
+    width: 22rem;
+  }
+}
+
+.welcome-float-close {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--muted-foreground);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.welcome-float-close:hover {
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.welcome-float-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-right: 1.5rem;
+}
+
+.welcome-float-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-muted);
+}
+
+.welcome-float-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.welcome-float-body {
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+  margin-bottom: 0.75rem;
+}
+
+.welcome-float-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+.welcome-float-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.welcome-float-action:hover {
+  border-color: rgba(255, 112, 64, 0.35);
+  background: rgba(255, 112, 64, 0.06);
+  color: var(--accent);
+}
+
+.welcome-float-dismiss {
+  margin-top: 0.125rem;
+}
+
 .chart-scenario-swatch {
   display: flex;
   align-items: center;

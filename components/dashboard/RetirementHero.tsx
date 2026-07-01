@@ -111,7 +111,6 @@ export function RetirementHero() {
   const [pulseKey, setPulseKey] = useState(0);
   const [heroFlash, setHeroFlash] = useState(false);
 
-  const finalProjection = projections[projections.length - 1];
   const yearsToRetirement = kpis.retirementAge - kpis.currentAge;
 
   const { score, onTrack, target, journeyProgress, projectedValue } =
@@ -120,7 +119,9 @@ export function RetirementHero() {
         kpis.desiredMonthlyIncome > 0
           ? computeFITargetFromDesired(kpis.desiredMonthlyIncome)
           : kpis.currentNetWorth * 25;
-      const projected = finalProjection?.portfolioValue ?? 0;
+      const projected =
+        projections.find((p) => p.age === kpis.retirementAge)?.portfolioValue ??
+        0;
       const rawScore =
         targetValue > 0 ? Math.min(100, (projected / targetValue) * 100) : 0;
 
@@ -140,7 +141,7 @@ export function RetirementHero() {
         journeyProgress: Math.min(100, Math.max(0, journey)),
         projectedValue: projected,
       };
-    }, [kpis, finalProjection, monteCarlo.results]);
+    }, [kpis, projections, monteCarlo.results]);
 
   useEffect(() => {
     const prev = prevScoreRef.current;
@@ -270,6 +271,8 @@ export function RetirementHero() {
 
 export function useHeroProjectedValue() {
   const projections = useAppStore((s) => s.projections);
-  const finalProjection = projections[projections.length - 1];
-  return finalProjection?.portfolioValue ?? 0;
+  const kpis = useAppStore((s) => s.kpis);
+  return (
+    projections.find((p) => p.age === kpis.retirementAge)?.portfolioValue ?? 0
+  );
 }

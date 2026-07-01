@@ -20,7 +20,7 @@ export function RetirementCoach() {
   const [draft, setDraft] = useState("");
 
   const projected =
-    projections[projections.length - 1]?.portfolioValue ?? 0;
+    projections.find((p) => p.age === kpis.retirementAge)?.portfolioValue ?? 0;
   const unlimited = canAccess(plan, "ai_coach_unlimited");
   const messageCount = history.filter((m) => m.role === "user").length;
 

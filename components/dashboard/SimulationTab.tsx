@@ -36,7 +36,9 @@ export function SimulationTab({
       : s.projectionRevision
   );
 
-  const finalRow = projections[projections.length - 1];
+  const finalRow =
+    projections.find((p) => p.age === kpis.retirementAge) ??
+    projections[projections.length - 1];
 
   const stats = [
     {

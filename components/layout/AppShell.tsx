@@ -108,11 +108,11 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
       <div className="app-main">
         <Topbar />
         <main className="app-content max-w-[var(--content-max-width)] mx-auto w-full safe-area-bottom">
-          {pathname === "/" && <CoachMarks />}
           {children}
         </main>
       </div>
 
+      {pathname === "/" && <CoachMarks />}
       <CommandPalette />
       <RetirementCoach />
       <OnboardingModal />

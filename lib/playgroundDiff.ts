@@ -1,5 +1,6 @@
 import type { KPIField, KPIValues, PortfolioAsset, ProjectionYear } from "@/types";
 import { calculatePortfolioValue } from "@/types";
+import { getRetirementPortfolioValue } from "@/lib/projectionUtils";
 import type { SimulationPlaygroundState } from "@/lib/simulationPlayground";
 
 const TRACKED_KPI_FIELDS: KPIField[] = [
@@ -45,10 +46,6 @@ const KPI_LABELS: Record<KPIField, string> = {
   annualInflation: "Inflation",
 };
 
-function finalPortfolioValue(projections: ProjectionYear[]): number {
-  return projections[projections.length - 1]?.portfolioValue ?? 0;
-}
-
 export function computePlaygroundDiff(
   real: {
     kpis: KPIValues;
@@ -57,8 +54,14 @@ export function computePlaygroundDiff(
   },
   sim: SimulationPlaygroundState
 ): PlaygroundDiffSummary {
-  const projectedReal = finalPortfolioValue(real.projections);
-  const projectedSim = finalPortfolioValue(sim.projections);
+  const projectedReal = getRetirementPortfolioValue(
+    real.projections,
+    real.kpis.retirementAge
+  );
+  const projectedSim = getRetirementPortfolioValue(
+    sim.projections,
+    sim.kpis.retirementAge
+  );
   const realPortfolioValue = calculatePortfolioValue(real.portfolio);
   const simPortfolioValue = calculatePortfolioValue(sim.portfolio);
 

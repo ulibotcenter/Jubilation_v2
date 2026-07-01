@@ -61,13 +61,18 @@ export function generateExtendedProjections(kpis: KPIValues): ProjectionYear[] {
 export function chartDataWithMcBands(
   projections: ProjectionYear[],
   mcP10?: number,
-  mcP90?: number
+  mcP90?: number,
+  anchorAge?: number,
+  mcMedian?: number
 ): ChartDataPoint[] {
   const base = generateChartData(projections);
   if (mcP10 == null || mcP90 == null) return base;
-  const finalBase = projections[projections.length - 1]?.portfolioValue ?? 1;
-  const p10Ratio = mcP10 / finalBase;
-  const p90Ratio = mcP90 / finalBase;
+
+  const spreadBase = mcMedian ?? mcP10;
+  if (spreadBase <= 0) return base;
+
+  const p10Ratio = mcP10 / spreadBase;
+  const p90Ratio = mcP90 / spreadBase;
   return base.map((p) => {
     const pessimistic = Math.round(p.value * p10Ratio);
     const optimistic = Math.round(p.value * p90Ratio);
