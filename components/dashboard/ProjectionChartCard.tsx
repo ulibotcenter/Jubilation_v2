@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { LineChart as LineChartIcon } from "lucide-react";
+import { BarChart3, LineChart as LineChartIcon } from "lucide-react";
+import { ProjectionCashFlowChart } from "@/components/dashboard/ProjectionCashFlowChart";
 import {
   Area,
   CartesianGrid,
@@ -69,6 +70,7 @@ export function ProjectionChartCard({
     pessimistic: true,
     optimistic: true,
   });
+  const [showCashFlow, setShowCashFlow] = useState(!compact);
 
   const toggleLine = (line: ChartLineId) =>
     setLineVisibility((prev) => ({ ...prev, [line]: !prev[line] }));
@@ -132,6 +134,16 @@ export function ProjectionChartCard({
             visibility={lineVisibility}
             onToggle={toggleLine}
           />
+          <button
+            type="button"
+            className="chart-toggle-btn"
+            data-active={showCashFlow ? "true" : "false"}
+            onClick={() => setShowCashFlow((v) => !v)}
+            aria-pressed={showCashFlow}
+          >
+            <BarChart3 className="w-3.5 h-3.5" size={14} />
+            Cash flow
+          </button>
         </div>
       </div>
 
@@ -268,6 +280,14 @@ export function ProjectionChartCard({
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+
+      {showCashFlow && (
+        <ProjectionCashFlowChart
+          chartData={chartData}
+          currency={currency}
+          projectionRevision={projectionRevision}
+        />
+      )}
     </motion.div>
   );
 }

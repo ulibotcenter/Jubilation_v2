@@ -103,7 +103,7 @@ export function SimulationPlaygroundPage() {
         kpis={sim.kpis}
         currency={currency}
         projectionRevision={sim.projectionRevision}
-        compact
+        showAssetFilter
       />
 
       <section id="playground-portfolio" className="scroll-mt-6">

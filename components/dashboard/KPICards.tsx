@@ -6,6 +6,7 @@ import {
   Calendar,
   CircleDollarSign,
   Flame,
+  ShoppingBag,
   Target,
   TrendingUp,
   Wallet,
@@ -27,6 +28,7 @@ const KPI_GRID_FIELDS: KPIField[] = [
   "retirementAge",
   "currentNetWorth",
   "monthlyContribution",
+  "monthlyExpenses",
   "expectedCAGR",
   "annualInflation",
 ];
@@ -38,6 +40,7 @@ const KPI_ICONS: Record<KPIField, React.ElementType> = {
   retirementAge: Target,
   currentNetWorth: Wallet,
     monthlyContribution: CircleDollarSign,
+    monthlyExpenses: ShoppingBag,
     desiredMonthlyIncome: Wallet,
     expectedCAGR: TrendingUp,
   annualInflation: Flame,
@@ -50,6 +53,7 @@ function getKPISubtitle(
     retirementAge: number;
     currentNetWorth: number;
     monthlyContribution: number;
+    monthlyExpenses: number;
     desiredMonthlyIncome: number;
     expectedCAGR: number;
     annualInflation: number;
@@ -68,7 +72,12 @@ function getKPISubtitle(
     case "currentNetWorth":
       return "Total assets today";
     case "monthlyContribution":
-      return `${formatCurrencyValue(annualContrib, currency)}/yr`;
+      return `${formatCurrencyValue(annualContrib, currency)}/yr invested`;
+    case "monthlyExpenses": {
+      const annualExp = kpis.monthlyExpenses * 12;
+      const incomeNeed = kpis.monthlyExpenses + kpis.monthlyContribution;
+      return `${formatCurrencyValue(annualExp, currency)}/yr · need ~${formatCurrencyValue(incomeNeed, currency)}/mo gross`;
+    }
     case "desiredMonthlyIncome":
       return `${formatCurrencyValue(kpis.desiredMonthlyIncome * 12, currency)}/yr target`;
     case "expectedCAGR":
@@ -206,7 +215,9 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
           {mode === "playground" ? "Playground Assumptions" : "Key Assumptions"}
         </h2>
         <p className="text-xs text-muted-foreground hidden sm:block">
-          Click any value to edit
+          {mode === "playground"
+            ? "Sandbox only — click to edit assumptions"
+            : "Click any value to edit"}
         </p>
       </div>
 

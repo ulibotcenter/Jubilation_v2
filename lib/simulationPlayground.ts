@@ -3,6 +3,7 @@ import { syncNetWorthWithPortfolio } from "@/lib/netWorthSync";
 import { resolveSimulationKpis } from "@/lib/simulationScope";
 import {
   DEFAULT_KPI_VALUES,
+  normalizeKpiValues,
   generateChartData,
   generateProjections,
   MOCK_PORTFOLIO,
@@ -93,7 +94,7 @@ export function buildPlaygroundProjections(state: {
   kpiOutsidePortfolio: number;
 }) {
   const syncedKpis = syncNetWorthWithPortfolio(
-    state.kpis,
+    normalizeKpiValues(state.kpis),
     state.portfolio,
     state.kpiOutsidePortfolio
   );
@@ -160,7 +161,7 @@ function mergePersistedPlayground(
   return {
     ...empty,
     ...persisted,
-    kpis: { ...DEFAULT_KPI_VALUES, ...persisted.kpis },
+    kpis: normalizeKpiValues(persisted.kpis),
     portfolio: persisted.portfolio ?? [],
     portfolioSearchQuery: persisted.portfolioSearchQuery ?? "",
     portfolioLastRefreshedAt: persisted.portfolioLastRefreshedAt ?? null,

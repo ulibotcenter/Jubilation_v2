@@ -36,6 +36,7 @@ export function convertKpis(
   const fields: (keyof KPIValues)[] = [
     "currentNetWorth",
     "monthlyContribution",
+    "monthlyExpenses",
     "desiredMonthlyIncome",
   ];
   const next = { ...kpis };

@@ -38,7 +38,7 @@ export function SimulationTab({
 
   return (
     <div className="space-y-6">
-      <SimulationAssumptions mode={mode} />
+      {mode !== "playground" && <SimulationAssumptions mode={mode} />}
 
       <div
         key={`stats-${projectionRevision}`}

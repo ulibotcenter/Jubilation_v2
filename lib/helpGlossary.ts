@@ -39,6 +39,12 @@ export const HELP_GLOSSARY: GlossaryGroup[] = [
         usedIn: "Dashboard · Simulation chart",
       },
       {
+        field: "Monthly Living Expenses",
+        meaning:
+          "Your average monthly lifestyle costs (rent, food, bills). Shown in the cash-flow chart stacked with contributions — together they imply gross income need. Does not reduce portfolio during accumulation.",
+        usedIn: "Key Assumptions · Cash flow chart",
+      },
+      {
         field: "Suggested income",
         meaning:
           "Monthly income the app estimates at retirement using the 4% rule on your projected portfolio.",

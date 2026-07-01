@@ -41,12 +41,17 @@ import {
   type OnboardingStep,
   type PortfolioAsset,
   type StressTestId,
+  calculatePortfolioValue,
   generateChartData,
   generateProjections,
   MOCK_PORTFOLIO,
+  normalizeKpiValues,
   runMonteCarloSimulation,
   runStressTest,
 } from "@/types";
+
+/** Bump when default demo portfolio / KPIs change — migrates persisted local data */
+const DEMO_SEED_VERSION = 3;
 
 function buildProjectionsFromState(state: {
   kpis: KPIValues;
@@ -55,7 +60,7 @@ function buildProjectionsFromState(state: {
   kpiOutsidePortfolio: number;
 }) {
   const syncedKpis = syncNetWorthWithPortfolio(
-    state.kpis,
+    normalizeKpiValues(state.kpis),
     state.portfolio,
     state.kpiOutsidePortfolio
   );
@@ -136,6 +141,7 @@ export interface AppStore {
   projectionRevision: number;
   fxSnapshot: FxSnapshot | null;
   isChangingCurrency: boolean;
+  demoSeedVersion: number;
   simPlayground: SimulationPlaygroundState;
 
   setCurrency: (currency: Currency) => void;
@@ -234,12 +240,13 @@ function rebuildSimPlayground(
 }
 
 const defaultIncludedIds = getDefaultIncludedAssetIds(MOCK_PORTFOLIO);
-const initialOutside = deriveOutsideFromManualNetWorth(
-  DEFAULT_KPI_VALUES.currentNetWorth,
-  MOCK_PORTFOLIO
-);
+const seedPortfolioTotal = calculatePortfolioValue(MOCK_PORTFOLIO);
+const seedKpis = normalizeKpiValues({
+  currentNetWorth: Math.round(seedPortfolioTotal),
+});
+const initialOutside = 0;
 const initialBuild = buildProjectionsFromState({
-  kpis: DEFAULT_KPI_VALUES,
+  kpis: seedKpis,
   portfolio: MOCK_PORTFOLIO,
   simulationIncludedAssetIds: defaultIncludedIds,
   kpiOutsidePortfolio: initialOutside,
@@ -284,6 +291,7 @@ export const useAppStore = create<AppStore>()(
       projectionRevision: 0,
       fxSnapshot: null,
       isChangingCurrency: false,
+      demoSeedVersion: DEMO_SEED_VERSION,
       simPlayground: initialPlaygroundFromMock(
         initialBuild.kpis,
         initialOutside,
@@ -402,7 +410,7 @@ export const useAppStore = create<AppStore>()(
       setKPI: (field, value) => {
         const state = get();
         let kpiOutsidePortfolio = state.kpiOutsidePortfolio;
-        let kpis = { ...state.kpis, [field]: value };
+        let kpis = normalizeKpiValues({ ...state.kpis, [field]: value });
 
         if (field === "currentNetWorth") {
           kpiOutsidePortfolio = deriveOutsideFromManualNetWorth(
@@ -697,7 +705,10 @@ export const useAppStore = create<AppStore>()(
       setSimKPI: (field, value) => {
         const state = get();
         let kpiOutsidePortfolio = state.simPlayground.kpiOutsidePortfolio;
-        let kpis = { ...state.simPlayground.kpis, [field]: value };
+        const kpis = normalizeKpiValues({
+          ...state.simPlayground.kpis,
+          [field]: value,
+        });
         if (field === "currentNetWorth") {
           kpiOutsidePortfolio = deriveOutsideFromManualNetWorth(
             value,
@@ -922,20 +933,51 @@ export const useAppStore = create<AppStore>()(
       name: LOCAL_STORAGE_KEY,
       merge: (persisted, current) => {
         const p = persisted as Partial<AppStore> | undefined;
-        const kpis = {
-          ...DEFAULT_KPI_VALUES,
-          ...p?.kpis,
-        };
-        const simPlayground = normalizeSimPlayground(p?.simPlayground, {
+        const needsDemoMigration = (p?.demoSeedVersion ?? 0) < DEMO_SEED_VERSION;
+
+        const portfolio = needsDemoMigration
+          ? MOCK_PORTFOLIO
+          : (p?.portfolio ?? MOCK_PORTFOLIO);
+        const simulationIncludedAssetIds = needsDemoMigration
+          ? defaultIncludedIds
+          : (p?.simulationIncludedAssetIds ??
+            getDefaultIncludedAssetIds(portfolio));
+        const kpiOutsidePortfolio = needsDemoMigration
+          ? 0
+          : (p?.kpiOutsidePortfolio ?? 0);
+        const kpis = needsDemoMigration
+          ? seedKpis
+          : normalizeKpiValues(p?.kpis);
+
+        const built = buildProjectionsFromState({
           kpis,
-          kpiOutsidePortfolio:
-            p?.kpiOutsidePortfolio ?? current.kpiOutsidePortfolio,
-          portfolio: p?.portfolio ?? MOCK_PORTFOLIO,
-          simulationIncludedAssetIds:
-            p?.simulationIncludedAssetIds ??
-            getDefaultIncludedAssetIds(p?.portfolio ?? MOCK_PORTFOLIO),
+          portfolio,
+          simulationIncludedAssetIds,
+          kpiOutsidePortfolio,
         });
-        return { ...current, ...p, kpis, simPlayground };
+
+        const simPlayground = normalizeSimPlayground(
+          needsDemoMigration ? undefined : p?.simPlayground,
+          {
+            kpis: built.kpis,
+            kpiOutsidePortfolio,
+            portfolio,
+            simulationIncludedAssetIds,
+          }
+        );
+
+        return {
+          ...current,
+          ...p,
+          demoSeedVersion: DEMO_SEED_VERSION,
+          portfolio,
+          simulationIncludedAssetIds,
+          kpiOutsidePortfolio,
+          kpis: built.kpis,
+          projections: built.projections,
+          chartData: built.chartData,
+          simPlayground,
+        };
       },
       partialize: (state) => ({
         locale: state.locale,
@@ -943,6 +985,7 @@ export const useAppStore = create<AppStore>()(
         fxSnapshot: state.fxSnapshot,
         onboarding: state.onboarding,
         sidebarCollapsed: state.sidebarCollapsed,
+        demoSeedVersion: state.demoSeedVersion,
         kpis: state.kpis,
         kpiOutsidePortfolio: state.kpiOutsidePortfolio,
         portfolio: state.portfolio,

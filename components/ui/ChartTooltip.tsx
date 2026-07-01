@@ -2,9 +2,22 @@
 
 import { formatCurrencyValue, type Currency } from "@/types";
 
+interface ChartTooltipPayloadItem {
+  name: string;
+  value: number;
+  color: string;
+  dataKey?: string;
+  payload?: {
+    invested?: number;
+    expenses?: number;
+    returns?: number;
+    requiredIncome?: number;
+  };
+}
+
 interface ChartTooltipProps {
   active?: boolean;
-  payload?: { name: string; value: number; color: string; dataKey?: string }[];
+  payload?: ChartTooltipPayloadItem[];
   label?: string | number;
   currency: Currency;
 }
@@ -36,6 +49,13 @@ export function ChartTooltip({
       ? Math.abs(optimistic.value - pessimistic.value)
       : null;
 
+  const raw = payload[0]?.payload;
+  const hasCashFlow =
+    raw &&
+    ((raw.invested ?? 0) > 0 ||
+      (raw.expenses ?? 0) > 0 ||
+      (raw.returns ?? 0) > 0);
+
   return (
     <div className="rounded-xl border border-border bg-surface-elevated/95 backdrop-blur-md px-3.5 py-2.5 shadow-lg min-w-[10rem]">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
@@ -65,6 +85,37 @@ export function ChartTooltip({
             <span className="font-semibold text-foreground tabular-nums">
               {formatCurrencyValue(spread, currency)}
             </span>
+          </div>
+        )}
+        {hasCashFlow && raw && (
+          <div className="space-y-1 pt-1.5 mt-1.5 border-t border-border">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted">
+              This year (base)
+            </p>
+            {(raw.expenses ?? 0) > 0 && (
+              <div className="flex items-center justify-between gap-4 text-xs">
+                <span className="text-muted-foreground">Living expenses</span>
+                <span className="font-semibold tabular-nums text-red-400/90">
+                  {formatCurrencyValue(raw.expenses!, currency)}
+                </span>
+              </div>
+            )}
+            {(raw.invested ?? 0) > 0 && (
+              <div className="flex items-center justify-between gap-4 text-xs">
+                <span className="text-muted-foreground">Invested</span>
+                <span className="font-semibold tabular-nums text-green-400/90">
+                  {formatCurrencyValue(raw.invested!, currency)}
+                </span>
+              </div>
+            )}
+            {(raw.returns ?? 0) > 0 && (
+              <div className="flex items-center justify-between gap-4 text-xs">
+                <span className="text-muted-foreground">Market returns</span>
+                <span className="font-semibold tabular-nums text-blue-400/90">
+                  {formatCurrencyValue(raw.returns!, currency)}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

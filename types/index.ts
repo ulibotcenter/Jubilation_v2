@@ -156,6 +156,7 @@ export type KPIField =
   | "retirementAge"
   | "currentNetWorth"
   | "monthlyContribution"
+  | "monthlyExpenses"
   | "desiredMonthlyIncome"
   | "expectedCAGR"
   | "annualInflation";
@@ -203,6 +204,15 @@ export const KPI_CONFIGS: KPIConfig[] = [
   {
     field: "monthlyContribution",
     label: "Monthly Contribution",
+    min: 0,
+    max: 500_000,
+    step: 100,
+    decimals: 0,
+    format: "currency",
+  },
+  {
+    field: "monthlyExpenses",
+    label: "Monthly Living Expenses",
     min: 0,
     max: 500_000,
     step: 100,
@@ -270,6 +280,8 @@ export interface KPIValues {
   retirementAge: number;
   currentNetWorth: number;
   monthlyContribution: number;
+  /** Average monthly living costs (lifestyle burn, not portfolio withdrawals) */
+  monthlyExpenses: number;
   /** User's target monthly income at retirement */
   desiredMonthlyIncome: number;
   expectedCAGR: number;
@@ -277,14 +289,19 @@ export interface KPIValues {
 }
 
 export const DEFAULT_KPI_VALUES: KPIValues = {
-  currentAge: 35,
-  retirementAge: 65,
-  currentNetWorth: 250_000,
-  monthlyContribution: 2_500,
-  desiredMonthlyIncome: 8_500,
+  currentAge: 42,
+  retirementAge: 60,
+  currentNetWorth: 810_000,
+  monthlyContribution: 4_500,
+  monthlyExpenses: 9_500,
+  desiredMonthlyIncome: 12_000,
   expectedCAGR: 8.5,
   annualInflation: 3.0,
 };
+
+export function normalizeKpiValues(partial?: Partial<KPIValues>): KPIValues {
+  return { ...DEFAULT_KPI_VALUES, ...partial };
+}
 
 // ─── Portfolio Assets ──────────────────────────────────────
 
@@ -353,6 +370,12 @@ export interface ProjectionYear {
   contributions: number;
   returns: number;
   inflationAdjusted: number;
+  /** Annual living expenses (lifestyle, paid from income — not drawn from portfolio) */
+  expenses: number;
+  /** Annual amount invested into the portfolio */
+  invested: number;
+  /** Implied gross income need: expenses + invested */
+  requiredIncome: number;
 }
 
 export interface ChartDataPoint {
@@ -363,6 +386,12 @@ export interface ChartDataPoint {
   optimistic?: number;
   /** Stacked band height: optimistic − pessimistic */
   band?: number;
+  /** Cash flow mini-chart — lifestyle stack */
+  expenses?: number;
+  invested?: number;
+  /** Market growth on portfolio (volatile component) */
+  returns?: number;
+  requiredIncome?: number;
 }
 
 export type DashboardTab = "real-portfolio" | "simulation";
@@ -544,96 +573,164 @@ export interface AppState {
   isExporting: boolean;
 }
 
-// ─── Mock Data — Rich portfolio for beta demo ──────────────
+// ─── Mock Data — ~$810K lifestyle demo portfolio ───────────
 
 export const MOCK_PORTFOLIO: PortfolioAsset[] = [
   {
-    id: "asset-1",
-    ticker: "VTI",
-    name: "Vanguard Total Stock Market ETF",
-    assetClass: "etf",
-    quantity: 450,
-    currentPrice: 285.42,
-    costBasis: 198.5,
+    id: "asset-home-primary",
+    ticker: "HOME-PRIMARY",
+    name: "Primary Residence — São Paulo",
+    assetClass: "real_estate",
+    quantity: 1,
+    currentPrice: 295_000,
+    costBasis: 240_000,
     currency: "USD",
-    allocation: 28,
+    allocation: 0,
+    priceSource: "manual",
   },
   {
-    id: "asset-2",
-    ticker: "VXUS",
-    name: "Vanguard Total International Stock ETF",
-    assetClass: "etf",
-    quantity: 320,
-    currentPrice: 62.18,
-    costBasis: 54.2,
+    id: "asset-home-beach",
+    ticker: "HOME-BEACH",
+    name: "Beach House — Trancoso",
+    assetClass: "real_estate",
+    quantity: 1,
+    currentPrice: 175_000,
+    costBasis: 145_000,
     currency: "USD",
-    allocation: 12,
+    allocation: 0,
+    priceSource: "manual",
   },
   {
-    id: "asset-3",
-    ticker: "BND",
-    name: "Vanguard Total Bond Market ETF",
-    assetClass: "bonds",
-    quantity: 800,
-    currentPrice: 72.35,
-    costBasis: 78.1,
+    id: "asset-lambo",
+    ticker: "LAMBO",
+    name: "Lamborghini Huracán",
+    assetClass: "personal",
+    quantity: 1,
+    currentPrice: 72_000,
+    costBasis: 95_000,
     currency: "USD",
-    allocation: 15,
+    allocation: 0,
+    priceSource: "manual",
   },
   {
-    id: "asset-4",
-    ticker: "AAPL",
-    name: "Apple Inc.",
-    assetClass: "stocks",
-    quantity: 120,
-    currentPrice: 198.75,
-    costBasis: 145.2,
+    id: "asset-watch",
+    ticker: "WATCH",
+    name: "Rolex Daytona",
+    assetClass: "personal",
+    quantity: 1,
+    currentPrice: 18_000,
+    costBasis: 12_000,
     currency: "USD",
-    allocation: 10,
+    allocation: 0,
+    priceSource: "manual",
   },
   {
-    id: "asset-5",
-    ticker: "MSFT",
-    name: "Microsoft Corporation",
-    assetClass: "stocks",
-    quantity: 85,
-    currentPrice: 425.6,
-    costBasis: 310.0,
-    currency: "USD",
-    allocation: 12,
-  },
-  {
-    id: "asset-6",
-    ticker: "VNQ",
-    name: "Vanguard Real Estate ETF",
-    assetClass: "reit",
-    quantity: 200,
-    currentPrice: 88.9,
-    costBasis: 92.4,
-    currency: "USD",
-    allocation: 8,
-  },
-  {
-    id: "asset-7",
+    id: "asset-btc",
     ticker: "BTC",
     name: "Bitcoin",
     assetClass: "crypto",
-    quantity: 0.85,
+    quantity: 2.5,
     currentPrice: 67_500,
-    costBasis: 28_000,
+    costBasis: 41_200,
     currency: "USD",
-    allocation: 7,
+    allocation: 0,
+    priceSource: "coingecko",
   },
   {
-    id: "asset-8",
-    ticker: "CASH",
-    name: "High-Yield Savings",
-    assetClass: "cash",
-    quantity: 1,
-    currentPrice: 18_500,
-    costBasis: 18_500,
+    id: "asset-aapl",
+    ticker: "AAPL",
+    name: "Apple Inc.",
+    assetClass: "stocks",
+    quantity: 45,
+    currentPrice: 198.75,
+    costBasis: 145.2,
     currency: "USD",
-    allocation: 8,
+    allocation: 0,
+    priceSource: "yahoo",
+  },
+  {
+    id: "asset-tsla",
+    ticker: "TSLA",
+    name: "Tesla, Inc.",
+    assetClass: "stocks",
+    quantity: 22,
+    currentPrice: 342.1,
+    costBasis: 218.5,
+    currency: "USD",
+    allocation: 0,
+    priceSource: "yahoo",
+  },
+  {
+    id: "asset-googl",
+    ticker: "GOOGL",
+    name: "Alphabet Inc. Class A",
+    assetClass: "stocks",
+    quantity: 40,
+    currentPrice: 175.34,
+    costBasis: 128.4,
+    currency: "USD",
+    allocation: 0,
+    priceSource: "yahoo",
+  },
+  {
+    id: "asset-nvda",
+    ticker: "NVDA",
+    name: "NVIDIA Corporation",
+    assetClass: "stocks",
+    quantity: 45,
+    currentPrice: 138.25,
+    costBasis: 48.6,
+    currency: "USD",
+    allocation: 0,
+    priceSource: "yahoo",
+  },
+  {
+    id: "asset-spy",
+    ticker: "SPY",
+    name: "SPDR S&P 500 ETF Trust",
+    assetClass: "etf",
+    quantity: 50,
+    currentPrice: 542.18,
+    costBasis: 412.5,
+    currency: "USD",
+    allocation: 0,
+    priceSource: "yahoo",
+  },
+  {
+    id: "asset-bnd",
+    ticker: "BND",
+    name: "Vanguard Total Bond Market ETF",
+    assetClass: "bonds",
+    quantity: 140,
+    currentPrice: 72.35,
+    costBasis: 78.1,
+    currency: "USD",
+    allocation: 0,
+    priceSource: "yahoo",
+  },
+  {
+    id: "asset-aapl34",
+    ticker: "AAPL34",
+    name: "Apple Inc. BDR",
+    assetClass: "bdr",
+    quantity: 140,
+    currentPrice: 42.15,
+    costBasis: 31.8,
+    currency: "USD",
+    allocation: 0,
+    priceSource: "manual",
+  },
+  {
+    id: "asset-msft34",
+    ticker: "MSFT34",
+    name: "Microsoft Corporation BDR",
+    assetClass: "bdr",
+    quantity: 80,
+    currentPrice: 38.2,
+    costBasis: 29.5,
+    currency: "USD",
+    allocation: 0,
+    priceSource: "manual",
   },
 ];
 
@@ -774,6 +871,7 @@ export function generateProjections(kpis: KPIValues): ProjectionYear[] {
   const yearsToRetirement = kpis.retirementAge - kpis.currentAge;
   let portfolioValue = kpis.currentNetWorth;
   const annualContribution = kpis.monthlyContribution * 12;
+  const annualExpenses = kpis.monthlyExpenses * 12;
   const realReturn =
     (kpis.expectedCAGR - kpis.annualInflation) / 100;
 
@@ -782,6 +880,9 @@ export function generateProjections(kpis: KPIValues): ProjectionYear[] {
     const age = kpis.currentAge + i;
     const returns = i === 0 ? 0 : portfolioValue * realReturn;
     const contributions = i === 0 ? 0 : annualContribution;
+    const expenses = i === 0 ? 0 : annualExpenses;
+    const invested = contributions;
+    const requiredIncome = expenses + invested;
 
     if (i > 0) {
       portfolioValue = portfolioValue + returns + contributions;
@@ -799,6 +900,9 @@ export function generateProjections(kpis: KPIValues): ProjectionYear[] {
       contributions: Math.round(contributions),
       returns: Math.round(returns),
       inflationAdjusted: Math.round(portfolioValue / inflationFactor),
+      expenses: Math.round(expenses),
+      invested: Math.round(invested),
+      requiredIncome: Math.round(requiredIncome),
     });
   }
 
@@ -818,6 +922,10 @@ export function generateChartData(
       pessimistic,
       optimistic,
       band: optimistic - pessimistic,
+      expenses: p.expenses,
+      invested: p.invested,
+      returns: p.returns,
+      requiredIncome: p.requiredIncome,
     };
   });
 }
