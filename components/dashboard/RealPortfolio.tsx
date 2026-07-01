@@ -20,6 +20,7 @@ import { AddAssetModal } from "@/components/ui/AddAssetModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAssetClassLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { computeWeightedPortfolioCagr } from "@/lib/portfolioCagr";
 import { useAppStore } from "@/store/useAppStore";
 import {
   calculatePortfolioValue,
@@ -102,6 +103,10 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
 
   const totalGain = totalValue - totalCost;
   const totalGainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+  const weightedCagr = useMemo(
+    () => computeWeightedPortfolioCagr(portfolio),
+    [portfolio]
+  );
 
   const allocationSegments = useMemo(() => {
     if (totalValue === 0) return [];
@@ -230,7 +235,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           {
             key: "totalValue",
@@ -249,6 +254,15 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
             value: `${totalGain >= 0 ? "+" : ""}${formatCurrencyValue(Math.abs(totalGain), currency)} (${totalGainPct.toFixed(1)}%)`,
             positive: totalGain >= 0,
             icon: true,
+          },
+          {
+            key: "weightedCagr",
+            label: t("portfolio.stat.weightedCagr"),
+            value:
+              weightedCagr != null
+                ? `${weightedCagr.toFixed(1)}%`
+                : "—",
+            accent: true,
           },
           {
             key: "holdings",
@@ -272,7 +286,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
                 stat.muted ? "text-muted-foreground" : ""
               } ${stat.positive === true ? "text-green-400" : ""} ${
                 stat.positive === false ? "text-red-400" : ""
-              }`}
+              } ${"accent" in stat && stat.accent ? "text-accent" : ""}`}
             >
               {stat.icon &&
                 (totalGain >= 0 ? (
@@ -398,12 +412,17 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           }}
         />
       ) : (
-        <PortfolioHoldingsTable
-          assets={filteredAssets}
-          totalValue={totalValue}
-          onRemove={handleRemove}
-          mode={mode}
-        />
+        <>
+          <PortfolioHoldingsTable
+            assets={filteredAssets}
+            totalValue={totalValue}
+            onRemove={handleRemove}
+            mode={mode}
+          />
+          <p className="portfolio-cagr-footnote text-[11px] text-muted-foreground leading-snug">
+            {t("portfolio.cagrFootnote")}
+          </p>
+        </>
       )}
 
       <AddAssetModal

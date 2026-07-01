@@ -13,6 +13,11 @@ import {
   deriveOutsideFromManualNetWorth,
   syncNetWorthWithPortfolio,
 } from "@/lib/netWorthSync";
+import {
+  applyIncludedPortfolioCagr,
+  applyPortfolioCagrToKpis,
+  normalizePortfolioCagr,
+} from "@/lib/portfolioCagr";
 import type { CoachMessage } from "@/lib/ai/retirementCoach";
 import type { AppLocale } from "@/lib/i18n/messages";
 import type { PlanTier } from "@/lib/plans";
@@ -107,16 +112,27 @@ function buildProjectionsFromState(state: {
     results: MonteCarloResult[];
   };
 }) {
-  const syncedKpis = syncNetWorthWithPortfolio(
-    normalizeKpiValues(state.kpis),
-    state.portfolio,
-    state.kpiOutsidePortfolio
+  const portfolio = normalizePortfolioCagr(state.portfolio);
+  const syncedKpis = applyPortfolioCagrToKpis(
+    syncNetWorthWithPortfolio(
+      normalizeKpiValues(state.kpis),
+      portfolio,
+      state.kpiOutsidePortfolio
+    ),
+    portfolio
   );
-  const effectiveKpis = resolveSimulationKpis(
-    applySensitivity(syncedKpis, state.sensitivity ?? { cagr: null, inflation: null }),
-    state.portfolio,
-    state.simulationIncludedAssetIds,
-    state.kpiOutsidePortfolio
+  const effectiveKpis = applyIncludedPortfolioCagr(
+    resolveSimulationKpis(
+      applySensitivity(
+        syncedKpis,
+        state.sensitivity ?? { cagr: null, inflation: null }
+      ),
+      portfolio,
+      state.simulationIncludedAssetIds,
+      state.kpiOutsidePortfolio
+    ),
+    portfolio,
+    state.simulationIncludedAssetIds
   );
   const projections = generateExtendedProjections(effectiveKpis);
   const mcBase = state.monteCarlo?.results?.find((r) => r.scenario === "base");
@@ -254,6 +270,7 @@ export interface AppStore {
         | "priceSource"
         | "lastPriceAt"
         | "previousPrice"
+        | "expectedCAGR"
       >
     >
   ) => void;
@@ -284,6 +301,7 @@ export interface AppStore {
         | "priceSource"
         | "lastPriceAt"
         | "previousPrice"
+        | "expectedCAGR"
       >
     >
   ) => void;
@@ -324,15 +342,16 @@ function rebuildSimPlayground(
   };
 }
 
-const defaultIncludedIds = getDefaultIncludedAssetIds(MOCK_PORTFOLIO);
-const seedPortfolioTotal = calculatePortfolioValue(MOCK_PORTFOLIO);
+const SEED_PORTFOLIO = normalizePortfolioCagr(MOCK_PORTFOLIO);
+const defaultIncludedIds = getDefaultIncludedAssetIds(SEED_PORTFOLIO);
+const seedPortfolioTotal = calculatePortfolioValue(SEED_PORTFOLIO);
 const seedKpis = normalizeKpiValues({
   currentNetWorth: Math.round(seedPortfolioTotal),
 });
 const initialOutside = 0;
 const initialBuild = buildProjectionsFromState({
   kpis: seedKpis,
-  portfolio: MOCK_PORTFOLIO,
+  portfolio: SEED_PORTFOLIO,
   simulationIncludedAssetIds: defaultIncludedIds,
   kpiOutsidePortfolio: initialOutside,
   sensitivity: { cagr: null, inflation: null },
@@ -355,7 +374,7 @@ export const useAppStore = create<AppStore>()(
       user: DEFAULT_USER,
       kpis: initialBuild.kpis,
       kpiOutsidePortfolio: initialOutside,
-      portfolio: MOCK_PORTFOLIO,
+      portfolio: SEED_PORTFOLIO,
       portfolioSearchQuery: "",
       portfolioLastRefreshedAt: null,
       isRefreshingPrices: false,
@@ -393,7 +412,7 @@ export const useAppStore = create<AppStore>()(
       simPlayground: initialPlaygroundFromMock(
         initialBuild.kpis,
         initialOutside,
-        MOCK_PORTFOLIO,
+        SEED_PORTFOLIO,
         defaultIncludedIds
       ),
 
@@ -1186,9 +1205,9 @@ export const useAppStore = create<AppStore>()(
         const p = persisted as Partial<AppStore> | undefined;
         const needsDemoMigration = (p?.demoSeedVersion ?? 0) < DEMO_SEED_VERSION;
 
-        const portfolio = needsDemoMigration
-          ? MOCK_PORTFOLIO
-          : (p?.portfolio ?? MOCK_PORTFOLIO);
+        const portfolio = normalizePortfolioCagr(
+          needsDemoMigration ? SEED_PORTFOLIO : (p?.portfolio ?? SEED_PORTFOLIO)
+        );
         const simulationIncludedAssetIds = needsDemoMigration
           ? defaultIncludedIds
           : (p?.simulationIncludedAssetIds ??

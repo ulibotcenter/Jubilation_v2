@@ -340,6 +340,8 @@ export interface PortfolioAsset {
   currency: Currency;
   /** Allocation weight 0–100 */
   allocation: number;
+  /** Expected nominal annual return (%) for this holding */
+  expectedCAGR?: number;
   priceSource?: PriceSource;
   lastPriceAt?: string | null;
   previousPrice?: number | null;

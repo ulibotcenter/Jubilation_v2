@@ -33,6 +33,7 @@ import {
   PHYSICAL_ASSET_PRESETS,
   type PhysicalAssetPreset,
 } from "@/lib/physicalAssetPresets";
+import { defaultCagrForAssetClass } from "@/lib/portfolioCagr";
 import { useAppStore } from "@/store/useAppStore";
 import {
   type AssetClass,
@@ -160,6 +161,7 @@ export function AddAssetModal({
       costBasis: payload.costBasis,
       currency,
       allocation: 0,
+      expectedCAGR: defaultCagrForAssetClass(payload.assetClass),
       priceSource: payload.priceSource,
       lastPriceAt: new Date().toISOString(),
       previousPrice: null,

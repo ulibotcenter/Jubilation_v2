@@ -6,6 +6,7 @@ interface PortfolioInlineEditProps {
   value: number;
   onCommit: (value: number) => void;
   min?: number;
+  max?: number;
   step?: number;
   decimals?: number;
   className?: string;
@@ -16,6 +17,7 @@ export function PortfolioInlineEdit({
   value,
   onCommit,
   min = 0,
+  max,
   step = 1,
   decimals = 2,
   className = "",
@@ -34,10 +36,11 @@ export function PortfolioInlineEdit({
       setDraft(String(value));
       return;
     }
+    const clamped = max != null ? Math.min(max, parsed) : parsed;
     const rounded =
       decimals === 0
-        ? Math.round(parsed)
-        : Math.round(parsed * 10 ** decimals) / 10 ** decimals;
+        ? Math.round(clamped)
+        : Math.round(clamped * 10 ** decimals) / 10 ** decimals;
     if (rounded !== value) onCommit(rounded);
     setDraft(String(rounded));
   };
@@ -46,6 +49,7 @@ export function PortfolioInlineEdit({
     <input
       type="number"
       min={min}
+      max={max}
       step={step}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}

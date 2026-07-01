@@ -97,9 +97,7 @@ function getKPISubtitle(
         amount: formatCurrencyValue(kpis.desiredMonthlyIncome * 12, currency),
       });
     case "expectedCAGR":
-      return realReturn > 0
-        ? translate("kpi.subtitle.realReturn", { n: realReturn.toFixed(1) })
-        : translate("kpi.subtitle.nominalGrowth");
+      return translate("kpi.subtitle.cagrFromPortfolio");
     case "annualInflation":
       return translate("kpi.subtitle.inflation");
     default:
@@ -186,6 +184,9 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
   const setKpiFn = mode === "playground" ? setSimKPI : setKPI;
   const setKpiFnRef = useRef(setKpiFn);
   setKpiFnRef.current = setKpiFn;
+  const realPortfolio = useAppStore((s) => s.portfolio);
+  const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
+  const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
   const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   const debouncedSetKpi = useMemo(
@@ -210,6 +211,12 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
   );
 
   const handleChange = (field: KPIField, value: number) => {
+    if (field === "expectedCAGR" && portfolio.length > 0) {
+      toast.info(t("toast.kpi.cagrFromPortfolio"), {
+        description: t("toast.kpi.cagrFromPortfolioDesc"),
+      });
+      return;
+    }
     if (field === "retirementAge" && value <= kpis.currentAge) {
       toast.error(t("toast.kpi.invalidRetirementAge"), {
         description: t("toast.kpi.retirementAgeDesc", { n: kpis.currentAge }),

@@ -1,6 +1,11 @@
 import { getDefaultIncludedAssetIds } from "@/lib/simulationScope";
 import { syncNetWorthWithPortfolio } from "@/lib/netWorthSync";
 import { resolveSimulationKpis } from "@/lib/simulationScope";
+import {
+  applyIncludedPortfolioCagr,
+  applyPortfolioCagrToKpis,
+  normalizePortfolioCagr,
+} from "@/lib/portfolioCagr";
 import { chartDataWithMcBands } from "@/lib/projectionsExtended";
 import {
   DEFAULT_KPI_VALUES,
@@ -96,16 +101,24 @@ export function buildPlaygroundProjections(state: {
     results: MonteCarloResult[];
   };
 }) {
-  const syncedKpis = syncNetWorthWithPortfolio(
-    normalizeKpiValues(state.kpis),
-    state.portfolio,
-    state.kpiOutsidePortfolio
+  const portfolio = normalizePortfolioCagr(state.portfolio);
+  const syncedKpis = applyPortfolioCagrToKpis(
+    syncNetWorthWithPortfolio(
+      normalizeKpiValues(state.kpis),
+      portfolio,
+      state.kpiOutsidePortfolio
+    ),
+    portfolio
   );
-  const effectiveKpis = resolveSimulationKpis(
-    syncedKpis,
-    state.portfolio,
-    state.simulationIncludedAssetIds,
-    state.kpiOutsidePortfolio
+  const effectiveKpis = applyIncludedPortfolioCagr(
+    resolveSimulationKpis(
+      syncedKpis,
+      portfolio,
+      state.simulationIncludedAssetIds,
+      state.kpiOutsidePortfolio
+    ),
+    portfolio,
+    state.simulationIncludedAssetIds
   );
   const projections = generateProjections(effectiveKpis);
   const mcBase = state.monteCarlo?.results?.find((r) => r.scenario === "base");

@@ -4,6 +4,7 @@ import { Trash2, TrendingDown, TrendingUp } from "lucide-react";
 import { PortfolioInlineEdit } from "@/components/ui/PortfolioInlineEdit";
 import { getAssetClassLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { resolveAssetExpectedCagr } from "@/lib/portfolioCagr";
 import { computeHoldingMetrics } from "@/lib/portfolioMetrics";
 import { CLASS_BG } from "@/lib/portfolioColors";
 import { useAppStore } from "@/store/useAppStore";
@@ -33,24 +34,35 @@ export function PortfolioHoldingsTable({
       <table className="portfolio-table">
         <thead>
           <tr>
-            <th>{t("portfolio.table.column.asset")}</th>
-            <th className="text-right">{t("portfolio.table.column.qty")}</th>
-            <th className="text-right hidden md:table-cell">
+            <th className="portfolio-col-asset">
+              {t("portfolio.table.column.asset")}
+            </th>
+            <th className="portfolio-col-qty text-right">
+              {t("portfolio.table.column.qty")}
+            </th>
+            <th className="portfolio-col-cagr text-right">
+              {t("portfolio.table.column.cagr")}
+            </th>
+            <th className="portfolio-col-price text-right hidden md:table-cell">
               {t("portfolio.table.column.avgPrice")}
             </th>
-            <th className="text-right">{t("portfolio.table.column.current")}</th>
-            <th className="text-right hidden sm:table-cell">
+            <th className="portfolio-col-price text-right">
+              {t("portfolio.table.column.current")}
+            </th>
+            <th className="portfolio-col-value text-right hidden sm:table-cell">
               {t("portfolio.table.column.marketValue")}
             </th>
-            <th className="text-right hidden lg:table-cell">
+            <th className="portfolio-col-value text-right hidden lg:table-cell">
               {t("portfolio.table.column.pnl")}
             </th>
-            <th className="text-right">{t("portfolio.table.column.returnPct")}</th>
-            <th className="text-right hidden sm:table-cell">
+            <th className="portfolio-col-pct text-right">
+              {t("portfolio.table.column.returnPct")}
+            </th>
+            <th className="portfolio-col-weight text-right hidden sm:table-cell">
               {t("portfolio.table.column.weight")}
             </th>
             <th
-              className="w-10"
+              className="portfolio-col-actions"
               aria-label={t("portfolio.table.column.actions")}
             />
           </tr>
@@ -59,10 +71,11 @@ export function PortfolioHoldingsTable({
           {assets.map((asset) => {
             const m = computeHoldingMetrics(asset, totalValue);
             const isPositive = m.gain >= 0;
+            const expectedCagr = resolveAssetExpectedCagr(asset);
 
             return (
               <tr key={asset.id}>
-                <td>
+                <td className="portfolio-col-asset">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span
                       className={`portfolio-table-ticker-icon ${CLASS_BG[asset.assetClass]}`}
@@ -70,10 +83,10 @@ export function PortfolioHoldingsTable({
                       {asset.ticker.slice(0, 3)}
                     </span>
                     <div className="min-w-0">
-                      <p className="font-bold text-sm text-foreground">
+                      <p className="font-bold text-sm text-foreground truncate">
                         {asset.ticker}
                       </p>
-                      <p className="text-[11px] text-muted-foreground truncate max-w-[10rem] sm:max-w-[14rem]">
+                      <p className="text-[11px] text-muted-foreground truncate">
                         {asset.name}
                       </p>
                       <span className="portfolio-asset-class-badge mt-0.5 inline-block">
@@ -86,39 +99,61 @@ export function PortfolioHoldingsTable({
                   </div>
                 </td>
 
-                <td className="text-right">
+                <td className="portfolio-col-qty text-right">
                   <PortfolioInlineEdit
                     value={asset.quantity}
                     onCommit={(v) => updateAsset(asset.id, { quantity: v })}
                     min={0.0001}
                     step={1}
                     decimals={asset.assetClass === "crypto" ? 6 : 2}
+                    className="portfolio-inline-edit--qty"
                     ariaLabel={t("portfolio.table.aria.quantity", {
                       ticker: asset.ticker,
                     })}
                   />
                 </td>
 
-                <td className="text-right hidden md:table-cell">
+                <td className="portfolio-col-cagr text-right">
+                  <div className="portfolio-cagr-cell">
+                    <PortfolioInlineEdit
+                      value={expectedCagr}
+                      onCommit={(v) =>
+                        updateAsset(asset.id, { expectedCAGR: v })
+                      }
+                      min={-20}
+                      max={40}
+                      step={0.1}
+                      decimals={1}
+                      className="portfolio-inline-edit--cagr"
+                      ariaLabel={t("portfolio.table.aria.cagr", {
+                        ticker: asset.ticker,
+                      })}
+                    />
+                    <span className="portfolio-cagr-suffix">%</span>
+                  </div>
+                </td>
+
+                <td className="portfolio-col-price text-right hidden md:table-cell">
                   <PortfolioInlineEdit
                     value={asset.costBasis}
                     onCommit={(v) => updateAsset(asset.id, { costBasis: v })}
                     min={0}
                     step={0.01}
                     decimals={2}
+                    className="portfolio-inline-edit--price"
                     ariaLabel={t("portfolio.table.aria.avgPrice", {
                       ticker: asset.ticker,
                     })}
                   />
                 </td>
 
-                <td className="text-right">
-                  <p className="font-semibold tabular-nums text-sm">
+                <td className="portfolio-col-price text-right">
+                  <p className="portfolio-cell-value">
                     {formatCurrencyValue(asset.currentPrice, asset.currency)}
                   </p>
                   {m.priceDeltaPct != null && (
                     <p
-                      className={`text-[10px] tabular-nums ${
+                      className={`portfolio-cell-sub ${
                         m.priceDeltaPct >= 0
                           ? "text-green-400/80"
                           : "text-red-400/80"
@@ -130,12 +165,14 @@ export function PortfolioHoldingsTable({
                   )}
                 </td>
 
-                <td className="text-right hidden sm:table-cell font-semibold tabular-nums">
-                  {formatCurrencyValue(m.marketValue, asset.currency)}
+                <td className="portfolio-col-value text-right hidden sm:table-cell">
+                  <span className="portfolio-cell-value">
+                    {formatCurrencyValue(m.marketValue, asset.currency)}
+                  </span>
                 </td>
 
                 <td
-                  className={`text-right hidden lg:table-cell tabular-nums font-medium ${
+                  className={`portfolio-col-value text-right hidden lg:table-cell portfolio-cell-value ${
                     isPositive ? "text-green-400" : "text-red-400"
                   }`}
                 >
@@ -143,27 +180,27 @@ export function PortfolioHoldingsTable({
                   {formatCurrencyValue(m.gain, asset.currency)}
                 </td>
 
-                <td className="text-right">
+                <td className="portfolio-col-pct text-right">
                   <span
-                    className={`inline-flex items-center gap-1 font-bold tabular-nums text-sm ${
+                    className={`inline-flex items-center gap-1 font-bold tabular-nums text-sm whitespace-nowrap ${
                       isPositive ? "text-green-400" : "text-red-400"
                     }`}
                   >
                     {isPositive ? (
-                      <TrendingUp className="w-3.5 h-3.5" size={14} />
+                      <TrendingUp className="w-3.5 h-3.5 shrink-0" size={14} />
                     ) : (
-                      <TrendingDown className="w-3.5 h-3.5" size={14} />
+                      <TrendingDown className="w-3.5 h-3.5 shrink-0" size={14} />
                     )}
                     {isPositive ? "+" : ""}
                     {m.gainPct.toFixed(2)}%
                   </span>
                 </td>
 
-                <td className="text-right hidden sm:table-cell text-muted-foreground tabular-nums text-sm">
+                <td className="portfolio-col-weight text-right hidden sm:table-cell text-muted-foreground tabular-nums text-sm whitespace-nowrap">
                   {m.weightPct.toFixed(1)}%
                 </td>
 
-                <td>
+                <td className="portfolio-col-actions">
                   <button
                     type="button"
                     onClick={() => onRemove(asset)}
