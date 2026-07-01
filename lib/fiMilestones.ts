@@ -1,14 +1,14 @@
 import type { KPIValues, ProjectionYear } from "@/types";
 
+export type FIMilestoneId = "half" | "coast" | "full";
+
 export interface FIMilestone {
-  id: "coast" | "barista" | "traditional";
-  label: string;
-  description: string;
+  id: FIMilestoneId;
   targetAge: number | null;
   targetPortfolio: number;
 }
 
-/** Coast FI: portfolio covers retirement spending without new contributions */
+/** Three intuitive checkpoints on the path to retirement */
 export function computeFIMilestones(
   kpis: KPIValues,
   projections: ProjectionYear[]
@@ -17,9 +17,16 @@ export function computeFIMilestones(
     kpis.desiredMonthlyIncome > 0
       ? kpis.desiredMonthlyIncome * 12
       : kpis.monthlyExpenses * 12 * 1.25;
-  const traditionalTarget = annualNeed * 25;
-  const coastTarget = traditionalTarget;
-  const baristaTarget = traditionalTarget * 0.5;
+  const fullTarget = annualNeed * 25;
+  const halfTarget = fullTarget * 0.5;
+
+  const yearsLeft = Math.max(1, kpis.retirementAge - kpis.currentAge);
+  const realReturn = Math.max(
+    0.002,
+    (kpis.expectedCAGR - kpis.annualInflation) / 100
+  );
+  /** Portfolio needed today so growth alone reaches full target by retirement */
+  const coastTarget = fullTarget / Math.pow(1 + realReturn, yearsLeft);
 
   const findAge = (target: number) => {
     const hit = projections.find((p) => p.portfolioValue >= target);
@@ -28,25 +35,19 @@ export function computeFIMilestones(
 
   return [
     {
+      id: "half",
+      targetAge: findAge(halfTarget),
+      targetPortfolio: Math.round(halfTarget),
+    },
+    {
       id: "coast",
-      label: "Coast FI",
-      description: "Stop contributing — portfolio may grow to full FI by retirement",
       targetAge: findAge(coastTarget),
       targetPortfolio: Math.round(coastTarget),
     },
     {
-      id: "barista",
-      label: "Barista FIRE",
-      description: "Half FI — part-time income could cover the gap",
-      targetAge: findAge(baristaTarget),
-      targetPortfolio: Math.round(baristaTarget),
-    },
-    {
-      id: "traditional",
-      label: "Traditional FI",
-      description: "25× annual spending — full financial independence",
-      targetAge: findAge(traditionalTarget),
-      targetPortfolio: Math.round(traditionalTarget),
+      id: "full",
+      targetAge: findAge(fullTarget),
+      targetPortfolio: Math.round(fullTarget),
     },
   ];
 }

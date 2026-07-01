@@ -12,15 +12,18 @@ export function RebalanceCard() {
   const portfolio = useAppStore((s) => s.portfolio);
   const suggestions = useMemo(() => suggestRebalance(portfolio), [portfolio]);
 
-  if (suggestions.length === 0) return null;
-
   return (
-    <div className="card-surface p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <PieChart className="w-4 h-4 text-accent" size={16} />
+    <div className="dashboard-insight-card card-surface p-4">
+      <div className="dashboard-insight-header flex items-center gap-2">
+        <PieChart className="w-4 h-4 text-accent shrink-0" size={16} />
         <h3 className="text-sm font-bold">{t("rebalance.title")}</h3>
       </div>
-      <ul className="space-y-1.5 mt-2">
+      {suggestions.length === 0 ? (
+        <p className="dashboard-insight-body text-xs text-muted-foreground">
+          {t("rebalance.empty")}
+        </p>
+      ) : (
+      <ul className="dashboard-insight-body space-y-1.5">
         {suggestions.slice(0, 4).map((s) => (
           <li key={s.assetClass} className="text-xs flex justify-between gap-2">
             <span className="text-muted-foreground">
@@ -37,6 +40,7 @@ export function RebalanceCard() {
           </li>
         ))}
       </ul>
+      )}
     </div>
   );
 }

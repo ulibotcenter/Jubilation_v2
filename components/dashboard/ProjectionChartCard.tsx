@@ -87,6 +87,13 @@ export function ProjectionChartCard({
 
   const sym = CURRENCY_SYMBOLS[currency];
   const finalRow = projections[projections.length - 1];
+  const hasMcBands = useMemo(
+    () =>
+      chartData.some(
+        (d) => (d.band ?? 0) > 0 && d.pessimistic !== d.value
+      ),
+    [chartData]
+  );
   const peakValue = useMemo(() => {
     const values = chartData.flatMap((d) => {
       const pts = [d.value];
@@ -142,6 +149,11 @@ export function ProjectionChartCard({
             visibility={lineVisibility}
             onToggle={toggleLine}
           />
+          {!hasMcBands && mode === "real" && (
+            <p className="chart-bands-hint w-full sm:w-auto sm:max-w-[14rem] text-left">
+              {t("chart.bandsHint")}
+            </p>
+          )}
           <button
             type="button"
             className="chart-toggle-btn"

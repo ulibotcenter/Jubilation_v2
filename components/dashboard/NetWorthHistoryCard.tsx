@@ -17,7 +17,7 @@ export function NetWorthHistoryCard() {
 
   if (!canAccess(plan, "net_worth_history") && snapshots.length === 0) {
     return (
-      <div className="card-surface p-4 text-xs text-muted-foreground">
+      <div className="dashboard-insight-card card-surface p-4 text-xs text-muted-foreground">
         {t("netWorth.locked")}
       </div>
     );
@@ -30,17 +30,17 @@ export function NetWorthHistoryCard() {
   };
 
   return (
-    <div className="card-surface p-4">
-      <div className="flex items-center justify-between mb-2">
+    <div className="dashboard-insight-card card-surface p-4">
+      <div className="dashboard-insight-header flex items-center justify-between">
         <h3 className="text-sm font-bold">{t("netWorth.title")}</h3>
         <button type="button" className="btn-secondary text-xs gap-1" onClick={capture}>
           <Plus className="w-3 h-3" size={12} /> {t("netWorth.snapshot")}
         </button>
       </div>
       {snapshots.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{t("netWorth.empty")}</p>
+        <p className="dashboard-insight-body text-xs text-muted-foreground">{t("netWorth.empty")}</p>
       ) : (
-        <ul className="space-y-1 max-h-32 overflow-y-auto">
+        <ul className="dashboard-insight-body space-y-1 max-h-32 overflow-y-auto">
           {snapshots.slice(-8).reverse().map((s) => (
             <li key={s.id} className="text-xs flex justify-between tabular-nums">
               <span className="text-muted-foreground">

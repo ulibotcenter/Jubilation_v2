@@ -34,19 +34,20 @@ export function TaxPreviewCard() {
 
   if (!canAccess(plan, "tax_preview")) {
     return (
-      <div className="card-surface p-4 text-xs text-muted-foreground">
+      <div className="dashboard-insight-card card-surface p-4 text-xs text-muted-foreground">
         {t("tax.locked")}
       </div>
     );
   }
 
   return (
-    <div className="card-surface p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Receipt className="w-4 h-4 text-accent" size={16} />
+    <div className="dashboard-insight-card card-surface p-4">
+      <div className="dashboard-insight-header flex items-center gap-2">
+        <Receipt className="w-4 h-4 text-accent shrink-0" size={16} />
         <h3 className="text-sm font-bold">{t("tax.title")}</h3>
       </div>
-      <div className="flex gap-1 mb-3">
+      <div className="dashboard-insight-body flex flex-col gap-3">
+      <div className="flex gap-1">
         {(["usa", "eu", "br"] as TaxRegion[]).map((r) => (
           <button
             key={r}
@@ -64,12 +65,13 @@ export function TaxPreviewCard() {
         {formatCurrencyValue(estimate.estimatedAnnualTax, currency)}
         {t("common.perYear")}
       </p>
-      <p className="text-xs text-muted-foreground mt-1">
+      <p className="text-xs text-muted-foreground">
         {t("tax.effective", {
           n: estimate.effectiveRatePct,
           notes,
         })}
       </p>
+      </div>
     </div>
   );
 }

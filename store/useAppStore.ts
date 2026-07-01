@@ -869,7 +869,14 @@ export const useAppStore = create<AppStore>()(
         const state = get();
         const { effectiveKpis } = buildProjectionsFromState(state);
         const output = runMonteCarloSimulation(effectiveKpis);
+        const built = buildProjectionsFromState({
+          ...state,
+          monteCarlo: { results: output.results },
+        });
         set({
+          chartData: built.chartData,
+          projections: built.projections,
+          projectionRevision: state.projectionRevision + 1,
           monteCarlo: {
             hasRun: true,
             isRunning: false,
@@ -1118,9 +1125,16 @@ export const useAppStore = create<AppStore>()(
           current.simPlayground
         );
         const output = runMonteCarloSimulation(effectiveKpis);
+        const built = buildPlaygroundProjections({
+          ...current.simPlayground,
+          monteCarlo: { results: output.results },
+        });
         set({
           simPlayground: {
             ...current.simPlayground,
+            chartData: built.chartData,
+            projections: built.projections,
+            projectionRevision: current.simPlayground.projectionRevision + 1,
             monteCarlo: {
               hasRun: true,
               isRunning: false,

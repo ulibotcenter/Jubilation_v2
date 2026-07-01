@@ -14,13 +14,14 @@ export function SensitivityPanel() {
   const inflation = sensitivity.inflation ?? kpis.annualInflation;
 
   return (
-    <div className="sensitivity-panel card-surface p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="sensitivity-panel dashboard-insight-card card-surface p-4">
+      <div className="dashboard-insight-header flex items-center justify-between">
         <h3 className="text-sm font-bold">{t("sensitivity.title")}</h3>
         <button type="button" className="text-xs text-accent" onClick={resetSensitivity}>
           {t("common.reset")}
         </button>
       </div>
+      <div className="dashboard-insight-body flex flex-col">
       <label className="sensitivity-slider">
         <span>{t("sensitivity.cagr", { n: cagr.toFixed(1) })}</span>
         <input
@@ -47,6 +48,7 @@ export function SensitivityPanel() {
           }
         />
       </label>
+      </div>
     </div>
   );
 }

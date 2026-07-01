@@ -84,11 +84,9 @@ export default function DashboardPage() {
 
       <section className="mb-5 sm:mb-6 dashboard-insights-grid">
         <SensitivityPanel />
-        <div className="dashboard-insights-stack">
-          <TaxPreviewCard />
-          <NetWorthHistoryCard />
-          <RebalanceCard />
-        </div>
+        <TaxPreviewCard />
+        <NetWorthHistoryCard />
+        <RebalanceCard />
       </section>
 
       <RealProjectionSection />

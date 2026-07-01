@@ -917,25 +917,22 @@ export function generateProjections(kpis: KPIValues): ProjectionYear[] {
   return projections;
 }
 
+/** Base chart points — confidence bands come from Monte Carlo via chartDataWithMcBands */
 export function generateChartData(
   projections: ProjectionYear[]
 ): ChartDataPoint[] {
-  return projections.map((p) => {
-    const pessimistic = Math.round(p.portfolioValue * 0.72);
-    const optimistic = Math.round(p.portfolioValue * 1.35);
-    return {
-      year: p.year,
-      age: p.age,
-      value: p.portfolioValue,
-      pessimistic,
-      optimistic,
-      band: optimistic - pessimistic,
-      expenses: p.expenses,
-      invested: p.invested,
-      returns: p.returns,
-      requiredIncome: p.requiredIncome,
-    };
-  });
+  return projections.map((p) => ({
+    year: p.year,
+    age: p.age,
+    value: p.portfolioValue,
+    pessimistic: p.portfolioValue,
+    optimistic: p.portfolioValue,
+    band: 0,
+    expenses: p.expenses,
+    invested: p.invested,
+    returns: p.returns,
+    requiredIncome: p.requiredIncome,
+  }));
 }
 
 function formatDistributionBinLabel(value: number): string {

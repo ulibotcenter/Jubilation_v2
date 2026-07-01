@@ -1,10 +1,10 @@
 import { getDefaultIncludedAssetIds } from "@/lib/simulationScope";
 import { syncNetWorthWithPortfolio } from "@/lib/netWorthSync";
 import { resolveSimulationKpis } from "@/lib/simulationScope";
+import { chartDataWithMcBands } from "@/lib/projectionsExtended";
 import {
   DEFAULT_KPI_VALUES,
   normalizeKpiValues,
-  generateChartData,
   generateProjections,
   MOCK_PORTFOLIO,
   type ChartDataPoint,
@@ -92,6 +92,9 @@ export function buildPlaygroundProjections(state: {
   portfolio: PortfolioAsset[];
   simulationIncludedAssetIds: string[];
   kpiOutsidePortfolio: number;
+  monteCarlo?: {
+    results: MonteCarloResult[];
+  };
 }) {
   const syncedKpis = syncNetWorthWithPortfolio(
     normalizeKpiValues(state.kpis),
@@ -105,11 +108,17 @@ export function buildPlaygroundProjections(state: {
     state.kpiOutsidePortfolio
   );
   const projections = generateProjections(effectiveKpis);
+  const mcBase = state.monteCarlo?.results?.find((r) => r.scenario === "base");
+  const chartData = chartDataWithMcBands(
+    projections,
+    mcBase?.percentile10,
+    mcBase?.percentile90
+  );
   return {
     kpis: syncedKpis,
     effectiveKpis,
     projections,
-    chartData: generateChartData(projections),
+    chartData,
   };
 }
 
