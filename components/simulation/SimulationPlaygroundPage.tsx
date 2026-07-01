@@ -109,9 +109,11 @@ export function SimulationPlaygroundPage() {
       <ProjectionChartCard
         mode="playground"
         title={t("simulation.playground.projectionTitle")}
-        subtitle={t("simulation.playground.projectionSubtitle", {
+        subtitle={t("simulation.projection.subtitle", {
           from: sim.kpis.currentAge,
-          to: sim.kpis.retirementAge,
+          to:
+            sim.projections[sim.projections.length - 1]?.age ??
+            sim.kpis.retirementAge,
         })}
         chartData={sim.chartData}
         projections={sim.projections}

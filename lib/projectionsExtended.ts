@@ -5,7 +5,8 @@ import {
   type ProjectionYear,
 } from "@/types";
 
-const POST_RETIREMENT_END_AGE = 90;
+/** Full chart horizon — accumulation through drawdown */
+export const PROJECTION_END_AGE = 90;
 
 /** Accumulation + drawdown phase (4% rule annual withdrawal after retirement) */
 export function generateExtendedProjections(kpis: KPIValues): ProjectionYear[] {
@@ -19,7 +20,7 @@ export function generateExtendedProjections(kpis: KPIValues): ProjectionYear[] {
       : kpis.currentNetWorth * 0.04;
 
   let portfolioValue = kpis.currentNetWorth;
-  const endAge = POST_RETIREMENT_END_AGE;
+  const endAge = PROJECTION_END_AGE;
   const startYear = new Date().getFullYear();
 
   for (let age = kpis.currentAge; age <= endAge; age++) {

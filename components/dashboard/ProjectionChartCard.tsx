@@ -11,6 +11,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -26,7 +27,11 @@ import { ChartSkeleton } from "@/components/ui/ChartSkeleton";
 import { ChartTooltip } from "@/components/ui/ChartTooltip";
 import { SimulationAssetFilter } from "@/components/ui/SimulationAssetFilter";
 import { getChartScenarioLabel } from "@/lib/i18n/resolve";
-import { getRetirementProjectionRow } from "@/lib/projectionUtils";
+import {
+  getChartHorizonAge,
+  getEndOfLifeProjectionRow,
+  getRetirementProjectionRow,
+} from "@/lib/projectionUtils";
 import { buildDisplayChartData } from "@/lib/projectionChartData";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
@@ -95,10 +100,12 @@ export function ProjectionChartCard({
   }, [projectionRevision]);
 
   const sym = CURRENCY_SYMBOLS[currency];
-  const finalRow = getRetirementProjectionRow(
+  const chartHorizon = getChartHorizonAge(projections);
+  const retirementRow = getRetirementProjectionRow(
     projections,
     kpis.retirementAge
   );
+  const endOfLifeRow = getEndOfLifeProjectionRow(projections, chartHorizon);
   const mcReady =
     monteCarlo.hasRun && (monteCarlo.results?.length ?? 0) > 0;
 
@@ -190,16 +197,32 @@ export function ProjectionChartCard({
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               {subtitle}
             </p>
-            {!compact && finalRow && (
-              <p className="text-xs text-accent font-semibold tabular-nums mt-1">
-                {t("chart.atRetirement", {
-                  amount: formatCurrencyValue(
-                    finalRow.portfolioValue,
-                    currency,
-                    true
-                  ),
-                })}
-              </p>
+            {!compact && (retirementRow || endOfLifeRow) && (
+              <div className="chart-headline-stats mt-1">
+                {retirementRow && (
+                  <p className="text-xs text-accent font-semibold tabular-nums">
+                    {t("chart.atRetirement", {
+                      amount: formatCurrencyValue(
+                        retirementRow.portfolioValue,
+                        currency,
+                        true
+                      ),
+                    })}
+                  </p>
+                )}
+                {endOfLifeRow && endOfLifeRow.age > kpis.retirementAge && (
+                  <p className="text-xs text-muted-foreground font-medium tabular-nums">
+                    {t("chart.atEndOfLife", {
+                      age: endOfLifeRow.age,
+                      amount: formatCurrencyValue(
+                        endOfLifeRow.portfolioValue,
+                        currency,
+                        true
+                      ),
+                    })}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -298,6 +321,8 @@ export function ProjectionChartCard({
               tick={{ fontSize: 11, fill: "#94a3b8" }}
               axisLine={{ stroke: "#1e293b" }}
               tickLine={false}
+              interval="preserveStartEnd"
+              minTickGap={32}
             />
             <YAxis
               tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -319,6 +344,12 @@ export function ProjectionChartCard({
               wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
               iconType="line"
             />
+            <ReferenceArea
+              x1={kpis.retirementAge}
+              x2={chartHorizon}
+              fill="rgba(255,112,64,0.05)"
+              strokeOpacity={0}
+            />
             <ReferenceLine
               x={kpis.currentAge}
               stroke="#64748b"
@@ -329,6 +360,13 @@ export function ProjectionChartCard({
               x={kpis.retirementAge}
               stroke="#ff7040"
               strokeDasharray="6 4"
+              strokeWidth={1.5}
+              label={{
+                value: t("chart.phase.retirement"),
+                position: "insideTopRight",
+                fill: "#ff7040",
+                fontSize: 10,
+              }}
             />
             {hasMcBands &&
               effectiveVisibility.pessimistic &&

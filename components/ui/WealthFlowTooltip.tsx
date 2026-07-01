@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import type { CashFlowPhase } from "@/lib/cashFlowChartData";
 import { formatCurrencyValue, type Currency } from "@/types";
 
 interface WealthFlowTooltipProps {
@@ -11,6 +12,7 @@ interface WealthFlowTooltipProps {
     color: string;
     dataKey?: string;
     payload?: {
+      phase?: CashFlowPhase;
       openingWealth?: number;
       contributions?: number;
       returns?: number;
@@ -20,6 +22,7 @@ interface WealthFlowTooltipProps {
   }[];
   label?: string | number;
   currency: Currency;
+  retirementAge?: number;
 }
 
 export function WealthFlowTooltip({
@@ -27,6 +30,7 @@ export function WealthFlowTooltip({
   payload,
   label,
   currency,
+  retirementAge,
 }: WealthFlowTooltipProps) {
   const { t } = useTranslation();
 
@@ -35,10 +39,21 @@ export function WealthFlowTooltip({
   const raw = payload[0]?.payload;
   if (!raw) return null;
 
+  const isRetired = raw.phase === "retirement";
+  const age = typeof label === "number" ? label : Number(label);
+  const phaseLabel =
+    retirementAge != null && !Number.isNaN(age) && age >= retirementAge
+      ? t("chart.phase.retirement")
+      : t("chart.phase.accumulation");
+
   const buildTotal =
     (raw.openingWealth ?? 0) +
     (raw.contributions ?? 0) +
     (raw.returns ?? 0);
+
+  const outflowLabel = isRetired
+    ? t("chart.cashflow.withdrawals")
+    : t("chart.cashflow.living");
 
   const rows = [
     {
@@ -68,7 +83,7 @@ export function WealthFlowTooltip({
     },
     {
       key: "living",
-      label: t("chart.cashflow.living"),
+      label: outflowLabel,
       value: raw.livingCost ?? 0,
       color: "#f87171",
     },
@@ -83,9 +98,14 @@ export function WealthFlowTooltip({
 
   return (
     <div className="rounded-xl border border-border bg-surface-elevated/95 backdrop-blur-md px-3.5 py-2.5 shadow-lg min-w-[12rem]">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-        {t("chart.tooltip.age", { n: label ?? "" })}
-      </p>
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t("chart.tooltip.age", { n: label ?? "" })}
+        </p>
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-accent">
+          {phaseLabel}
+        </span>
+      </div>
       <div className="space-y-1.5">
         {rows.map((row) => (
           <div

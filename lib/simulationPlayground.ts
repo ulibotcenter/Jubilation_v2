@@ -1,4 +1,5 @@
 import { getDefaultIncludedAssetIds } from "@/lib/simulationScope";
+import { generateExtendedProjections } from "@/lib/projectionsExtended";
 import { syncNetWorthWithPortfolio } from "@/lib/netWorthSync";
 import { resolveSimulationKpis } from "@/lib/simulationScope";
 import {
@@ -10,7 +11,6 @@ import { chartDataWithMcBands } from "@/lib/projectionsExtended";
 import {
   DEFAULT_KPI_VALUES,
   normalizeKpiValues,
-  generateProjections,
   MOCK_PORTFOLIO,
   type ChartDataPoint,
   type DistributionBin,
@@ -123,7 +123,7 @@ export function buildPlaygroundProjections(state: {
     portfolio,
     state.simulationIncludedAssetIds
   );
-  const projections = generateProjections(effectiveKpis);
+  const projections = generateExtendedProjections(effectiveKpis);
   const mcBase =
     state.monteCarlo?.hasRun && (state.monteCarlo.results?.length ?? 0) > 0
       ? state.monteCarlo.results.find((r) => r.scenario === "base")

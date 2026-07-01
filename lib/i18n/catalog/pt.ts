@@ -92,7 +92,8 @@ export const PT: Record<MessageKey, string> = {
   "income.shortfall": "Déficit de {amount}/mês na aposentadoria (regra dos 4%)",
   "income.surplus": "Excedente de {amount}/mês acima da sua meta",
   "dashboard.projection.title": "Projeção do portfólio real",
-  "dashboard.projection.subtitle": "Com base nos seus ativos e premissas atuais",
+  "dashboard.projection.subtitle":
+    "Acumulação e drawdown — da idade atual até os 90 anos",
   "dashboard.cta.simulation": "Abrir simulação sandbox",
   "portfolio.section.title": "Portfólio real",
   "portfolio.page.title": "Portfólio real",
@@ -227,6 +228,8 @@ export const PT: Record<MessageKey, string> = {
   "chart.cashflow.title": "Fluxo de caixa anual",
   "chart.cashflow.subtitle": "Barras empilhadas = despesas + investido + retornos",
   "chart.cashflow.living": "Custo de vida",
+  "chart.cashflow.outflows": "Saídas",
+  "chart.cashflow.withdrawals": "Retiradas",
   "chart.cashflow.invested": "Investido",
   "chart.cashflow.returns": "Retornos de mercado",
   "chart.cashflow.openingWealth": "Patrimônio atual",
@@ -238,6 +241,9 @@ export const PT: Record<MessageKey, string> = {
   "chart.scenario.pessimistic": "Pessimista",
   "chart.scenario.optimistic": "Otimista",
   "chart.atRetirement": "{amount} na aposentadoria",
+  "chart.atEndOfLife": "{amount} aos {age} anos",
+  "chart.phase.accumulation": "Acumulação",
+  "chart.phase.retirement": "Aposentadoria",
   "chart.recalculating": "Recalculando projeção…",
   "chart.tooltip.age": "Idade {n}",
   "chart.tooltip.confidenceSpread": "Faixa de confiança",
@@ -472,11 +478,16 @@ export const PT: Record<MessageKey, string> = {
   "simulation.stat.yearsLeft": "Anos restantes",
   "simulation.stat.realCagr": "CAGR real",
   "simulation.projection.title": "Projeção de aposentadoria",
-  "simulation.projection.subtitle": "Crescimento do portfólio da idade {from} a {to}",
+  "simulation.projection.subtitle":
+    "Crescimento e drawdown da idade {from} aos {to} anos",
   "chart.cashflow.subtitleDetail":
-    "Barras empilhadas = patrimônio + aportes + retorno CAGR · Vermelho = custo de vida · Linha laranja = saldo projetado",
+    "Idade {from}→{to}: barras empilhadas (patrimônio + aportes + CAGR), saídas em vermelho, linha laranja = saldo",
   "chart.cashflow.footnote":
     "Custo de vida médio {amount}/mês durante a fase de acumulação · A linha segue o saldo após entradas e saídas",
+  "chart.cashflow.footnoteAccum":
+    "Acumulação: custo de vida médio {amount}/mês",
+  "chart.cashflow.footnoteRetire":
+    "Aposentadoria: retirada média {amount}/mês",
   "onboarding.brand": "Jubilation V2",
   "onboarding.step": "Etapa {current} de {total} · ~30 segundos",
   "onboarding.step1.title": "Bem-vindo — escolha sua moeda",

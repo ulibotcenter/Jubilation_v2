@@ -92,7 +92,8 @@ export const ES: Record<MessageKey, string> = {
   "income.shortfall": "Déficit de {amount}/mes al jubilarse (regla del 4%)",
   "income.surplus": "Excedente de {amount}/mes sobre tu meta",
   "dashboard.projection.title": "Proyección de cartera real",
-  "dashboard.projection.subtitle": "Basada en tus activos y supuestos actuales",
+  "dashboard.projection.subtitle":
+    "Acumulación y drawdown — de hoy hasta los 90 años",
   "dashboard.cta.simulation": "Abrir simulación sandbox",
   "portfolio.section.title": "Cartera real",
   "portfolio.page.title": "Cartera real",
@@ -227,6 +228,8 @@ export const ES: Record<MessageKey, string> = {
   "chart.cashflow.title": "Flujo de caja anual",
   "chart.cashflow.subtitle": "Barras apiladas = gastos + invertido + retornos",
   "chart.cashflow.living": "Gastos de vida",
+  "chart.cashflow.outflows": "Salidas",
+  "chart.cashflow.withdrawals": "Retiros",
   "chart.cashflow.invested": "Invertido",
   "chart.cashflow.returns": "Retornos de mercado",
   "chart.cashflow.openingWealth": "Patrimonio actual",
@@ -238,6 +241,9 @@ export const ES: Record<MessageKey, string> = {
   "chart.scenario.pessimistic": "Pesimista",
   "chart.scenario.optimistic": "Optimista",
   "chart.atRetirement": "{amount} al jubilarse",
+  "chart.atEndOfLife": "{amount} a los {age} años",
+  "chart.phase.accumulation": "Acumulación",
+  "chart.phase.retirement": "Jubilación",
   "chart.recalculating": "Recalculando proyección…",
   "chart.tooltip.age": "Edad {n}",
   "chart.tooltip.confidenceSpread": "Rango de confianza",
@@ -472,11 +478,16 @@ export const ES: Record<MessageKey, string> = {
   "simulation.stat.yearsLeft": "Años restantes",
   "simulation.stat.realCagr": "CAGR real",
   "simulation.projection.title": "Proyección de jubilación",
-  "simulation.projection.subtitle": "Crecimiento de la cartera de {from} a {to} años",
+  "simulation.projection.subtitle":
+    "Crecimiento y drawdown de {from} a {to} años",
   "chart.cashflow.subtitleDetail":
-    "Barra apilada = gastos + invertido · Azul = retornos de mercado en la cartera",
+    "Edad {from}→{to}: barras apiladas + salidas rojas, línea naranja = saldo",
   "chart.cashflow.footnote":
-    "Necesidad de ingreso {amount}/mes ≈ gastos + contribuciones · Los retornos varían con la cartera",
+    "La línea naranja sigue el saldo tras entradas y salidas cada año",
+  "chart.cashflow.footnoteAccum":
+    "Acumulación: gasto de vida medio {amount}/mes",
+  "chart.cashflow.footnoteRetire":
+    "Jubilación: retiro medio {amount}/mes",
   "onboarding.brand": "Jubilation V2",
   "onboarding.step": "Paso {current} de {total} · ~30 segundos",
   "onboarding.step1.title": "Bienvenido — elige tu moneda",

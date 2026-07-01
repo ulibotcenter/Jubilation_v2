@@ -1,4 +1,7 @@
-import { chartDataWithMcBands } from "@/lib/projectionsExtended";
+import {
+  chartDataWithMcBands,
+  PROJECTION_END_AGE,
+} from "@/lib/projectionsExtended";
 import type {
   ChartDataPoint,
   KPIValues,
@@ -6,12 +9,23 @@ import type {
   ProjectionYear,
 } from "@/types";
 
-/** Chart points from current age through retirement (accumulation focus) */
+/** Full lifecycle chart points (accumulation + post-retirement drawdown). */
 export function sliceProjectionsForChart(
   projections: ProjectionYear[],
-  retirementAge: number
+  endAge: number = PROJECTION_END_AGE
 ): ProjectionYear[] {
-  return projections.filter((p) => p.age <= retirementAge);
+  return projections.filter((p) => p.age <= endAge);
+}
+
+function stripBandsAfterRetirement(
+  points: ChartDataPoint[],
+  retirementAge: number
+): ChartDataPoint[] {
+  return points.map((p) =>
+    p.age > retirementAge
+      ? { ...p, pessimistic: undefined, optimistic: undefined, band: 0 }
+      : p
+  );
 }
 
 export function buildDisplayChartData(
@@ -23,30 +37,36 @@ export function buildDisplayChartData(
     results: MonteCarloResult[];
   }
 ): ChartDataPoint[] {
-  const sliced = sliceProjectionsForChart(projections, kpis.retirementAge);
-  const slicedChart = chartData.filter((d) => d.age <= kpis.retirementAge);
+  const horizon =
+    projections[projections.length - 1]?.age ?? PROJECTION_END_AGE;
+  const fullProjections = sliceProjectionsForChart(projections, horizon);
+  const fullChart = chartData.filter((d) => d.age <= horizon);
 
-  const hasBands = slicedChart.some(
+  const accumulationChart = fullChart.filter(
+    (d) => d.age <= kpis.retirementAge
+  );
+  const hasBands = accumulationChart.some(
     (d) =>
       d.pessimistic != null &&
       d.optimistic != null &&
       (d.pessimistic !== d.value || d.optimistic !== d.value)
   );
 
-  if (hasBands) return slicedChart;
+  if (hasBands) return stripBandsAfterRetirement(fullChart, kpis.retirementAge);
 
   if (monteCarlo?.hasRun && monteCarlo.results.length > 0) {
     const mcBase = monteCarlo.results.find((r) => r.scenario === "base");
     if (mcBase?.percentile10 != null && mcBase?.percentile90 != null) {
-      return chartDataWithMcBands(
-        sliced,
+      const withBands = chartDataWithMcBands(
+        fullProjections,
         mcBase.percentile10,
         mcBase.percentile90,
         kpis.retirementAge,
         mcBase.medianValue
       );
+      return stripBandsAfterRetirement(withBands, kpis.retirementAge);
     }
   }
 
-  return slicedChart;
+  return fullChart;
 }

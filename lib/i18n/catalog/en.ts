@@ -90,7 +90,8 @@ export const EN = {
   "income.shortfall": "Shortfall of {amount}/mo at retirement based on 4% rule",
   "income.surplus": "Surplus of {amount}/mo above your goal",
   "dashboard.projection.title": "Real portfolio projection",
-  "dashboard.projection.subtitle": "Based on your tracked holdings and current assumptions",
+  "dashboard.projection.subtitle":
+    "Accumulation and drawdown — from today through age 90",
   "dashboard.cta.simulation": "Open simulation playground",
   "portfolio.section.title": "Real Portfolio",
   "portfolio.page.title": "Real Portfolio",
@@ -225,6 +226,8 @@ export const EN = {
   "chart.cashflow.title": "Annual cash flow",
   "chart.cashflow.subtitle": "Stacked bar = living expenses + invested + market returns",
   "chart.cashflow.living": "Living expenses",
+  "chart.cashflow.outflows": "Outflows",
+  "chart.cashflow.withdrawals": "Withdrawals",
   "chart.cashflow.invested": "Invested",
   "chart.cashflow.returns": "Market returns",
   "chart.cashflow.openingWealth": "Current wealth",
@@ -236,6 +239,9 @@ export const EN = {
   "chart.scenario.pessimistic": "Pessimistic",
   "chart.scenario.optimistic": "Optimistic",
   "chart.atRetirement": "{amount} at retirement",
+  "chart.atEndOfLife": "{amount} at age {age}",
+  "chart.phase.accumulation": "Accumulation",
+  "chart.phase.retirement": "Retirement",
   "chart.recalculating": "Recalculating projection…",
   "chart.tooltip.age": "Age {n}",
   "chart.tooltip.confidenceSpread": "Confidence spread",
@@ -470,11 +476,16 @@ export const EN = {
   "simulation.stat.yearsLeft": "Years Left",
   "simulation.stat.realCagr": "Real CAGR",
   "simulation.projection.title": "Retirement Projection",
-  "simulation.projection.subtitle": "Portfolio growth from age {from} to {to}",
+  "simulation.projection.subtitle":
+    "Growth and drawdown from age {from} through {to}",
   "chart.cashflow.subtitleDetail":
-    "Stacked bar = living expenses + invested · Blue = market returns on portfolio",
+    "Age {from}→{to}: stacked wealth + contributions + CAGR, red outflows, orange line = balance",
   "chart.cashflow.footnote":
-    "Income need {amount}/mo ≈ expenses + contributions · Returns vary with portfolio (variable income contrast)",
+    "Orange line tracks balance after inflows and outflows each year",
+  "chart.cashflow.footnoteAccum":
+    "Accumulation: avg living cost {amount}/mo",
+  "chart.cashflow.footnoteRetire":
+    "Retirement: avg withdrawal {amount}/mo",
   "onboarding.brand": "Jubilation V2",
   "onboarding.step": "Step {current} of {total} · ~30 seconds",
   "onboarding.step1.title": "Welcome — pick your currency",

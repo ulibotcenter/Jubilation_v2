@@ -1,21 +1,24 @@
 import type { KPIValues, ProjectionYear } from "@/types";
 
+export type CashFlowPhase = "accumulation" | "retirement";
+
 export interface CashFlowChartPoint {
   age: number;
   year: number;
+  phase: CashFlowPhase;
   /** Patrimônio no início do período */
   openingWealth: number;
   /** Novos aportes no período */
   contributions: number;
   /** Retorno dos investimentos (CAGR real) */
   returns: number;
-  /** Custo de vida / saídas */
+  /** Custo de vida (acumulação) ou retiradas (aposentadoria) */
   livingCost: number;
   /** Saldo projetado (linha) = entradas − saídas */
   projectedBalance: number;
 }
 
-/** Build annual cash-flow series: stacked inflows + living cost bar + balance line */
+/** Build annual cash-flow series through full lifecycle */
 export function buildCashFlowChartSeries(
   projections: ProjectionYear[],
   kpis: KPIValues,
@@ -31,6 +34,7 @@ export function buildCashFlowChartSeries(
   let openingWealth = kpis.currentNetWorth;
 
   return slice.map((row, index) => {
+    const isRetired = row.age >= kpis.retirementAge;
     const contributions = row.contributions;
     const returns =
       index === 0 ? 0 : Math.round(openingWealth * realReturn);
@@ -43,7 +47,10 @@ export function buildCashFlowChartSeries(
     const point: CashFlowChartPoint = {
       age: row.age,
       year: row.year,
-      openingWealth: Math.round(index === 0 ? kpis.currentNetWorth : openingWealth),
+      phase: isRetired ? "retirement" : "accumulation",
+      openingWealth: Math.round(
+        index === 0 ? kpis.currentNetWorth : openingWealth
+      ),
       contributions,
       returns,
       livingCost,
