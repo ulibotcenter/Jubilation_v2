@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { CASH_FLOW_COLORS } from "@/lib/chartColors";
 import type { CashFlowPhase } from "@/lib/cashFlowChartData";
 import { formatCurrencyValue, type Currency } from "@/types";
 
@@ -34,6 +35,7 @@ export function WealthFlowTooltip({
   retirementAge,
 }: WealthFlowTooltipProps) {
   const { t } = useTranslation();
+  const c = CASH_FLOW_COLORS;
 
   if (!active || !payload?.length) return null;
 
@@ -61,39 +63,40 @@ export function WealthFlowTooltip({
       key: "opening",
       label: t("chart.cashflow.openingWealth"),
       value: raw.openingWealth ?? 0,
-      color: "#6366f1",
+      color: c.openingWealth,
     },
     {
       key: "contrib",
       label: t("chart.cashflow.contributions"),
       value: raw.contributions ?? 0,
-      color: "#22c55e",
+      color: c.contributions,
     },
     {
       key: "returns",
       label: t("chart.cashflow.investmentReturns"),
       value: raw.returns ?? 0,
-      color: "#60a5fa",
+      color: c.returns,
     },
     {
       key: "build",
       label: t("chart.cashflow.buildTotal"),
       value: buildTotal,
-      color: "#ff7040",
+      color: c.buildTotal,
       bold: true,
     },
     {
       key: "living",
       label: outflowLabel,
       value: raw.livingCost ?? 0,
-      color: "#f87171",
+      color: c.outflows,
     },
     {
       key: "balance",
       label: t("chart.cashflow.projectedBalance"),
       value: raw.projectedBalance ?? 0,
-      color: "#ff7040",
+      color: c.balanceLine,
       bold: true,
+      isLine: true,
     },
   ].filter((r) => r.value > 0 || r.bold);
 
@@ -103,7 +106,10 @@ export function WealthFlowTooltip({
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {t("chart.tooltip.age", { n: label ?? "" })}
         </p>
-        <span className="text-[9px] font-semibold uppercase tracking-wider text-accent">
+        <span
+          className="text-[9px] font-semibold uppercase tracking-wider"
+          style={{ color: isRetired ? c.retirementMarker : c.returns }}
+        >
           {phaseLabel}
         </span>
       </div>
@@ -115,7 +121,11 @@ export function WealthFlowTooltip({
           >
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <span
-                className={`shrink-0 ${row.key === "balance" ? "w-3 h-0.5 rounded" : "w-2 h-2 rounded-sm"}`}
+                className={`shrink-0 ${
+                  "isLine" in row && row.isLine
+                    ? "w-3 h-0.5 rounded"
+                    : "w-2 h-2 rounded-sm"
+                }`}
                 style={{ background: row.color }}
               />
               {row.label}

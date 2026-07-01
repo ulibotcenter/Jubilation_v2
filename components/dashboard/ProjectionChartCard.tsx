@@ -26,6 +26,7 @@ import {
 import { ChartSkeleton } from "@/components/ui/ChartSkeleton";
 import { ChartTooltip } from "@/components/ui/ChartTooltip";
 import { SimulationAssetFilter } from "@/components/ui/SimulationAssetFilter";
+import { PROJECTION_COLORS } from "@/lib/chartColors";
 import { getChartScenarioLabel } from "@/lib/i18n/resolve";
 import {
   getChartHorizonAge,
@@ -100,6 +101,7 @@ export function ProjectionChartCard({
   }, [projectionRevision]);
 
   const sym = CURRENCY_SYMBOLS[currency];
+  const pc = PROJECTION_COLORS;
   const chartHorizon = getChartHorizonAge(projections, kpis);
   const retirementRow = getRetirementProjectionRow(
     projections,
@@ -302,18 +304,18 @@ export function ProjectionChartCard({
           >
             <defs>
               <linearGradient id={`baseGradient-${mode}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ff7040" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="#ff7040" stopOpacity={0} />
+                <stop offset="0%" stopColor={pc.base} stopOpacity={0.28} />
+                <stop offset="100%" stopColor={pc.base} stopOpacity={0} />
               </linearGradient>
               <linearGradient id={`confidenceBand-${mode}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4ade80" stopOpacity={0.18} />
-                <stop offset="50%" stopColor="#ff7040" stopOpacity={0.08} />
-                <stop offset="100%" stopColor="#f87171" stopOpacity={0.18} />
+                <stop offset="0%" stopColor={pc.optimistic} stopOpacity={0.18} />
+                <stop offset="50%" stopColor={pc.base} stopOpacity={0.08} />
+                <stop offset="100%" stopColor={pc.pessimistic} stopOpacity={0.18} />
               </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(30,41,59,0.8)"
+              stroke={pc.grid}
               vertical={false}
             />
             <XAxis
@@ -335,7 +337,7 @@ export function ProjectionChartCard({
             <Tooltip
               content={<ChartTooltip currency={currency} />}
               cursor={{
-                stroke: "rgba(255,112,64,0.35)",
+                stroke: pc.cursor,
                 strokeWidth: 1,
                 strokeDasharray: "4 4",
               }}
@@ -347,24 +349,24 @@ export function ProjectionChartCard({
             <ReferenceArea
               x1={kpis.retirementAge}
               x2={chartHorizon}
-              fill="rgba(255,112,64,0.05)"
+              fill="rgba(251,191,36,0.06)"
               strokeOpacity={0}
             />
             <ReferenceLine
               x={kpis.currentAge}
-              stroke="#64748b"
+              stroke={pc.currentAgeMarker}
               strokeDasharray="4 4"
               strokeWidth={1}
             />
             <ReferenceLine
               x={kpis.retirementAge}
-              stroke="#ff7040"
+              stroke={pc.retirementMarker}
               strokeDasharray="6 4"
               strokeWidth={1.5}
               label={{
                 value: t("chart.phase.retirement"),
                 position: "insideTopRight",
-                fill: "#ff7040",
+                fill: pc.retirementMarker,
                 fontSize: 10,
               }}
             />
@@ -409,7 +411,7 @@ export function ProjectionChartCard({
               <Line
                 type="monotone"
                 dataKey="pessimistic"
-                stroke="#f87171"
+                stroke={pc.pessimistic}
                 strokeWidth={1.5}
                 strokeDasharray="5 5"
                 dot={false}
@@ -421,7 +423,7 @@ export function ProjectionChartCard({
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke="#ff7040"
+                stroke={pc.base}
                 strokeWidth={2.5}
                 dot={false}
                 name={getChartScenarioLabel(locale, "base")}
@@ -432,7 +434,7 @@ export function ProjectionChartCard({
               <Line
                 type="monotone"
                 dataKey="optimistic"
-                stroke="#4ade80"
+                stroke={pc.optimistic}
                 strokeWidth={1.5}
                 strokeDasharray="5 5"
                 dot={false}

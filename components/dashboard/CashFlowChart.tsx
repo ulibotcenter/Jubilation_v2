@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { WealthFlowTooltip } from "@/components/ui/WealthFlowTooltip";
+import { CASH_FLOW_COLORS } from "@/lib/chartColors";
 import { buildCashFlowChartSeries } from "@/lib/cashFlowChartData";
 import { getChartHorizonAge } from "@/lib/projectionUtils";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -42,6 +43,7 @@ export function CashFlowChart({
   const { t } = useTranslation();
   const sym = CURRENCY_SYMBOLS[currency];
   const horizon = getChartHorizonAge(projections, kpis);
+  const c = CASH_FLOW_COLORS;
 
   const flowData = useMemo(
     () => buildCashFlowChartSeries(projections, kpis, { untilAge: horizon }),
@@ -109,7 +111,7 @@ export function CashFlowChart({
                 retirementAge={kpis.retirementAge}
               />
             }
-            cursor={{ fill: "rgba(255,112,64,0.06)" }}
+            cursor={{ fill: c.cursor }}
           />
           <Legend
             wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
@@ -118,13 +120,13 @@ export function CashFlowChart({
           />
           <ReferenceLine
             x={kpis.retirementAge}
-            stroke="#ff7040"
+            stroke={c.retirementMarker}
             strokeDasharray="6 4"
             strokeWidth={1.5}
             label={{
               value: t("chart.phase.retirement"),
               position: "insideTopRight",
-              fill: "#ff7040",
+              fill: c.retirementMarker,
               fontSize: 9,
             }}
           />
@@ -132,39 +134,44 @@ export function CashFlowChart({
             dataKey="openingWealth"
             name={t("chart.cashflow.openingWealth")}
             stackId="build"
-            fill="#6366f1"
+            fill={c.openingWealth}
             maxBarSize={28}
           />
           <Bar
             dataKey="contributions"
             name={t("chart.cashflow.contributions")}
             stackId="build"
-            fill="#22c55e"
+            fill={c.contributions}
             maxBarSize={28}
           />
           <Bar
             dataKey="returns"
             name={t("chart.cashflow.investmentReturns")}
             stackId="build"
-            fill="#60a5fa"
+            fill={c.returns}
             radius={[3, 3, 0, 0]}
             maxBarSize={28}
           />
           <Bar
             dataKey="livingCost"
             name={t("chart.cashflow.outflows")}
-            fill="#f87171"
+            fill={c.outflows}
             maxBarSize={20}
-            opacity={0.9}
+            opacity={0.92}
           />
           <Line
             type="monotone"
             dataKey="projectedBalance"
             name={t("chart.cashflow.projectedBalance")}
-            stroke="#ff7040"
+            stroke={c.balanceLine}
             strokeWidth={2.5}
             dot={false}
-            activeDot={{ r: 4, fill: "#ff7040", strokeWidth: 0 }}
+            activeDot={{
+              r: 4,
+              fill: c.balanceLineActive,
+              stroke: c.balanceLine,
+              strokeWidth: 2,
+            }}
             legendType="line"
           />
         </ComposedChart>

@@ -1,5 +1,6 @@
 "use client";
 
+import { PROJECTION_COLORS } from "@/lib/chartColors";
 import { getChartScenarioLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MonteCarloScenario } from "@/types";
@@ -24,9 +25,19 @@ const LINES: {
   color: string;
   dash?: boolean;
 }[] = [
-  { id: "base", scenario: "base", color: "#ff7040" },
-  { id: "pessimistic", scenario: "pessimistic", color: "#f87171", dash: true },
-  { id: "optimistic", scenario: "optimistic", color: "#4ade80", dash: true },
+  { id: "base", scenario: "base", color: PROJECTION_COLORS.base },
+  {
+    id: "pessimistic",
+    scenario: "pessimistic",
+    color: PROJECTION_COLORS.pessimistic,
+    dash: true,
+  },
+  {
+    id: "optimistic",
+    scenario: "optimistic",
+    color: PROJECTION_COLORS.optimistic,
+    dash: true,
+  },
 ];
 
 export function ChartScenarioToggles({
