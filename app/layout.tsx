@@ -100,7 +100,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var r=localStorage.getItem('jubilation-v2-state');var s=r?JSON.parse(r):null;var st=s&&s.state;var th=(st&&st.theme)||'dark';var loc=(st&&st.locale)||'en';var el=document.documentElement;el.classList.remove('dark','light');el.classList.add(th);el.style.colorScheme=th;el.lang=loc;}catch(e){document.documentElement.classList.add('dark');}})();`,
+            __html: `(function(){try{var r=localStorage.getItem('jubilation-v2-state');var s=r?JSON.parse(r):null;var st=s&&s.state;var th=(st&&st.theme)||'light';var loc=(st&&st.locale)||'en';var el=document.documentElement;el.classList.remove('dark','light');el.classList.add(th);el.style.colorScheme=th;el.lang=loc;}catch(e){document.documentElement.classList.add('light');}})();`,
           }}
         />
       </head>

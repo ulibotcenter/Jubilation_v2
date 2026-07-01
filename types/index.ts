@@ -317,7 +317,7 @@ export const DEFAULT_KPI_VALUES: KPIValues = {
   currentNetWorth: 810_000,
   monthlyContribution: 4_500,
   monthlyExpenses: 9_500,
-  desiredMonthlyIncome: 12_000,
+  desiredMonthlyIncome: 7_000,
   expectedCAGR: 8.5,
   annualInflation: 3.0,
 };

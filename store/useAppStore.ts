@@ -64,7 +64,7 @@ import {
 } from "@/types";
 
 /** Bump when default demo portfolio / KPIs change — migrates persisted local data */
-const DEMO_SEED_VERSION = 3;
+const DEMO_SEED_VERSION = 4;
 
 export interface NetWorthSnapshot {
   id: string;
@@ -419,7 +419,7 @@ export const useAppStore = create<AppStore>()(
       demoSeedVersion: DEMO_SEED_VERSION,
       planTier: "free",
       explainSimple: false,
-      theme: "dark",
+      theme: "light",
       presentationMode: false,
       coachMarksDismissed: false,
       coachOpen: false,
