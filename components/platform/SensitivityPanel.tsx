@@ -46,7 +46,7 @@ export function SensitivityPanel() {
     <div className="sensitivity-panel dashboard-insight-card card-surface p-4">
       <div className="dashboard-insight-header flex items-center justify-between">
         <h3 className="text-sm font-bold">{t("sensitivity.title")}</h3>
-        <button type="button" className="text-xs text-accent" onClick={resetPremises}>
+        <button type="button" className="btn-ghost text-xs" onClick={resetPremises}>
           {t("common.reset")}
         </button>
       </div>

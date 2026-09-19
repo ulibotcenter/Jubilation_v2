@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   FlaskConical,
   LayoutGrid,
@@ -37,17 +38,25 @@ export function CoachMarks() {
   const dismissed = useAppStore((s) => s.coachMarksDismissed);
   const dismiss = useAppStore((s) => s.dismissCoachMarks);
   const { t } = useTranslation();
+  const reduced = useReducedMotion();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (dismissed) return;
+    const timer = window.setTimeout(() => setReady(true), reduced ? 0 : 2200);
+    return () => window.clearTimeout(timer);
+  }, [dismissed, reduced]);
 
   return (
     <AnimatePresence>
-      {!dismissed && (
+      {!dismissed && ready && (
         <motion.aside
           className="welcome-float"
           role="note"
-          initial={{ opacity: 0, y: 16, scale: 0.96 }}
+          initial={reduced ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 16, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.96 }}
-          transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+          transition={reduced ? { duration: 0 } : { duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
         >
           <button
             type="button"

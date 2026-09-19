@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { getKpiLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -11,6 +11,7 @@ export function NeedleDeltaCard() {
   const delta = useAppStore((s) => s.lastNeedleDelta);
   const currency = useAppStore((s) => s.currency);
   const { t, locale } = useTranslation();
+  const reduced = useReducedMotion();
 
   if (!delta) return null;
 
@@ -22,9 +23,9 @@ export function NeedleDeltaCard() {
     <AnimatePresence>
       <motion.div
         className="needle-delta card-surface p-4"
-        initial={{ opacity: 0, y: -8 }}
+        initial={reduced ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
+        exit={{ opacity: 0, y: reduced ? 0 : -8 }}
         role="status"
       >
         <h3 className="text-sm font-bold mb-2">{t("needle.title")}</h3>
@@ -36,7 +37,7 @@ export function NeedleDeltaCard() {
           <span className="text-muted">→</span>
           <span
             className={`inline-flex items-center gap-1 font-semibold tabular-nums ${
-              positive ? "text-green-400" : "text-amber-400"
+              positive ? "text-gain" : "text-amber-500"
             }`}
           >
             {positive ? (

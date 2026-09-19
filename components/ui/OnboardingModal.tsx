@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -41,6 +41,7 @@ export function OnboardingModal() {
 
   const { completed, currentStep, disclaimerAccepted } = onboarding;
   const direction = currentStep === 1 ? 1 : -1;
+  const reduced = useReducedMotion();
 
   const [age, setAge] = useState("");
   const [income, setIncome] = useState("");
@@ -120,9 +121,9 @@ export function OnboardingModal() {
     >
       <motion.div
         className="modal-content"
-        initial={{ opacity: 0, y: 32 }}
+        initial={reduced ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+        transition={reduced ? { duration: 0 } : { duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
       >
         <div className="px-5 pt-6 pb-4 sm:px-6 sm:pt-7">
           <div className="flex items-center justify-between mb-5">
@@ -164,7 +165,11 @@ export function OnboardingModal() {
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+                transition={
+                  reduced
+                    ? { duration: 0 }
+                    : { duration: 0.28, ease: [0.4, 0, 0.2, 1] }
+                }
               >
                 <h2
                   id="onboarding-title"
@@ -242,7 +247,11 @@ export function OnboardingModal() {
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+                transition={
+                  reduced
+                    ? { duration: 0 }
+                    : { duration: 0.28, ease: [0.4, 0, 0.2, 1] }
+                }
               >
                 <h2
                   id="onboarding-title"
@@ -253,10 +262,10 @@ export function OnboardingModal() {
                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
                   {t("onboarding.step2.desc")}
                 </p>
-                <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 flex gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" size={16} />
+                <div className="onboarding-warning mt-4 rounded-xl border p-3 flex gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" size={16} />
                   <div>
-                    <p className="text-xs font-semibold text-amber-200">
+                    <p className="text-xs font-semibold">
                       {t("onboarding.warning.title")}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
@@ -271,7 +280,7 @@ export function OnboardingModal() {
                     </p>
                   </div>
                 </div>
-                <label className="flex items-start gap-3 cursor-pointer group p-3 rounded-xl border border-border hover:border-accent/30 transition-colors duration-200 min-h-[var(--touch-target)] mt-3">
+                <label className="flex items-start gap-3 cursor-pointer group p-3 rounded-xl border border-border hover:border-accent/30 transition-colors duration-200 min-h-[var(--touch-target)] mt-3 focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-muted)]">
                   <div className="relative shrink-0 mt-0.5">
                     <input
                       type="checkbox"

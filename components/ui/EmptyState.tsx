@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
+import { fadeUp } from "@/lib/uiMotion";
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -21,20 +22,28 @@ export function EmptyState({
   action,
   className = "",
 }: EmptyStateProps) {
+  const reduced = useReducedMotion();
+
   return (
     <motion.div
       className={`empty-state ${className}`}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+      {...fadeUp(reduced)}
     >
       <div className="empty-state-icon-wrap">
         <motion.div
           className="empty-state-glow"
-          animate={{ scale: [1, 1.08, 1], opacity: [0.4, 0.6, 0.4] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          animate={
+            reduced
+              ? { scale: 1, opacity: 0.45 }
+              : { scale: [1, 1.08, 1], opacity: [0.4, 0.6, 0.4] }
+          }
+          transition={
+            reduced
+              ? { duration: 0 }
+              : { duration: 3, repeat: Infinity, ease: "easeInOut" }
+          }
         />
-        <Icon className="w-8 h-8 text-accent relative z-10" size={32} />
+        <Icon className="w-8 h-8 text-accent relative z-10" size={32} aria-hidden />
       </div>
       <h3 className="text-base font-semibold text-foreground mt-4">{title}</h3>
       <p className="text-sm text-muted-foreground mt-1.5 max-w-xs leading-relaxed">

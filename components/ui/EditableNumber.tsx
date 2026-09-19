@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { htmlLang } from "@/lib/i18n/htmlLang";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 interface EditableNumberProps {
@@ -30,8 +31,13 @@ function formatDisplay(
   format: "integer" | "currency" | "percent",
   decimals: number,
   currencySymbol: string,
-  compact: boolean
+  compact: boolean,
+  locale: string
 ): string {
+  const grouping = {
+    maximumFractionDigits: decimals,
+    minimumFractionDigits: 0,
+  };
   if (format === "currency") {
     if (compact && Math.abs(value) >= 1000) {
       const suffix =
@@ -48,22 +54,19 @@ function formatDisplay(
             : 1;
       return `${currencySymbol}${(value / divisor).toFixed(1)}${suffix}`;
     }
-    return `${currencySymbol}${value.toLocaleString("en-US", {
-      maximumFractionDigits: decimals,
-      minimumFractionDigits: 0,
-    })}`;
+    return value.toLocaleString(locale, grouping);
   }
   if (format === "percent") {
     return value.toFixed(decimals);
   }
-  return value.toLocaleString("en-US", {
-    maximumFractionDigits: decimals,
-    minimumFractionDigits: 0,
-  });
+  return value.toLocaleString(locale, grouping);
 }
 
-function parseRawInput(raw: string): number | null {
-  const cleaned = raw.replace(/[^0-9.\-]/g, "");
+function parseRawInput(raw: string, decimals: number): number | null {
+  const cleaned =
+    decimals <= 0
+      ? raw.replace(/[^0-9\-]/g, "")
+      : raw.replace(/[^0-9.\-]/g, "");
   if (cleaned === "" || cleaned === "-" || cleaned === ".") return null;
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? null : parsed;
@@ -85,7 +88,8 @@ export function EditableNumber({
   compact = false,
   disabled = false,
 }: EditableNumberProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const groupingLocale = htmlLang(locale);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,12 +99,13 @@ export function EditableNumber({
     format,
     decimals,
     currencySymbol,
-    compact
+    compact,
+    groupingLocale
   );
 
   const commit = useCallback(
     (raw: string) => {
-      const parsed = parseRawInput(raw);
+      const parsed = parseRawInput(raw, decimals);
       if (parsed === null) {
         setDraft(displayValue);
         return;
@@ -112,7 +117,7 @@ export function EditableNumber({
       const clamped = clamp(rounded, min, max);
       onChange(clamped);
     },
-    [decimals, min, max, onChange, displayValue]
+    [decimals, min, max, onChange, displayValue, setDraft]
   );
 
   const startEditing = useCallback(() => {
@@ -121,7 +126,7 @@ export function EditableNumber({
       format === "percent" ? value.toFixed(decimals) : String(value)
     );
     setIsEditing(true);
-  }, [disabled, format, value, decimals]);
+  }, [disabled, format, value, decimals, setDraft, setIsEditing]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -161,7 +166,7 @@ export function EditableNumber({
 
   return (
     <motion.div
-      className={`inline-flex items-baseline gap-0.5 min-w-0 ${className}`}
+      className={`inline-flex items-baseline gap-1 min-w-0 ${className}`}
       whileTap={disabled ? undefined : { scale: 0.99 }}
       animate={
         isEditing
@@ -176,8 +181,8 @@ export function EditableNumber({
           {prefix}
         </span>
       )}
-      {format === "currency" && !isEditing && (
-        <span className="text-inherit shrink-0">{currencySymbol}</span>
+          {format === "currency" && !isEditing && (
+        <span className="text-inherit shrink-0">{`${currencySymbol} `}</span>
       )}
 
       {isEditing ? (

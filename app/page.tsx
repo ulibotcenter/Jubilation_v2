@@ -3,14 +3,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { FIMilestonesCard } from "@/components/dashboard/FIMilestonesCard";
-import { IncomeGoalPanel } from "@/components/dashboard/IncomeGoalPanel";
 import { NetWorthHistoryCard } from "@/components/dashboard/NetWorthHistoryCard";
 import { ProjectionChartCard } from "@/components/dashboard/ProjectionChartCard";
 import { RebalanceCard } from "@/components/dashboard/RebalanceCard";
-import {
-  RetirementHero,
-  useHeroProjectedValue,
-} from "@/components/dashboard/RetirementHero";
+import { RetirementHero } from "@/components/dashboard/RetirementHero";
 import { KPICards } from "@/components/dashboard/KPICards";
 import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
 import { AppShell } from "@/components/layout/AppShell";
@@ -20,15 +16,6 @@ import { ShareSnapshotButton } from "@/components/platform/ShareSnapshotButton";
 import { TaxPreviewCard } from "@/components/tax/TaxPreviewCard";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
-
-function DashboardIncomeSection() {
-  const projected = useHeroProjectedValue();
-  return (
-    <section className="mb-5 sm:mb-6">
-      <IncomeGoalPanel projectedPortfolio={projected} />
-    </section>
-  );
-}
 
 function RealProjectionSection() {
   const { t } = useTranslation();
@@ -68,7 +55,6 @@ export default function DashboardPage() {
   return (
     <AppShell enableHashSync>
       <RetirementHero />
-      <DashboardIncomeSection />
 
       <section className="mb-5 sm:mb-6" id="dashboard">
         <KPICards mode="real" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { mulberry32 } from "@/lib/engine/rng";
 
 const COLORS = ["#ff7040", "#ff9a6c", "#22c55e", "#fbbf24", "#f8fafc"];
@@ -45,9 +45,13 @@ export function ConfettiBurst({
     setBurst({ trigger, particles: generateParticles(28, trigger) });
   }
 
+  const reduced = useReducedMotion();
+
   const originClass =
     origin === "left" ? "left-16 top-1/2" : "left-1/2 top-1/3";
   const visible = burst.trigger !== 0 && burst.trigger === trigger;
+
+  if (reduced) return null;
 
   return (
     <div

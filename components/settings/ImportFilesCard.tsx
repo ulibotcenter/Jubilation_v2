@@ -35,7 +35,8 @@ export function ImportFilesCard() {
   const irpfInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const cnisOk = canCollect(consents.find((c) => c.provider === "cnis"));

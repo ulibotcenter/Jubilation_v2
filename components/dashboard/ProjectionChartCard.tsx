@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { BarChart3, LineChart as LineChartIcon, Loader2, Play } from "lucide-react";
 import { toast } from "sonner";
 import { ProjectionCashFlowChart } from "@/components/dashboard/ProjectionCashFlowChart";
@@ -37,6 +37,7 @@ import {
 import { buildDisplayChartData } from "@/lib/projectionChartData";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
+import { chartMotion, fadeUp } from "@/lib/uiMotion";
 import {
   CURRENCY_SYMBOLS,
   formatCurrencyValue,
@@ -45,12 +46,6 @@ import {
   type KPIValues,
   type ProjectionYear,
 } from "@/types";
-
-const CHART_ANIMATION = {
-  isAnimationActive: true,
-  animationDuration: 900,
-  animationEasing: "ease-out" as const,
-};
 
 interface ProjectionChartCardProps {
   title: string;
@@ -78,6 +73,8 @@ export function ProjectionChartCard({
   compact = false,
 }: ProjectionChartCardProps) {
   const { t, locale } = useTranslation();
+  const reduced = useReducedMotion();
+  const chartAnim = chartMotion(reduced);
   const monteCarlo = useAppStore((s) =>
     mode === "playground" ? s.simPlayground.monteCarlo : s.monteCarlo
   );
@@ -177,8 +174,7 @@ export function ProjectionChartCard({
   return (
     <motion.div
       className="card-surface p-4 sm:p-6"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      {...fadeUp(reduced)}
     >
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="flex items-start gap-3">
@@ -312,19 +308,19 @@ export function ProjectionChartCard({
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke={pc.grid}
+              stroke="var(--chart-grid)"
               vertical={false}
             />
             <XAxis
               dataKey="age"
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
-              axisLine={{ stroke: "#1e293b" }}
+              tick={{ fontSize: 11, fill: "var(--chart-tick)" }}
+              axisLine={{ stroke: "var(--chart-axis)" }}
               tickLine={false}
               interval="preserveStartEnd"
               minTickGap={32}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "var(--chart-tick)" }}
               axisLine={false}
               tickLine={false}
               tickFormatter={formatYAxis}
@@ -413,7 +409,7 @@ export function ProjectionChartCard({
                 strokeDasharray="5 5"
                 dot={false}
                 name={getChartScenarioLabel(locale, "pessimistic")}
-                {...CHART_ANIMATION}
+                {...chartAnim}
               />
             )}
             {effectiveVisibility.base && (
@@ -424,7 +420,7 @@ export function ProjectionChartCard({
                 strokeWidth={2.5}
                 dot={false}
                 name={getChartScenarioLabel(locale, "base")}
-                {...CHART_ANIMATION}
+                {...chartAnim}
               />
             )}
             {hasMcBands && effectiveVisibility.optimistic && (
@@ -436,7 +432,7 @@ export function ProjectionChartCard({
                 strokeDasharray="5 5"
                 dot={false}
                 name={getChartScenarioLabel(locale, "optimistic")}
-                {...CHART_ANIMATION}
+                {...chartAnim}
               />
             )}
           </ComposedChart>

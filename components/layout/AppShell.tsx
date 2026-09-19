@@ -44,6 +44,7 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
   const hydrated = useSyncExternalStore(subscribeNoop, () => true, () => false);
   const pathname = usePathname();
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
+  const onboardingCompleted = useAppStore((s) => s.onboarding.completed);
   const presentationMode = useAppStore((s) => s.presentationMode);
   const theme = useAppStore((s) => s.theme);
   const setActiveNav = useAppStore((s) => s.setActiveNav);
@@ -107,11 +108,11 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
       <div className="app-main">
         <Topbar />
         <main className="app-content max-w-[var(--content-max-width)] mx-auto w-full safe-area-bottom">
-          {children}
+          {onboardingCompleted ? children : null}
         </main>
       </div>
 
-      {pathname === "/" && <CoachMarks />}
+      {pathname === "/" && onboardingCompleted && <CoachMarks />}
       <CommandPalette />
       <RetirementCoach />
       <OnboardingModal />
