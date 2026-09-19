@@ -26,6 +26,8 @@ import { CURRENCIES, type Currency } from "@/types";
 import { HouseholdCard } from "@/components/settings/HouseholdCard";
 import { B3ConsentCard } from "@/components/settings/B3ConsentCard";
 import { ImportFilesCard } from "@/components/settings/ImportFilesCard";
+import { BackupCard } from "@/components/settings/BackupCard";
+import { CloudAccountCard } from "@/components/settings/CloudAccountCard";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
 
 const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
@@ -174,6 +176,9 @@ export function SettingsPageContent() {
             </div>
           )}
         </section>
+
+        <BackupCard />
+        <CloudAccountCard />
 
         <HouseholdCard />
         <ImportFilesCard />
