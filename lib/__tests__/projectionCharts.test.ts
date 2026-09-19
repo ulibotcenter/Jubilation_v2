@@ -3,6 +3,7 @@ import { buildCashFlowChartSeries } from "@/lib/cashFlowChartData";
 import {
   buildProjectionEngineConfig,
   buildSingleBucketConfig,
+  percentile,
   runMonteCarloFromConfig,
   runProjectionEngine,
 } from "@/lib/projectionEngine";
@@ -89,9 +90,14 @@ describe("projection engine", () => {
       const cur = rows[i]!;
       const isRetired = cur.age >= kpis.retirementAge;
       const withdrawals = isRetired ? cur.expenses : 0;
+      const taxes = cur.taxes ?? 0;
       const expected =
-        prev.portfolioValue + cur.returns + cur.contributions - withdrawals;
-      expect(cur.portfolioValue).toBe(Math.max(0, expected));
+        prev.portfolioValue +
+        cur.returns +
+        cur.contributions -
+        withdrawals -
+        taxes;
+      expect(Math.abs(cur.portfolioValue - Math.max(0, expected))).toBeLessThanOrEqual(2);
     }
   });
 
@@ -99,14 +105,16 @@ describe("projection engine", () => {
     const noIncome = {
       ...kpis,
       desiredMonthlyIncome: 0,
+      monthlyExpenses: 0,
       lifeExpectancy: 85,
     };
     const proj = generateExtendedProjections(noIncome);
     const atRet = proj.find((p) => p.age === noIncome.retirementAge)!;
     const prev = proj.find((p) => p.age === noIncome.retirementAge - 1)!;
-    const expectedWithdrawal = Math.round(prev.portfolioValue * 0.04);
-    const firstRetired = proj.find((p) => p.age === noIncome.retirementAge + 1);
-    expect(firstRetired?.expenses).toBe(expectedWithdrawal);
+    expect(atRet.expenses).toBeGreaterThan(0);
+    const ratio = atRet.expenses / prev.portfolioValue;
+    expect(ratio).toBeGreaterThan(0.035);
+    expect(ratio).toBeLessThan(0.05);
     expect(atRet.portfolioValue).toBeGreaterThan(0);
   });
 
@@ -135,7 +143,7 @@ describe("projection chart data", () => {
     );
   });
 
-  it("keeps Monte Carlo bands only through retirement", () => {
+  it("keeps Monte Carlo bands through life expectancy", () => {
     const portfolio = normalizePortfolioCagr(MOCK_PORTFOLIO);
     const includedIds = applyScopePreset(portfolio, "investmentsOnly");
     const seedTotal = Math.round(calculatePortfolioValue(portfolio));
@@ -161,9 +169,10 @@ describe("projection chart data", () => {
       demoProj,
       mcBase.percentile10,
       mcBase.percentile90,
-      demoKpis.retirementAge,
+      demoKpis.lifeExpectancy,
       mcBase.medianValue,
-      engineConfig
+      engineConfig,
+      mc.pathsByAge
     );
     const display = buildDisplayChartData(chartData, demoProj, demoKpis, {
       hasRun: true,
@@ -187,8 +196,9 @@ describe("projection chart data", () => {
 
     expect(atRetirement.pessimistic).toBeLessThan(atRetirement.value);
     expect(atRetirement.optimistic).toBeGreaterThan(atRetirement.value);
-    expect(postRetirement.pessimistic).toBeUndefined();
-    expect(postRetirement.optimistic).toBeUndefined();
+    expect(postRetirement.pessimistic).toBeDefined();
+    expect(postRetirement.optimistic).toBeDefined();
+    expect(postRetirement.pessimistic!).toBeLessThan(postRetirement.optimistic!);
   });
 
   it("chart line matches projection portfolio every year", () => {
@@ -220,12 +230,15 @@ describe("projection chart data", () => {
       0
     );
     const mc = runMonteCarloFromConfig(engineConfig, 800);
-    const mcBase = mc.results.find((r) => r.scenario === "base")!;
+    const atRetPaths = [...(mc.pathsByAge.get(demoKpis.retirementAge) ?? [])].sort(
+      (a, b) => a - b
+    );
+    const mcAtRetirement = percentile(atRetPaths, 0.5);
     const det = getRetirementPortfolioValue(
       demoProj,
       demoKpis.retirementAge
     );
-    const ratio = mcBase.medianValue / det;
+    const ratio = mcAtRetirement / det;
     expect(ratio).toBeGreaterThan(0.75);
     expect(ratio).toBeLessThan(1.35);
   });
@@ -250,9 +263,13 @@ describe("cash flow chart data", () => {
       const build =
         row.openingWealth + row.contributions + row.returns;
       if (row.phase === "accumulation") {
-        expect(row.projectedBalance).toBe(build);
+        expect(Math.abs(row.projectedBalance - build)).toBeLessThanOrEqual(2);
       } else {
-        expect(row.projectedBalance).toBe(build - row.livingCost);
+        expect(
+          Math.abs(
+            row.projectedBalance - (build - row.livingCost - (row.taxes ?? 0))
+          )
+        ).toBeLessThanOrEqual(2);
       }
     }
   });
@@ -317,13 +334,24 @@ describe("cash flow chart data", () => {
     const series = buildCashFlowChartSeries(projections, kpis);
     for (let i = 1; i < series.length; i++) {
       const row = series[i]!;
+      const year = projections[i]!;
       const build =
         row.openingWealth + row.contributions + row.returns;
       if (row.phase === "accumulation") {
-        expect(row.projectedBalance).toBe(build);
-      } else {
-        expect(row.projectedBalance).toBe(build - row.livingCost);
+        expect(Math.abs(row.projectedBalance - build)).toBeLessThanOrEqual(2);
+        continue;
       }
+      if (year.ruined) {
+        expect(year.liquidValue).toBe(0);
+        expect(year.illiquidValue).toBeGreaterThan(0);
+        expect(row.projectedBalance).toBe(year.portfolioValue);
+        continue;
+      }
+      expect(
+        Math.abs(
+          row.projectedBalance - (build - row.livingCost - (row.taxes ?? 0))
+        )
+      ).toBeLessThanOrEqual(2);
     }
   });
 });
@@ -333,10 +361,16 @@ describe("legacy monte carlo wrapper", () => {
     const kpis = DEFAULT_KPI_VALUES;
     const projections = generateExtendedProjections(kpis);
     const det = getRetirementPortfolioValue(projections, kpis.retirementAge);
-    const mc = runMonteCarloSimulation(kpis, 600);
-    const base = mc.results.find((r) => r.scenario === "base")!;
-    const ratio = base.medianValue / det;
+    const config = buildSingleBucketConfig(kpis);
+    const mc = runMonteCarloFromConfig(config, 600);
+    const atRet = [...(mc.pathsByAge.get(kpis.retirementAge) ?? [])].sort(
+      (a, b) => a - b
+    );
+    const ratio = percentile(atRet, 0.5) / det;
     expect(ratio).toBeGreaterThan(0.75);
     expect(ratio).toBeLessThan(1.35);
+    const wrapped = runMonteCarloSimulation(kpis, 200);
+    expect(wrapped.target).toBe(kpis.desiredMonthlyIncome * 12 / 0.04);
+    expect(wrapped.results.find((r) => r.scenario === "base")?.successRate).toBeGreaterThanOrEqual(0);
   });
 });

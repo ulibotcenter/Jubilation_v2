@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/platform/BottomNav";
 import { CoachMarks } from "@/components/platform/CoachMarks";
@@ -36,19 +36,18 @@ function ShellSkeleton() {
   );
 }
 
+function subscribeNoop() {
+  return () => {};
+}
+
 export function AppShell({ children, enableHashSync = false }: AppShellProps) {
-  const [hydrated, setHydrated] = useState(false);
+  const hydrated = useSyncExternalStore(subscribeNoop, () => true, () => false);
   const pathname = usePathname();
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const presentationMode = useAppStore((s) => s.presentationMode);
   const theme = useAppStore((s) => s.theme);
-  const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
   const setActiveNav = useAppStore((s) => s.setActiveNav);
   const setTheme = useAppStore((s) => s.setTheme);
-
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
 
   useEffect(() => {
     if (!hydrated) return;

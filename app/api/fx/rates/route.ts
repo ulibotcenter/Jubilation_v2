@@ -1,22 +1,26 @@
 import { NextResponse } from "next/server";
 import type { Currency } from "@/types";
 import type { FxSnapshot } from "@/lib/fx/types";
+import { allowRequest, fetchWithTimeout, rateLimitKey } from "@/lib/api/rateLimit";
 
 const SUPPORTED: Currency[] = ["USD", "BRL", "EUR"];
 const CACHE_MS = 15 * 60 * 1000;
 
 let cache: { snapshot: FxSnapshot; expiresAt: number } | null = null;
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!allowRequest(rateLimitKey(request))) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
   try {
     if (cache && Date.now() < cache.expiresAt) {
       return NextResponse.json({ snapshot: cache.snapshot, cached: true });
     }
 
     const targets = SUPPORTED.filter((c) => c !== "USD").join(",");
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://api.frankfurter.app/latest?from=USD&to=${targets}`,
-      { next: { revalidate: 900 } }
+      { timeoutMs: 8000 }
     );
 
     if (!res.ok) {

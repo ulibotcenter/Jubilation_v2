@@ -1341,10 +1341,21 @@ body::before {
   }
 }
 
+.kpi-card[data-impact="high"] {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
 .kpi-card:hover {
   border-color: rgba(255, 112, 64, 0.3);
   box-shadow: var(--shadow-accent);
   transform: translateY(-2px);
+}
+
+.kpi-impact {
+  font-size: 0.625rem;
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+  margin-top: 0.15rem;
 }
 
 .kpi-label {

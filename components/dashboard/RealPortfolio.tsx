@@ -22,6 +22,7 @@ import { getAssetClassLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { computeWeightedPortfolioCagr } from "@/lib/portfolioCagr";
 import { useAppStore } from "@/store/useAppStore";
+import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import {
   calculatePortfolioValue,
   formatCurrencyValue,
@@ -41,6 +42,11 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
   const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
 
   const currency = useAppStore((s) => s.currency);
+  const fxRates = useAppStore((s) => s.fxSnapshot?.rates) ?? FALLBACK_FX_RATES;
+  const valueQuote = useMemo(
+    () => ({ currency, rates: fxRates }),
+    [currency, fxRates]
+  );
 
   const realKpis = useAppStore((s) => s.kpis);
   const simKpis = useAppStore((s) => s.simPlayground.kpis);
@@ -92,8 +98,8 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     mode === "playground" ? isRefreshingSim : isRefreshingPrices;
 
   const totalValue = useMemo(
-    () => calculatePortfolioValue(portfolio),
-    [portfolio]
+    () => calculatePortfolioValue(portfolio, valueQuote),
+    [portfolio, valueQuote]
   );
 
   const totalCost = useMemo(

@@ -17,7 +17,7 @@ export function TaxPreviewCard() {
   const kpis = useAppStore((s) => s.kpis);
   const plan = useAppStore((s) => s.planTier);
   const currency = useAppStore((s) => s.currency);
-  const [region, setRegion] = useState<TaxRegion>("usa");
+  const [region, setRegion] = useState<TaxRegion>("br");
 
   const annualIncome =
     kpis.desiredMonthlyIncome > 0

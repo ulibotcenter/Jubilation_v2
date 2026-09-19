@@ -1,5 +1,6 @@
-import type { Currency, KPIValues, PortfolioAsset } from "@/types";
+import type { Currency } from "@/types";
 import type { FxRates } from "@/lib/fx/types";
+import { crossRate, MissingFxRateError } from "@/lib/engine/money";
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
@@ -10,11 +11,7 @@ export function getCrossRate(
   to: Currency,
   rates: FxRates
 ): number {
-  if (from === to) return 1;
-  const fromRate = rates[from];
-  const toRate = rates[to];
-  if (!fromRate || !toRate) return 1;
-  return toRate / fromRate;
+  return crossRate(from, to, rates);
 }
 
 export function convertAmount(
@@ -27,13 +24,16 @@ export function convertAmount(
   return roundMoney(amount * getCrossRate(from, to, rates));
 }
 
+export { MissingFxRateError };
+
+/** Display-only: KPI fields live in the app's display currency. */
 export function convertKpis(
-  kpis: KPIValues,
+  kpis: import("@/types").KPIValues,
   from: Currency,
   to: Currency,
   rates: FxRates
-): KPIValues {
-  const fields: (keyof KPIValues)[] = [
+): import("@/types").KPIValues {
+  const fields: (keyof import("@/types").KPIValues)[] = [
     "currentNetWorth",
     "monthlyContribution",
     "monthlyExpenses",
@@ -46,15 +46,14 @@ export function convertKpis(
   return next;
 }
 
+/**
+ * @deprecated Native currency is immutable. Do not rewrite holdings on
+ * display-currency change — convert at the aggregation boundary instead.
+ */
 export function convertPortfolio(
-  portfolio: PortfolioAsset[],
-  to: Currency,
-  rates: FxRates
-): PortfolioAsset[] {
-  return portfolio.map((asset) => ({
-    ...asset,
-    currentPrice: convertAmount(asset.currentPrice, asset.currency, to, rates),
-    costBasis: convertAmount(asset.costBasis, asset.currency, to, rates),
-    currency: to,
-  }));
+  portfolio: import("@/types").PortfolioAsset[],
+  _to: Currency,
+  _rates: FxRates
+): import("@/types").PortfolioAsset[] {
+  return portfolio;
 }

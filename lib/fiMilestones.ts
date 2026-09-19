@@ -1,3 +1,4 @@
+import { retirementTarget } from "@/lib/engine/target";
 import type { KPIValues, ProjectionYear } from "@/types";
 
 export type FIMilestoneId = "half" | "coast" | "full";
@@ -8,28 +9,29 @@ export interface FIMilestone {
   targetPortfolio: number;
 }
 
-/** Three intuitive checkpoints on the path to retirement */
+/** Three checkpoints against the same capital target used by MC and stress. */
 export function computeFIMilestones(
   kpis: KPIValues,
   projections: ProjectionYear[]
 ): FIMilestone[] {
-  const annualNeed =
-    kpis.desiredMonthlyIncome > 0
-      ? kpis.desiredMonthlyIncome * 12
-      : kpis.monthlyExpenses * 12 * 1.25;
-  const fullTarget = annualNeed * 25;
+  const target = retirementTarget({
+    desiredMonthlyIncome: kpis.desiredMonthlyIncome,
+    monthlyExpenses: kpis.monthlyExpenses,
+  });
+  const fullTarget = target.capitalTarget ?? 0;
   const halfTarget = fullTarget * 0.5;
 
   const yearsLeft = Math.max(1, kpis.retirementAge - kpis.currentAge);
   const realReturn = Math.max(
     0.002,
-    (kpis.expectedCAGR - kpis.annualInflation) / 100
+    (1 + kpis.expectedCAGR / 100) / (1 + kpis.annualInflation / 100) - 1
   );
-  /** Portfolio needed today so growth alone reaches full target by retirement */
-  const coastTarget = fullTarget / Math.pow(1 + realReturn, yearsLeft);
+  const coastTarget =
+    fullTarget > 0 ? fullTarget / Math.pow(1 + realReturn, yearsLeft) : 0;
 
-  const findAge = (target: number) => {
-    const hit = projections.find((p) => p.portfolioValue >= target);
+  const findAge = (goal: number) => {
+    if (goal <= 0) return null;
+    const hit = projections.find((p) => p.portfolioValue >= goal);
     return hit?.age ?? null;
   };
 

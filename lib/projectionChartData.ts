@@ -18,17 +18,6 @@ export function sliceProjectionsForChart(
   return projections.filter((p) => p.age <= horizon);
 }
 
-function stripBandsAfterRetirement(
-  points: ChartDataPoint[],
-  retirementAge: number
-): ChartDataPoint[] {
-  return points.map((p) =>
-    p.age > retirementAge
-      ? { ...p, pessimistic: undefined, optimistic: undefined, band: 0 }
-      : p
-  );
-}
-
 export function buildDisplayChartData(
   chartData: ChartDataPoint[],
   projections: ProjectionYear[],
@@ -42,29 +31,25 @@ export function buildDisplayChartData(
   const fullProjections = sliceProjectionsForChart(projections, horizon);
   const fullChart = chartData.filter((d) => d.age <= horizon);
 
-  const accumulationChart = fullChart.filter(
-    (d) => d.age <= kpis.retirementAge
-  );
-  const hasBands = accumulationChart.some(
+  const hasBands = fullChart.some(
     (d) =>
       d.pessimistic != null &&
       d.optimistic != null &&
       (d.pessimistic !== d.value || d.optimistic !== d.value)
   );
 
-  if (hasBands) return stripBandsAfterRetirement(fullChart, kpis.retirementAge);
+  if (hasBands) return fullChart;
 
   if (monteCarlo?.hasRun && monteCarlo.results.length > 0) {
     const mcBase = monteCarlo.results.find((r) => r.scenario === "base");
     if (mcBase?.percentile10 != null && mcBase?.percentile90 != null) {
-      const withBands = chartDataWithMcBands(
+      return chartDataWithMcBands(
         fullProjections,
         mcBase.percentile10,
         mcBase.percentile90,
-        kpis.retirementAge,
+        kpis.lifeExpectancy,
         mcBase.medianValue
       );
-      return stripBandsAfterRetirement(withBands, kpis.retirementAge);
     }
   }
 

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchMarketQuotes } from "@/lib/market/providers";
 import type { QuoteRequestItem } from "@/lib/market/types";
+import { allowRequest, rateLimitKey } from "@/lib/api/rateLimit";
 
 export async function POST(request: NextRequest) {
+  if (!allowRequest(rateLimitKey(request))) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const body = (await request.json()) as { assets?: QuoteRequestItem[] };
     const assets = body.assets ?? [];

@@ -14,6 +14,8 @@ export interface CashFlowChartPoint {
   returns: number;
   /** Custo de vida (acumulação, referência) ou retiradas (aposentadoria) */
   livingCost: number;
+  /** Imposto debitado do patrimônio no período */
+  taxes: number;
   /** Saldo = portfolioValue do motor (linha do gráfico) */
   projectedBalance: number;
   /** Saídas que reduzem o patrimônio neste período */
@@ -48,6 +50,7 @@ export function buildCashFlowChartSeries(
       contributions: row.contributions,
       returns: row.returns,
       livingCost: row.expenses,
+      taxes: row.taxes ?? 0,
       projectedBalance: row.portfolioValue,
       outflowAffectsBalance: isRetired,
     };

@@ -1,4 +1,6 @@
-/** 4% safe withdrawal rule — annual / 12 */
+import { retirementTarget } from "@/lib/engine/target";
+
+/** Sustainable monthly income from projected portfolio (4% rule, real). */
 export function computeSuggestedMonthlyIncome(
   projectedPortfolioAtRetirement: number
 ): number {
@@ -8,11 +10,15 @@ export function computeSuggestedMonthlyIncome(
   return Math.round((projectedPortfolioAtRetirement * 0.04) / 12);
 }
 
-/** Portfolio needed to fund desired monthly income (25× annual) */
+/** Portfolio needed to fund desired monthly income — same target as MC/stress. */
 export function computeFITargetFromDesired(
-  desiredMonthlyIncome: number
+  desiredMonthlyIncome: number,
+  monthlyExpenses = 0
 ): number {
-  return Math.round(desiredMonthlyIncome * 12 * 25);
+  return (
+    retirementTarget({ desiredMonthlyIncome, monthlyExpenses }).capitalTarget ??
+    0
+  );
 }
 
 export interface IncomeGapAnalysis {
