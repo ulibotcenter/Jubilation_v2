@@ -1163,14 +1163,14 @@ body::before {
 
 @media (min-width: 768px) {
   .app-content {
-    padding-left: calc(var(--floating-nav-width-collapsed) + 1.25rem);
+    padding-left: calc(var(--floating-nav-width) + 1.5rem);
   }
 }
 
 @media (min-width: 1024px) {
   .app-content {
     padding: 1.5rem 2rem;
-    padding-left: calc(var(--floating-nav-width-collapsed) + 2rem);
+    padding-left: calc(var(--floating-nav-width) + 2rem);
   }
 }
 
@@ -3141,6 +3141,19 @@ body::before {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(12px);
+}
+
+@media (max-width: 767px) {
+  .welcome-float {
+    right: 4.25rem;
+    left: auto;
+    width: min(16.5rem, calc(100vw - 5.5rem));
+    padding: 0.75rem 0.8rem 0.65rem;
+  }
+
+  .welcome-float-body {
+    display: none;
+  }
 }
 
 @media (min-width: 768px) {

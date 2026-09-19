@@ -112,7 +112,7 @@ export const EN = {
   "income.status.behind": "Below your goal",
   "income.status.farBehind": "Well below your goal",
   "income.progressOfGoal": "{n}% of goal",
-  "income.shortfall": "Shortfall of {amount}/mo versus what the plan can pay",
+  "income.shortfall": "{amount}/mo still to go to hit your goal",
   "income.surplus": "Surplus of {amount}/mo above your goal",
   "dashboard.projection.title": "Real portfolio projection",
   "dashboard.projection.subtitle":
@@ -251,7 +251,7 @@ export const EN = {
   "coach.welcome":
     "Welcome — set your assumptions and update your portfolio by adding your assets and investments — use Simulation to explore and test scenarios safely.",
   "coach.navAria": "Getting started",
-  "coach.link.assumptions": "Key assumptions",
+  "coach.link.assumptions": "What feeds the number",
   "coach.link.portfolio": "Update portfolio",
   "coach.link.simulation": "Open simulation",
   "coach.dismiss": "Got it",

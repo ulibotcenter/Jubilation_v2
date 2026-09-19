@@ -146,7 +146,7 @@ export function RetirementHero() {
               decimals={0}
               format="currency"
               currencySymbol={currencySymbol}
-              compact
+              compact={false}
               inputClassName="text-base sm:text-lg font-bold bg-transparent"
             />
             <span className="hero-support-unit">{t("common.perMonth")}</span>

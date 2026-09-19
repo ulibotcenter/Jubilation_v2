@@ -114,7 +114,7 @@ export const PT: Record<MessageKey, string> = {
   "income.status.behind": "Abaixo da sua meta",
   "income.status.farBehind": "Bem abaixo da sua meta",
   "income.progressOfGoal": "{n}% da meta",
-  "income.shortfall": "Déficit de {amount}/mês em relação ao que o plano paga",
+  "income.shortfall": "Faltam {amount}/mês para a sua meta",
   "income.surplus": "Excedente de {amount}/mês acima da sua meta",
   "dashboard.projection.title": "Projeção do portfólio real",
   "dashboard.projection.subtitle":
@@ -254,7 +254,7 @@ export const PT: Record<MessageKey, string> = {
     "Bem-vindo — defina suas premissas e atualize seu portfólio adicionando seus bens e investimentos — use a Simulação para divertir-se e testar cenários com segurança.",
   "coach.dismiss": "Entendi",
   "coach.navAria": "Primeiros passos",
-  "coach.link.assumptions": "Premissas principais",
+  "coach.link.assumptions": "O que alimenta o número",
   "coach.link.portfolio": "Atualizar portfólio",
   "coach.link.simulation": "Abrir simulação",
   "share.cta": "Copiar resumo para redes",
