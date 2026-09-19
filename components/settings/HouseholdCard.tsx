@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { Users } from "lucide-react";
 import type { ContributorKind, Sex } from "@/lib/engine/inssTypes";
@@ -8,6 +9,7 @@ import type { Person } from "@/lib/engine/household";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { fadeUp } from "@/lib/uiMotion";
+import { PRIVACY_PATH } from "@/lib/privacy/local";
 import { useAppStore } from "@/store/useAppStore";
 
 const SEXES: Sex[] = ["F", "M"];
@@ -128,6 +130,12 @@ export function HouseholdCard() {
       )}
 
       <h3 className="household-subtitle">{t("settings.household.spouse")}</h3>
+      <p className="household-notice household-notice--privacy">
+        {t("settings.household.privacyNotice")}{" "}
+        <Link href={PRIVACY_PATH} className="household-privacy-link">
+          {t("nav.privacy")}
+        </Link>
+      </p>
       {household.spouse ? (
         <>
           <PersonFields

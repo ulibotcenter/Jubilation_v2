@@ -87,21 +87,6 @@ export default function DashboardPage() {
           <RealPortfolio />
         </div>
       </section>
-
-      <footer className="mt-8 sm:mt-10 pb-6 text-center space-y-2">
-        <p className="text-[10px] sm:text-xs text-muted leading-relaxed max-w-md mx-auto px-4">
-          {t("footer.disclaimer")}
-        </p>
-        <p className="text-[10px] text-muted-foreground">
-          <Link href="/cash-flow" className="text-accent hover:underline">
-            {t("footer.link.cashflow")}
-          </Link>
-          {" · "}
-          <Link href="/simulation" className="text-accent hover:underline">
-            {t("footer.link.simulation")}
-          </Link>
-        </p>
-      </footer>
     </AppShell>
   );
 }

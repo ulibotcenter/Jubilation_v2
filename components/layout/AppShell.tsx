@@ -9,8 +9,10 @@ import { RetirementCoach } from "@/components/platform/RetirementCoach";
 import { FloatingNav } from "@/components/layout/FloatingNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { LegalFooter } from "@/components/legal/LegalFooter";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
 import { navIdFromPathname } from "@/hooks/useAppNavigation";
+import { isPrivacyPath } from "@/lib/privacy/local";
 import { useAppStore } from "@/store/useAppStore";
 
 interface AppShellProps {
@@ -95,6 +97,8 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
   if (!hydrated) return <ShellSkeleton />;
 
   const showChrome = !presentationMode;
+  const privacyRoute = isPrivacyPath(pathname);
+  const showPage = onboardingCompleted || privacyRoute;
 
   return (
     <div
@@ -108,14 +112,19 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
       <div className="app-main">
         <Topbar />
         <main className="app-content max-w-[var(--content-max-width)] mx-auto w-full safe-area-bottom">
-          {onboardingCompleted ? children : null}
+          {showPage ? (
+            <>
+              {children}
+              {onboardingCompleted ? <LegalFooter /> : null}
+            </>
+          ) : null}
         </main>
       </div>
 
       {pathname === "/" && onboardingCompleted && <CoachMarks />}
       <CommandPalette />
       <RetirementCoach />
-      <OnboardingModal />
+      {!privacyRoute && <OnboardingModal />}
     </div>
   );
 }

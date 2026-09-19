@@ -133,7 +133,7 @@ export function buildRetirementReportCsv(snapshot: ExportSnapshot): string {
   lines.push("DISCLAIMER");
   lines.push(
     escapeCsv(
-      "Educational purposes only. Not financial advice. Projections are hypothetical estimates."
+      "Educational simulation. Not consulting or an investment recommendation. Numbers depend on editable assumptions. No ticker or fund is named."
     )
   );
 
@@ -164,7 +164,7 @@ export function buildRetirementReportJson(snapshot: ExportSnapshot): string {
         : null,
       stressTests: snapshot.stressTestResults,
       disclaimer:
-        "Educational purposes only. Not financial advice. Projections are hypothetical estimates.",
+        "Educational simulation. Not consulting or an investment recommendation. Numbers depend on editable assumptions. No ticker or fund is named.",
     },
     null,
     2

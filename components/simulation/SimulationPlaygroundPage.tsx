@@ -13,6 +13,7 @@ import { PlaygroundDiffPanel } from "@/components/simulation/PlaygroundDiffPanel
 import { PlaygroundSummaryStrip } from "@/components/simulation/PlaygroundSummaryStrip";
 import { ScenarioManager } from "@/components/simulation/ScenarioManager";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PersistentDisclaimer } from "@/components/legal/PersistentDisclaimer";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -50,6 +51,8 @@ export function SimulationPlaygroundPage() {
         backHref="/"
         backLabel={t("common.backToDashboard")}
       />
+
+      <PersistentDisclaimer />
 
       <motion.div
         className="playground-toolbar"

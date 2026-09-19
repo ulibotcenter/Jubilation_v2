@@ -24,6 +24,7 @@ export const PT: Record<MessageKey, string> = {
   "nav.cashflow": "Fluxo de caixa",
   "nav.settings": "Configurações",
   "nav.help": "Ajuda",
+  "nav.privacy": "Privacidade",
   "nav.upgrade": "Planos",
   "nav.collapse": "Recolher",
   "nav.mobile.home": "Início",
@@ -123,9 +124,13 @@ export const PT: Record<MessageKey, string> = {
   "portfolio.section.title": "Portfólio real",
   "portfolio.page.title": "Portfólio real",
   "portfolio.page.description": "Seus ativos com preços ao vivo, alocação e desempenho.",
-  "footer.disclaimer": "Jubilation é apenas para fins educacionais e não oferece aconselhamento financeiro, de investimentos, fiscal ou jurídico.",
+  "disclaimer.persistent":
+    "Simulação educativa. Não é consultoria nem recomendação de investimento. Os números dependem das premissas que você pode editar.",
+  "footer.disclaimer":
+    "Simulação educativa. Não é consultoria nem recomendação de investimento. Os números dependem das premissas que você pode editar. Não indicamos ticker nem fundo.",
   "footer.link.cashflow": "Ver fluxo de caixa →",
   "footer.link.simulation": "Rodar simulações no sandbox →",
+  "footer.link.privacy": "O que é guardado",
   "fi.milestones.title": "Marcos da aposentadoria",
   "fi.milestones.subtitle": "Quando seu patrimônio pode atingir três metas importantes",
   "fi.milestones.age": "Por volta dos {n} anos",
@@ -197,6 +202,10 @@ export const PT: Record<MessageKey, string> = {
   "feature.premium": "Disponível no Premium",
   "feature.horizon": "Disponível no Horizon",
   "settings.description": "Moeda, idioma, planos e preferências de dados do seu plano.",
+  "settings.privacy.title": "Privacidade",
+  "settings.privacy.body":
+    "O que este app guarda neste aparelho, o que não entra, e como apagar — inclusive o cônjuge que você digitou.",
+  "settings.privacy.link": "Abrir a página de Privacidade",
   "settings.currency.title": "Moeda de exibição",
   "settings.currency.body": "Ao trocar a moeda, buscamos taxas ao vivo e convertemos KPIs, portfólio e metas automaticamente.",
   "settings.currency.ratesAsOf": "Taxas em",
@@ -236,6 +245,8 @@ export const PT: Record<MessageKey, string> = {
   "settings.household.contributor.normal_20": "Autônomo 20%",
   "settings.household.contributor.facultative_5": "Facultativo baixa renda 5%",
   "settings.household.noSpouse": "Ainda não há cônjuge neste plano.",
+  "settings.household.privacyNotice":
+    "Você está digitando dados de outra pessoa. O cônjuge não vira usuário e não há integração com o CNIS, a Receita ou a B3 dele. Dá para apagar esses campos a qualquer momento com Remover cônjuge.",
   "household.scope.trigger": "Quem",
   "household.scope.ariaLabel": "Escopo do casal na projeção",
   "household.scope.holder": "Eu",
@@ -272,6 +283,7 @@ export const PT: Record<MessageKey, string> = {
   "command.plansUpgrade": "Planos e upgrade",
   "command.togglePresentation": "Alternar modo apresentação",
   "command.openCoach": "Abrir coach de aposentadoria",
+  "command.openPrivacy": "Abrir página de privacidade",
   "simulation.playground.title": "Simulação Sandbox",
   "simulation.playground.description": "Pré-preenchido do seu portfólio real. O sandbox persiste entre sessões até você resetar.",
   "simulation.playground.badge": "Modo sandbox",
@@ -600,7 +612,7 @@ export const PT: Record<MessageKey, string> = {
     "Quatro números geram uma projeção do que você digitou — sem Lamborghini de demonstração. PGBL, FGTS, saldo e imóvel entram depois.",
   "onboarding.step2.title": "Última etapa — leia com atenção",
   "onboarding.step2.desc":
-    "Jubilation é uma ferramenta de planejamento, não um consultor financeiro. É necessário concordar para continuar.",
+    "O Jubilation é uma simulação educativa de planejamento, não um consultor. É preciso concordar para continuar.",
   "onboarding.field.age": "Sua idade",
   "onboarding.field.income": "Renda mensal (R$)",
   "onboarding.field.contribution": "Aporte mensal (R$)",
@@ -615,15 +627,15 @@ export const PT: Record<MessageKey, string> = {
   "onboarding.invalidHorizon": "A idade-alvo deve estar entre 55 e 120.",
   "onboarding.currencyNote":
     "Valores em reais. Você pode trocar a moeda de exibição no cabeçalho.",
-  "onboarding.warning.title": "Não é aconselhamento financeiro",
+  "onboarding.warning.title": "Não é consultoria",
   "onboarding.warning.desc":
-    "Jubilation é apenas para fins educacionais e de planejamento.",
+    "Isto é uma simulação educativa. Não recomendamos investimento nem indicamos ticker ou fundo.",
   "onboarding.disclaimer":
-    "Jubilation é uma ferramenta educacional de planejamento de aposentadoria. Não oferece aconselhamento financeiro, de investimentos, tributário ou jurídico. Todas as projeções, simulações e resultados Monte Carlo são estimativas hipotéticas baseadas em premissas fornecidas por você — não são garantias de desempenho futuro.\n\nDesempenho passado não prevê resultados futuros. Mercados são voláteis. Inflação, impostos, taxas e circunstâncias pessoais podem alterar materialmente os resultados. Consulte um consultor financeiro qualificado antes de tomar decisões.\n\nAo continuar, você reconhece essas limitações e concorda em usar o Jubilation apenas para fins informativos.",
+    "O Jubilation é uma simulação educativa de planejamento de aposentadoria.\n\nNão é consultoria, recomendação de investimento nem oferta de produto. Planejar por classe de ativo (por exemplo, renda fixa indexada à inflação) pode; indicar um ticker ou um fundo, não.\n\nOs números na tela dependem das premissas que você informa e pode editar — idade-alvo, aportes, inflação, juro real. Se você mudar uma premissa, o plano muda. Não é garantia do que vai acontecer.\n\nArquivos de CNIS e IRPF são lidos neste aparelho. Não pedimos senha do gov.br. O registro 26 do IRPF (médicos e clínicas) não é guardado.\n\nAo continuar, você concorda em usar o app como ferramenta de planejamento, não como consultoria.",
   "onboarding.checkbox":
-    "Li e entendo o aviso. Reconheço que o Jubilation não oferece aconselhamento financeiro e que todas as projeções são apenas estimativas.",
+    "Li o aviso. Entendo que isto é uma simulação educativa, não consultoria nem recomendação de investimento, e que os números mudam se eu editar as premissas.",
   "onboarding.privacy":
-    "Suas preferências são salvas localmente no navegador. Nenhuma conta é necessária neste beta.",
+    "O plano fica neste navegador. Veja o que é guardado, o que não entra, e como apagar.",
   "onboarding.backAria": "Voltar aos seus números",
   "onboarding.continueAria": "Continuar para o aviso legal",
   "onboarding.getStartedAria": "Aceitar e ver o meu número",
@@ -740,4 +752,30 @@ export const PT: Record<MessageKey, string> = {
   "toast.files.error": "Não foi possível ler o arquivo",
   "toast.files.consentRequired": "Autorize antes de importar",
   "toast.files.revoked": "Consentimento de importação revogado",
+  "privacy.title": "Privacidade",
+  "privacy.pageDescription":
+    "Em linguagem simples: o que fica neste aparelho, o que não entra, por que usamos, e como apagar.",
+  "privacy.collected.title": "O que é guardado",
+  "privacy.collected.body":
+    "Neste aparelho ficam: o plano que você monta (idades, aportes, premissas), os investimentos (holdings) que você informa, o CNIS e o IRPF lidos aqui no aparelho, e a posição B3 de demonstração (fixture) se você autorizar.",
+  "privacy.notCollected.title": "O que não entra",
+  "privacy.notCollected.body":
+    "O registro 26 do IRPF (médicos, clínicas e planos de saúde) é descartado antes de guardar qualquer coisa. Não pedimos, e não guardamos, a senha do gov.br.",
+  "privacy.basis.title": "Por que usamos isso",
+  "privacy.basis.body":
+    "Usamos esses dados para montar o plano que você pediu — execução de contrato. Renda, patrimônio e contribuição não são dado de saúde; para esse dado financeiro não-sensível, também cabe legítimo interesse. Dado de saúde não entra: o registro 26 e os indicadores de incapacidade do CNIS são descartados na ingestão.",
+  "privacy.spouse.title": "Cônjuge",
+  "privacy.spouse.body":
+    "Se você incluir um cônjuge, esses campos são de outra pessoa e foram digitados por você. O cônjuge não tem conta aqui e não há integração com o INSS, a Receita ou a B3 dele. Para apagar só esses campos, use Remover cônjuge em Configurações.",
+  "privacy.erase.title": "Como apagar",
+  "privacy.erase.body":
+    "Neste lote o plano mora neste navegador. Não há cópia em servidor para pedir exclusão por e-mail. O botão abaixo limpa o armazenamento local e recarrega o app. Para apagar só o cônjuge, use Remover cônjuge no card da família em Configurações.",
+  "privacy.erase.button": "Apagar dados deste aparelho",
+  "privacy.erase.confirm":
+    "Isso apaga o plano, os investimentos, os arquivos importados e o log de consentimento guardados neste navegador. Continuar?",
+  "privacy.export.title": "Log de consentimento",
+  "privacy.export.body":
+    "Quando você autoriza B3, CNIS ou IRPF, o app guarda o texto que você viu e a data. Dá para baixar esse log agora.",
+  "privacy.export.button": "Baixar log de consentimento",
+  "toast.privacy.exported": "Log de consentimento baixado",
 };

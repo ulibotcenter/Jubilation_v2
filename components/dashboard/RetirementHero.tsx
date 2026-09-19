@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Calendar, Target } from "lucide-react";
 import { MilestoneTimeline } from "@/components/dashboard/MilestoneTimeline";
+import { PersistentDisclaimer } from "@/components/legal/PersistentDisclaimer";
 import { CinematicNumber } from "@/components/ui/CinematicNumber";
 import { EditableNumber } from "@/components/ui/EditableNumber";
 import { SpacedWords } from "@/components/ui/SpacedWords";
@@ -107,6 +108,8 @@ export function RetirementHero() {
               : t("income.solve.infeasible")
           }
         />
+
+        <PersistentDisclaimer className="hero-disclaimer" />
 
         <div className="hero-support-row">
           {leadWithAge ? (
