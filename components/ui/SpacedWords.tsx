@@ -5,7 +5,7 @@ interface SpacedWordsProps {
   id?: string;
 }
 
-/** One box per word so letter-spacing cannot eat the gap. */
+/** Root is always a flex row so nested use (button, <p>) still keeps a gap. */
 export function SpacedWords({
   text,
   className,
@@ -13,8 +13,9 @@ export function SpacedWords({
   id,
 }: SpacedWordsProps) {
   const words = text.trim().split(/\s+/).filter(Boolean);
+  const classes = ["spaced-words", className].filter(Boolean).join(" ");
   return (
-    <Comp id={id} className={className}>
+    <Comp id={id} className={classes}>
       {words.map((word, i) => (
         <span key={`${i}-${word}`} className="spaced-word">
           {word}

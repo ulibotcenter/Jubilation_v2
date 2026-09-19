@@ -325,6 +325,16 @@ body {
   word-spacing: 0.55em;
 }
 
+.spaced-words {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.7em;
+  row-gap: 0.2em;
+  letter-spacing: 0;
+  word-spacing: 0;
+}
+
 .spaced-word {
   letter-spacing: 0;
 }
@@ -601,7 +611,7 @@ body::before {
 .hero-use-age {
   display: inline-flex;
   align-items: center;
-  column-gap: 0.4em;
+  column-gap: 0.7em;
   min-height: var(--touch-target);
   padding: 0.25rem 0.7rem;
   font-size: 0.75rem;
@@ -639,7 +649,7 @@ body::before {
 .hero-goal-status {
   display: inline-flex;
   flex-wrap: wrap;
-  column-gap: 0.4em;
+  column-gap: 0.5em;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--foreground);
@@ -1697,7 +1707,7 @@ body::before {
 
 .milestone-age {
   display: inline-flex;
-  column-gap: 0.45em;
+  column-gap: 0.7em;
   letter-spacing: 0;
   word-spacing: 0;
 }
