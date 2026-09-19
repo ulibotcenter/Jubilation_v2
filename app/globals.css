@@ -3468,7 +3468,7 @@ body::before {
 .add-asset-modal-root {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 200;
   display: flex;
   align-items: flex-end;
   justify-content: center;

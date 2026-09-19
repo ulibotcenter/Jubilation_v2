@@ -177,7 +177,7 @@ export function ImportFilesCard() {
         createPortal(
           <AnimatePresence>
             {pending && (
-              <div className="add-asset-modal-root">
+              <div className="add-asset-modal-root" data-file-consent-root="true">
                 <motion.div
                   className="add-asset-modal-backdrop"
                   initial={{ opacity: 0 }}
@@ -209,7 +209,7 @@ export function ImportFilesCard() {
                       <X className="w-4 h-4" size={16} />
                     </button>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed px-5 pb-4">
+                  <p className="text-sm text-foreground/80 leading-relaxed px-5 pb-4">
                     {evidence}
                   </p>
                   <div className="flex justify-end gap-2 px-5 pb-5">
