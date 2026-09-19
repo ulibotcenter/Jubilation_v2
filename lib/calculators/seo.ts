@@ -56,10 +56,22 @@ export function calculatorMetadata(id: CalculatorPathId): Metadata {
   const page = CALCULATOR_SEO[id];
   const url = new URL(page.path, SITE_URL).toString();
   const ogTitle = page.ogTitle ?? page.title;
+  const ogImage = {
+    url: "/calculadoras/opengraph-image",
+    width: 1200,
+    height: 630,
+    alt: "Calculadoras públicas Jubilation — independência financeira e simulação educativa de INSS",
+  };
   return {
     title: page.title,
     description: page.description,
     alternates: { canonical: page.path },
+    keywords: [
+      "independência financeira",
+      "calculadora de aposentadoria",
+      "simulador INSS",
+      "regras de transição",
+    ],
     robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
     openGraph: {
       type: "website",
@@ -68,11 +80,13 @@ export function calculatorMetadata(id: CalculatorPathId): Metadata {
       siteName: "Jubilation",
       title: ogTitle,
       description: page.description,
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title: ogTitle,
       description: page.description,
+      images: [ogImage.url],
     },
   };
 }

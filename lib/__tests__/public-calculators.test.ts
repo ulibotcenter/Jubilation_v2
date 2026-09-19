@@ -59,6 +59,10 @@ describe("public calculator routes", () => {
     const meta = calculatorMetadata("inss");
     expect(meta.robots).toMatchObject({ index: true, follow: true });
     expect(meta.openGraph).toMatchObject({ locale: "pt_BR" });
+    expect(meta.keywords).toEqual(
+      expect.arrayContaining(["independência financeira", "simulador INSS"])
+    );
+    expect(JSON.stringify(meta.keywords)).not.toMatch(/Monte Carlo/i);
     expect(String(meta.description)).toMatch(/não é o Meu INSS/i);
     expect(CALCULATOR_SEO.freedomDate.title).toMatch(/Quando fico livre/);
     expect(CALCULATOR_SEO.retirementIncome.title).toMatch(/Quanto vou receber/);
