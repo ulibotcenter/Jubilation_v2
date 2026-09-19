@@ -1358,6 +1358,28 @@ body::before {
   margin-top: 0.15rem;
 }
 
+.sensitivity-slider[data-impact="high"] {
+  border-left: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  padding-left: 0.55rem;
+}
+
+.sensitivity-meta {
+  font-size: 0.625rem;
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.income-solve-date {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.875rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
 .kpi-label {
   font-size: 0.6875rem;
   font-weight: 600;

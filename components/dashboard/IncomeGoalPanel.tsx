@@ -1,37 +1,78 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Target } from "lucide-react";
 import { EditableNumber } from "@/components/ui/EditableNumber";
-import {
-  analyzeIncomeGap,
-  computeSuggestedMonthlyIncome,
-} from "@/lib/incomeGoals";
+import { analyzeIncomeGap } from "@/lib/incomeGoals";
 import { getIncomeStatusKey } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { liveSolve } from "@/lib/solveLive";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCY_SYMBOLS, formatCurrencyValue } from "@/types";
 
 interface IncomeGoalPanelProps {
-  projectedPortfolio: number;
+  /** Kept for callers; the panel now uses liveSolve instead of a 4% shortcut. */
+  projectedPortfolio?: number;
   mode?: "real" | "playground";
 }
 
 export function IncomeGoalPanel({
-  projectedPortfolio,
   mode = "real",
 }: IncomeGoalPanelProps) {
   const { t } = useTranslation();
   const realKpis = useAppStore((s) => s.kpis);
   const simKpis = useAppStore((s) => s.simPlayground.kpis);
   const kpis = mode === "playground" ? simKpis : realKpis;
+  const realPortfolio = useAppStore((s) => s.portfolio);
+  const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
+  const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
+  const realIncluded = useAppStore((s) => s.simulationIncludedAssetIds);
+  const simIncluded = useAppStore((s) => s.simPlayground.simulationIncludedAssetIds);
+  const includedAssetIds = mode === "playground" ? simIncluded : realIncluded;
+  const realOutside = useAppStore((s) => s.kpiOutsidePortfolio);
+  const simOutside = useAppStore((s) => s.simPlayground.kpiOutsidePortfolio);
+  const outsidePortfolio = mode === "playground" ? simOutside : realOutside;
+  const household = useAppStore((s) => s.household);
   const currency = useAppStore((s) => s.currency);
+  const fxSnapshot = useAppStore((s) => s.fxSnapshot);
   const setKPI = useAppStore((s) => s.setKPI);
   const setSimKPI = useAppStore((s) => s.setSimKPI);
   const setIncome = mode === "playground" ? setSimKPI : setKPI;
+  const setRetirement = mode === "playground" ? setSimKPI : setKPI;
   const currencySymbol = CURRENCY_SYMBOLS[currency];
 
-  const suggested = computeSuggestedMonthlyIncome(projectedPortfolio);
+  const solveInput = useMemo(
+    () => ({
+      kpis,
+      portfolio,
+      includedAssetIds,
+      outsidePortfolio,
+      currency,
+      fxSnapshot,
+      household,
+    }),
+    [
+      kpis,
+      portfolio,
+      includedAssetIds,
+      outsidePortfolio,
+      currency,
+      fxSnapshot,
+      household,
+    ]
+  );
+
+  const incomeSolve = useMemo(
+    () => liveSolve(solveInput, "income"),
+    [solveInput]
+  );
+  const dateSolve = useMemo(
+    () => liveSolve(solveInput, "date"),
+    [solveInput]
+  );
+
+  const suggested = incomeSolve.feasible ? incomeSolve.value : 0;
   const analysis = analyzeIncomeGap(suggested, kpis.desiredMonthlyIncome);
 
   const statusColors = {
@@ -64,12 +105,14 @@ export function IncomeGoalPanel({
 
       <div className="income-goal-columns">
         <div className="income-goal-col">
-          <p className="income-goal-label">{t("income.suggested")}</p>
+          <p className="income-goal-label">{t("income.solve.income")}</p>
           <p className="income-goal-value tabular-nums">
-            {formatCurrencyValue(suggested, currency)}
+            {incomeSolve.feasible
+              ? formatCurrencyValue(suggested, currency)
+              : "—"}
             <span className="income-goal-period">{t("common.perMonth")}</span>
           </p>
-          <p className="income-goal-hint">{t("income.suggestedHint")}</p>
+          <p className="income-goal-hint">{t("income.solve.incomeHint")}</p>
         </div>
 
         <div className="income-goal-divider" aria-hidden="true">
@@ -98,6 +141,31 @@ export function IncomeGoalPanel({
           </div>
           <p className="income-goal-hint">{t("income.goalHint")}</p>
         </div>
+      </div>
+
+      <div className="income-solve-date">
+        <div>
+          <p className="income-goal-label">{t("income.solve.date")}</p>
+          <p className="text-sm font-semibold tabular-nums mt-0.5">
+            {dateSolve.feasible
+              ? t("income.solve.dateResult", {
+                  n: Math.round(dateSolve.value),
+                })
+              : t("income.solve.infeasible")}
+          </p>
+          <p className="income-goal-hint">{t("income.solve.dateHint")}</p>
+        </div>
+        {dateSolve.feasible ? (
+          <button
+            type="button"
+            className="btn-ghost text-xs"
+            onClick={() =>
+              setRetirement("retirementAge", Math.round(dateSolve.value))
+            }
+          >
+            {t("income.solve.useAge")}
+          </button>
+        ) : null}
       </div>
 
       <div className="income-goal-progress">

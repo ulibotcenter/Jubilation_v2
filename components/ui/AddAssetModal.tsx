@@ -8,11 +8,14 @@ import {
   Car,
   Gem,
   Home,
+  Landmark,
   Loader2,
   Map,
   Package,
+  PiggyBank,
   Plus,
   Search,
+  Wallet,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,15 +32,17 @@ import {
 } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
-  generatePhysicalTicker,
+  buildAssetFromPreset,
   PHYSICAL_ASSET_PRESETS,
   type PhysicalAssetPreset,
 } from "@/lib/physicalAssetPresets";
 import { createId } from "@/lib/engine/ids";
+import { todayIsoDate } from "@/lib/engine/provenance";
 import { defaultCagrForAssetClass } from "@/lib/portfolioCagr";
 import { useAppStore } from "@/store/useAppStore";
 import {
   type AssetClass,
+  type Liquidity,
   type PortfolioAsset,
   type PriceSource,
 } from "@/types";
@@ -58,6 +63,9 @@ const PRESET_ICONS = {
   land: Map,
   gem: Gem,
   custom: Package,
+  cash: Wallet,
+  pension: Landmark,
+  fgts: PiggyBank,
 } as const;
 
 export function AddAssetModal({
@@ -74,7 +82,7 @@ export function AddAssetModal({
   const addSimPortfolioAsset = useAppStore((s) => s.addSimPortfolioAsset);
   const addAsset = mode === "playground" ? addSimPortfolioAsset : addPortfolioAsset;
 
-  const [tab, setTab] = useState<TabId>("search");
+  const [tab, setTab] = useState<TabId>("physical");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MarketSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -95,6 +103,10 @@ export function AddAssetModal({
   const [physicalName, setPhysicalName] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [currentValue, setCurrentValue] = useState("");
+  const [asOf, setAsOf] = useState(todayIsoDate);
+  const [realReturn, setRealReturn] = useState("0");
+  const [liquidity, setLiquidity] = useState<Liquidity>("illiquid");
+  const [allowSale, setAllowSale] = useState(false);
   const [ownership, setOwnership] = useState<Ownership>("holder");
 
   const resetManual = () => {
@@ -111,13 +123,17 @@ export function AddAssetModal({
     setPhysicalName("");
     setPurchasePrice("");
     setCurrentValue("");
+    setAsOf(todayIsoDate());
+    setRealReturn("0");
+    setLiquidity("illiquid");
+    setAllowSale(false);
   };
 
   const resetAll = useCallback(() => {
     setQuery("");
     setResults([]);
     setSelectedSearch(null);
-    setTab("search");
+    setTab("physical");
     resetManual();
     resetPhysical();
     setOwnership("holder");
@@ -262,6 +278,10 @@ export function AddAssetModal({
     setPhysicalName(getPhysicalPresetDefaultName(locale, preset.id));
     setPurchasePrice("");
     setCurrentValue("");
+    setAsOf(todayIsoDate());
+    setRealReturn(String(preset.defaultRealReturn));
+    setLiquidity(preset.liquidity);
+    setAllowSale(preset.allowSale);
   };
 
   const handlePhysicalSubmit = (e: React.FormEvent) => {
@@ -270,6 +290,7 @@ export function AddAssetModal({
 
     const purchase = parseFloat(purchasePrice);
     const value = parseFloat(currentValue);
+    const real = parseFloat(realReturn);
 
     if (!physicalName.trim()) {
       toast.error(t("toast.portfolio.invalidName"));
@@ -283,26 +304,44 @@ export function AddAssetModal({
       toast.error(t("toast.portfolio.invalidValue"));
       return;
     }
+    if (!asOf || Number.isNaN(Date.parse(asOf))) {
+      toast.error(t("toast.portfolio.invalidAsOf"));
+      return;
+    }
+    if (!Number.isFinite(real) || real < -50 || real > 30) {
+      toast.error(t("toast.portfolio.invalidRealReturn"));
+      return;
+    }
 
-    const generatedTicker = generatePhysicalTicker(
-      physicalPreset.tickerPrefix,
-      portfolio
-    );
-
-    commitAsset({
-      ticker: generatedTicker,
+    const asset = buildAssetFromPreset({
+      preset: physicalPreset,
       name: physicalName.trim(),
-      assetClass: physicalPreset.assetClass,
-      quantity: 1,
-      currentPrice: value,
-      costBasis: purchase,
-      priceSource: "manual",
+      purchase,
+      value,
+      asOf,
+      ownership,
+      currency,
+      realReturn: real,
+      liquidity,
+      allowSale,
+      portfolio,
+      idPrefix: mode === "playground" ? "sim" : "asset",
     });
+
+    addAsset(asset);
+    toast.success(t("toast.portfolio.added", { ticker: asset.ticker }), {
+      description: t("toast.portfolio.addedDesc", {
+        name: asset.name,
+        assetClass: getAssetClassLabel(locale, asset.assetClass),
+      }),
+    });
+    resetAll();
+    onClose();
   };
 
   const tabs: { id: TabId; labelKey: "portfolio.add.tab.search" | "portfolio.add.tab.physical" | "portfolio.add.tab.manual" }[] = [
-    { id: "search", labelKey: "portfolio.add.tab.search" },
     { id: "physical", labelKey: "portfolio.add.tab.physical" },
+    { id: "search", labelKey: "portfolio.add.tab.search" },
     { id: "manual", labelKey: "portfolio.add.tab.manual" },
   ];
 
@@ -594,8 +633,57 @@ export function AddAssetModal({
                         required
                       />
                     </label>
+                    <label className="add-asset-field">
+                      <span>{t("portfolio.add.asOf")}</span>
+                      <input
+                        type="date"
+                        value={asOf}
+                        onChange={(e) => setAsOf(e.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="add-asset-field">
+                      <span>{t("portfolio.add.realReturn")}</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={realReturn}
+                        onChange={(e) => setRealReturn(e.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="add-asset-field">
+                      <span>{t("portfolio.add.liquidity")}</span>
+                      <select
+                        value={liquidity}
+                        onChange={(e) =>
+                          setLiquidity(e.target.value as Liquidity)
+                        }
+                      >
+                        <option value="liquid">
+                          {t("portfolio.add.liquidity.liquid")}
+                        </option>
+                        <option value="illiquid">
+                          {t("portfolio.add.liquidity.illiquid")}
+                        </option>
+                      </select>
+                    </label>
+                    <label className="add-asset-field flex-row items-center gap-2 mt-6">
+                      <input
+                        type="checkbox"
+                        checked={allowSale}
+                        onChange={(e) => setAllowSale(e.target.checked)}
+                      />
+                      <span>{t("portfolio.add.allowSale")}</span>
+                    </label>
                   </div>
 
+                  <p className="text-[11px] text-muted-foreground">
+                    {t("portfolio.add.realReturnHint")}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {t("portfolio.add.freshness", { date: asOf })}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">
                     {t("portfolio.add.physicalNote")}
                   </p>

@@ -32,9 +32,15 @@ import {
   type Person,
 } from "@/lib/engine/household";
 import type { Sex } from "@/lib/engine/inssTypes";
-import { migratePersistedState, CURRENT_PERSIST_VERSION } from "@/lib/persist/migrate";
+import { htmlLang } from "@/lib/i18n/htmlLang";
+import { appendDatedValue } from "@/lib/datedValue";
+import {
+  householdFromOnboarding,
+  kpisFromOnboarding,
+  type OnboardingAnswers,
+} from "@/lib/onboarding/plan";
 import { partializePersistedState } from "@/lib/persist/partialize";
-import { percentile } from "@/lib/engine/monteCarlo";
+import { migratePersistedState, CURRENT_PERSIST_VERSION } from "@/lib/persist/migrate";
 import type { CoachMessage } from "@/lib/ai/retirementCoach";
 import type { AppLocale } from "@/lib/i18n/messages";
 import type { PlanTier } from "@/lib/plans";
@@ -44,6 +50,7 @@ import {
 } from "@/lib/projectionEngine";
 import { chartDataWithMcBands } from "@/lib/projectionsExtended";
 import { projectPlan } from "@/lib/engine/project";
+import { percentile } from "@/lib/engine/monteCarlo";
 import {
   buildPlaygroundProjections,
   initialPlaygroundFromMock,
@@ -52,10 +59,10 @@ import {
   type SimulationPlaygroundState,
 } from "@/lib/simulationPlayground";
 import {
-  applyScopePreset,
   resolveSimulationKpis,
 } from "@/lib/simulationScope";
 import {
+  DEFAULT_CURRENCY,
   DEFAULT_LOCALE,
   DEFAULT_USER,
   LOCAL_STORAGE_KEY,
@@ -73,9 +80,7 @@ import {
   type PortfolioAsset,
   type ProjectionYear,
   type StressTestId,
-  calculatePortfolioValue,
   generateChartData,
-  MOCK_PORTFOLIO,
   MONTE_CARLO_SCENARIO_LABELS,
   buildDistributionBins,
   normalizeKpiValues,
@@ -123,9 +128,7 @@ function monteCarloOutputFromEngine(
   };
 }
 
-const SEED_PORTFOLIO = normalizePortfolioAssets(
-  normalizePortfolioCagr(MOCK_PORTFOLIO)
-);
+const SEED_PORTFOLIO: PortfolioAsset[] = [];
 
 export interface NetWorthSnapshot {
   id: string;
@@ -342,6 +345,7 @@ export interface AppStore {
   setOnboardingStep: (step: OnboardingStep) => void;
   setDisclaimerAccepted: (accepted: boolean) => void;
   completeOnboarding: () => void;
+  finishOnboarding: (answers: OnboardingAnswers) => void;
   setKPI: (field: KPIField, value: number) => void;
   setActiveTab: (tab: DashboardTab) => void;
   setActiveNav: (nav: NavItemId) => void;
@@ -363,6 +367,10 @@ export interface AppStore {
         | "lastPriceAt"
         | "previousPrice"
         | "expectedCAGR"
+        | "realReturn"
+        | "allowSale"
+        | "liquidity"
+        | "asOf"
       >
     >
   ) => void;
@@ -509,12 +517,9 @@ function rebuildWithHousehold<
   };
 }
 
-/** Investable assets drive growth; real estate & personal stay in static bucket */
-const defaultIncludedIds = applyScopePreset(SEED_PORTFOLIO, "investmentsOnly");
-const seedPortfolioTotal = calculatePortfolioValue(SEED_PORTFOLIO);
-const seedKpis = normalizeKpiValues({
-  currentNetWorth: Math.round(seedPortfolioTotal),
-});
+/** Empty holdings until the person types something. Demo Lamborghini/Trancoso is not the plan. */
+const defaultIncludedIds: string[] = [];
+const seedKpis = normalizeKpiValues({});
 const initialOutside = 0;
 const seedHousehold = householdFromKpis(seedKpis, todayIsoDate());
 const initialBuild = buildProjectionsFromState({
@@ -530,7 +535,7 @@ export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
       locale: DEFAULT_LOCALE,
-      currency: "USD",
+      currency: DEFAULT_CURRENCY,
       activeNav: "dashboard",
       activeTab: "real-portfolio",
       sidebarOpen: false,
@@ -592,7 +597,7 @@ export const useAppStore = create<AppStore>()(
         initialOutside,
         SEED_PORTFOLIO,
         defaultIncludedIds,
-        "USD",
+        DEFAULT_CURRENCY,
         null,
         seedHousehold
       ),
@@ -600,7 +605,7 @@ export const useAppStore = create<AppStore>()(
       setLocale: (locale) => {
         set({ locale });
         if (typeof document !== "undefined") {
-          document.documentElement.lang = locale;
+          document.documentElement.lang = htmlLang(locale);
         }
       },
 
@@ -817,6 +822,44 @@ export const useAppStore = create<AppStore>()(
           },
         })),
 
+      finishOnboarding: (answers) => {
+        const state = get();
+        const asOf = todayIsoDate();
+        const kpis = kpisFromOnboarding(answers);
+        const household = householdFromOnboarding(
+          answers,
+          asOf,
+          state.household
+        );
+        const portfolio: PortfolioAsset[] = [];
+        const simulationIncludedAssetIds: string[] = [];
+        const built = buildProjectionsFromState({
+          ...state,
+          kpis,
+          portfolio,
+          simulationIncludedAssetIds,
+          kpiOutsidePortfolio: 0,
+          household,
+        });
+        set({
+          kpis: built.kpis,
+          household,
+          portfolio,
+          simulationIncludedAssetIds,
+          kpiOutsidePortfolio: 0,
+          projections: built.projections,
+          chartData: built.chartData,
+          projectionRevision: state.projectionRevision + 1,
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
+          onboarding: {
+            ...state.onboarding,
+            completed: true,
+            currentStep: 2,
+            disclaimerAccepted: true,
+          },
+        });
+      },
+
       setKPI: (field, value) => {
         const state = get();
         let kpiOutsidePortfolio = state.kpiOutsidePortfolio;
@@ -910,9 +953,30 @@ export const useAppStore = create<AppStore>()(
 
       updatePortfolioAsset: (id, patch) => {
         const state = get();
-        const portfolio = state.portfolio.map((a) =>
-          a.id === id ? { ...a, ...patch } : a
-        );
+        const asOf = todayIsoDate();
+        const portfolio = state.portfolio.map((a) => {
+          if (a.id !== id) return a;
+          let next = { ...a, ...patch };
+          if (patch.realReturn != null && patch.realReturn !== a.realReturn) {
+            next.expectedCAGR = Math.round(
+              ((1 + patch.realReturn / 100) *
+                (1 + state.kpis.annualInflation / 100) -
+                1) *
+                1000
+            ) / 10;
+          }
+          if (
+            patch.currentPrice != null &&
+            patch.currentPrice !== a.currentPrice
+          ) {
+            next = appendDatedValue(
+              next,
+              next.quantity * next.currentPrice,
+              patch.asOf ?? asOf
+            );
+          }
+          return next;
+        });
         const built = buildProjectionsFromState({
           ...state,
           portfolio,

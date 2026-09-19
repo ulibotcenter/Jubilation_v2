@@ -43,6 +43,18 @@ export function normalizePortfolioAsset(asset: PortfolioAsset): PortfolioAsset {
     institutionId: asset.institutionId ?? null,
     accountId: asset.accountId ?? null,
     ownership: asset.ownership ?? "holder",
+    valueHistory:
+      asset.valueHistory && asset.valueHistory.length > 0
+        ? asset.valueHistory
+        : [
+            {
+              asOf,
+              value: asset.quantity * asset.currentPrice,
+              source:
+                asset.source ??
+                (asset.priceSource === "manual" ? "MANUAL" : "ESTIMATED"),
+            },
+          ],
   };
 }
 
