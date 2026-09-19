@@ -12,7 +12,7 @@ export {
 } from "@/lib/engine/money";
 export { fisherReal, fisherNominal, annualToMonthly } from "@/lib/engine/rates";
 export { ASSUMPTIONS, assumptionImpact, DEFAULT_LIFE_EXPECTANCY_AGE } from "@/lib/engine/assumptions";
-export { DEFAULT_PARAMETER_SET, paramsForYear, DEFAULT_LEGAL_PREMISES } from "@/lib/engine/parameters";
+export { DEFAULT_PARAMETER_SET, paramsForYear, paramsForYearMonth, DEFAULT_LEGAL_PREMISES } from "@/lib/engine/parameters";
 export { calculateMonthlyIrpf, calculateAnnualIrpf } from "@/lib/engine/tax";
 export {
   evaluateInss,

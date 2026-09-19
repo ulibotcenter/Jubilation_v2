@@ -10,6 +10,8 @@ import {
   rgpsCoefficient,
 } from "@/lib/engine/inss";
 import { DEFAULT_PARAMETER_SET, paramsForYear } from "@/lib/engine/parameters";
+import { inpcCorrectionFactor, inpcMonthlyPercent } from "@/lib/engine/inpc";
+import { minimumWageAt, rgpsCeilingAt } from "@/lib/engine/rgpsLegalSeries";
 import { complementToNormal, contributorCharge } from "@/lib/engine/contributor";
 import {
   pgblDeduction,
@@ -51,6 +53,20 @@ import type { InssPerson } from "@/lib/engine/inssTypes";
 const CEILING = 847_555;
 const MIN_WAGE = 162_100;
 
+/** Isolate eligibility/coefficient from INPC (wages already in DIB money). */
+function frozenRange(
+  from: string,
+  to: string,
+  wageCents: number,
+  kind: InssPerson["history"][number]["kind"] = "clt",
+  extra: Partial<InssPerson["history"][number]> = {}
+) {
+  return fillContributionRange(from, to, wageCents, kind, {
+    inpcFactor: 1,
+    ...extra,
+  });
+}
+
 function person(partial: Partial<InssPerson> & Pick<InssPerson, "sex" | "birthDate" | "filiationDate" | "history">): InssPerson {
   return {
     id: "p1",
@@ -60,12 +76,12 @@ function person(partial: Partial<InssPerson> & Pick<InssPerson, "sex" | "birthDa
 }
 
 describe("INSS — salário de benefício and coefficient", () => {
-  it("averages 100% of wages since 07/1994, capped per year, no 20% discard", () => {
+  it("averages 100% of wages since 07/1994, capped per competence, no 20% discard", () => {
     const history = [
-      { yearMonth: "1994-06", wageCents: 50_000, kind: "clt" as const },
-      { yearMonth: "2024-01", wageCents: 100_000, kind: "clt" as const },
-      { yearMonth: "2024-02", wageCents: 200_000, kind: "clt" as const },
-      { yearMonth: "2024-03", wageCents: 300_000, kind: "clt" as const },
+      { yearMonth: "1994-06", wageCents: 50_000, kind: "clt" as const, inpcFactor: 1 },
+      { yearMonth: "2024-01", wageCents: 100_000, kind: "clt" as const, inpcFactor: 1 },
+      { yearMonth: "2024-02", wageCents: 200_000, kind: "clt" as const, inpcFactor: 1 },
+      { yearMonth: "2024-03", wageCents: 300_000, kind: "clt" as const, inpcFactor: 1 },
     ];
     const sb = benefitSalaryCents(
       person({
@@ -81,8 +97,10 @@ describe("INSS — salário de benefício and coefficient", () => {
     expect(sb).toBe(200_000);
   });
 
-  it("caps each competence at that year's ceiling", () => {
-    const history = fillContributionRange("2024-01", "2024-02", 50_000_000, "clt");
+  it("caps 2024 at Portaria MPS/MF 2/2024 teto R$ 7.786,02, not the 2026 teto", () => {
+    const history = fillContributionRange("2024-01", "2024-01", 50_000_000, "clt", {
+      inpcFactor: 1,
+    });
     const sb = benefitSalaryCents(
       person({
         sex: "M",
@@ -90,10 +108,29 @@ describe("INSS — salário de benefício and coefficient", () => {
         filiationDate: "1990-01-01",
         history,
       }),
-      "2026-01-01",
+      "2024-02-01",
       DEFAULT_PARAMETER_SET
     );
-    expect(sb).toBe(CEILING);
+    expect(rgpsCeilingAt("2024-01").cents).toBe(778_602);
+    expect(sb).toBe(778_602);
+    expect(sb).not.toBe(CEILING);
+  });
+
+  it("caps 1995-06 at Portaria 2.005/1995 teto R$ 832,66", () => {
+    const history = fillContributionRange("1995-06", "1995-06", 50_000_000, "clt", {
+      inpcFactor: 1,
+    });
+    const sb = benefitSalaryCents(
+      person({
+        sex: "M",
+        birthDate: "1940-01-01",
+        filiationDate: "1990-01-01",
+        history,
+      }),
+      "1995-07-01",
+      DEFAULT_PARAMETER_SET
+    );
+    expect(sb).toBe(83_266);
   });
 
   it("coefficient 60% + 2% per year over Tmin (15W / 20M)", () => {
@@ -108,18 +145,38 @@ describe("INSS — salário de benefício and coefficient", () => {
     expect(applyFloorCeiling(1_000, 2026, DEFAULT_PARAMETER_SET)).toBe(MIN_WAGE);
     expect(applyFloorCeiling(50_000_000, 2026, DEFAULT_PARAMETER_SET)).toBe(CEILING);
   });
+
+  it("INPC: Feb/2024 0,81% (BCB SGS 188) corrects Jan/2024 wage to DIB Mar/2024", () => {
+    // Lei 8.213 art. 29-B: product of INPC from month after competence through DIB−1.
+    // Competence 2024-01, DIB 2024-03 → only Feb/2024 = 0,81%.
+    expect(inpcMonthlyPercent("2024-02")).toBe(0.81);
+    expect(inpcCorrectionFactor("2024-01", "2024-03")).toBeCloseTo(1.0081, 10);
+    const history = fillContributionRange("2024-01", "2024-01", 100_000, "clt");
+    const sb = benefitSalaryCents(
+      person({
+        sex: "F",
+        birthDate: "1970-01-01",
+        filiationDate: "1990-01-01",
+        history,
+      }),
+      "2024-03-01",
+      DEFAULT_PARAMETER_SET
+    );
+    // 100_000 × 1,0081 = 100_810
+    expect(sb).toBe(100_810);
+  });
 });
 
 describe("INSS — permanent vs 2026 transition", () => {
-  it("woman filiated after the reform, 62, 15y at the ceiling → RMI R$ 5.085,33", () => {
-    // 2020-01 through 2034-12 = 180 months. Age 62 on 2035-01-01 if born 1973-01-01.
-    const history = fillContributionRange("2020-01", "2034-12", CEILING, "clt");
+  it("woman filiated after the reform, 62, 15y at the 2026 teto → RMI R$ 5.085,33", () => {
+    // 180 months at the 2026 teto, already in DIB money. Age 62 on 2041-01-01 if born 1979-01-01.
+    const history = frozenRange("2026-01", "2040-12", CEILING);
     const ev = evaluateInss(
       person({
         sex: "F",
-        birthDate: "1973-01-01",
-        filiationDate: "2020-01-01",
-        asOf: "2035-01-01",
+        birthDate: "1979-01-01",
+        filiationDate: "2026-01-01",
+        asOf: "2041-01-01",
         history,
       }),
       { discountReal: 0, lifeExpectancyAge: 90 }
@@ -127,13 +184,13 @@ describe("INSS — permanent vs 2026 transition", () => {
     const perm = ev.ranked.find((r) => r.ruleId === "permanent");
     expect(perm?.eligible).toBe(true);
     expect(perm?.coefficient).toBeCloseTo(0.6, 10);
-    // 847_555 × 0.60 = 508_533 cents = R$ 5.085,33
+    // Portaria MPS/MF 13/2026 art. 2º: 8.475,55 × 0,60 = 5.085,33
     expect(perm?.rmiCents).toBe(508_533);
     expect(ev.best?.ruleId).toBe("permanent");
   });
 
   it("man aged 64 with 20y after the reform is not yet eligible", () => {
-    const history = fillContributionRange("2015-01", "2034-12", CEILING, "clt");
+    const history = frozenRange("2015-01", "2034-12", CEILING);
     const ev = evaluateInss(
       person({
         sex: "M",
@@ -149,7 +206,7 @@ describe("INSS — permanent vs 2026 transition", () => {
   });
 
   it("2026 points: woman 55 + 38y TC = 93, coefficient 106%", () => {
-    const history = fillContributionRange("1988-01", "2025-12", CEILING, "clt");
+    const history = frozenRange("1988-01", "2025-12", 50_000);
     const ev = evaluateInss(
       person({
         sex: "F",
@@ -164,12 +221,10 @@ describe("INSS — permanent vs 2026 transition", () => {
     expect(points?.eligible).toBe(true);
     // 38 complete years, Tmin 15 → 60% + 2%×23 = 106%
     expect(points?.coefficient).toBeCloseTo(1.06, 10);
-    // 106% of the ceiling is still the ceiling (teto do RGPS).
-    expect(points?.rmiCents).toBe(CEILING);
   });
 
   it("progressive age 2026: woman needs 59y6m + 30y TC", () => {
-    const history = fillContributionRange("1996-01", "2025-12", CEILING, "clt");
+    const history = frozenRange("1996-01", "2025-12", CEILING);
     const tooYoung = evaluateInss(
       person({
         sex: "F",
@@ -239,7 +294,7 @@ describe("INSS — permanent vs 2026 transition", () => {
   });
 
   it("ADI 6309: special has no minimum age; points 86 kept by default", () => {
-    const history = fillContributionRange("2001-01", "2025-12", CEILING, "clt", {
+    const history = frozenRange("2001-01", "2025-12", CEILING, "clt", {
       specialExposureYears: 25,
     });
     const young = evaluateInss(
@@ -485,6 +540,17 @@ describe("Pensão por morte RGPS", () => {
     });
     expect(at45.lifetime).toBe(true);
     expect(at45.durationMonths).toBeNull();
+    // First year of Portaria 424: death in 2021 at 44 is still 20 years.
+    expect(
+      survivorPension({
+        deceasedRetirementCents: 500_000,
+        dependentCount: 1,
+        deceasedContributionMonths: 120,
+        marriageMonths: 60,
+        survivorAgeAtDeath: 44,
+        year: 2021,
+      }).durationMonths
+    ).toBe(240);
     // Portaria 424 brackets: 21→3y, 22→6y, 42→20y (not lifetime).
     expect(
       survivorPension({
@@ -858,12 +924,118 @@ describe("FGTS and RendA+ hooks", () => {
 });
 
 describe("2026 parameter pack", () => {
-  it("points and progressive ages follow the published series", () => {
+  it("points and progressive ages follow EC 103 art. 15–16, including 2025", () => {
+    expect(paramsForYear(DEFAULT_PARAMETER_SET, 2025).inssPointsWoman).toBe(92);
+    expect(paramsForYear(DEFAULT_PARAMETER_SET, 2025).inssPointsMan).toBe(102);
     expect(paramsForYear(DEFAULT_PARAMETER_SET, 2026).inssPointsWoman).toBe(93);
     expect(paramsForYear(DEFAULT_PARAMETER_SET, 2026).inssPointsMan).toBe(103);
     expect(paramsForYear(DEFAULT_PARAMETER_SET, 2027).inssPointsWoman).toBe(94);
     expect(paramsForYear(DEFAULT_PARAMETER_SET, 2028).inssPointsMan).toBe(105);
     expect(paramsForYear(DEFAULT_PARAMETER_SET, 2026).inssProgressiveAgeWomanMonths).toBe(59 * 12 + 6);
     expect(paramsForYear(DEFAULT_PARAMETER_SET, 2031).inssProgressiveAgeWomanMonths).toBe(62 * 12);
+  });
+
+  it("teacher 2026: 88/98 points and 54y6m/59y6m (EC 103 art. 15 §3º / 16 §2º)", () => {
+    const p = paramsForYear(DEFAULT_PARAMETER_SET, 2026);
+    expect(p.inssTeacherPointsWoman).toBe(88);
+    expect(p.inssTeacherPointsMan).toBe(98);
+    expect(p.inssTeacherProgressiveAgeWomanMonths).toBe(54 * 12 + 6);
+    expect(p.inssTeacherProgressiveAgeManMonths).toBe(59 * 12 + 6);
+    expect(paramsForYear(DEFAULT_PARAMETER_SET, 2030).inssTeacherPointsWoman).toBe(92);
+    expect(paramsForYear(DEFAULT_PARAMETER_SET, 2028).inssTeacherPointsMan).toBe(100);
+  });
+
+  it("historical teto and piso are not cloned from 2026", () => {
+    expect(paramsForYear(DEFAULT_PARAMETER_SET, 1995).rgpsCeilingCents).toBe(58_286);
+    expect(paramsForYear(DEFAULT_PARAMETER_SET, 2025).rgpsCeilingCents).toBe(815_741);
+    expect(paramsForYear(DEFAULT_PARAMETER_SET, 2025).minimumWageCents).toBe(151_800);
+    expect(minimumWageAt("2026-01").cents).toBe(162_100);
+    expect(rgpsCeilingAt("2026-01").cents).toBe(847_555);
+  });
+});
+
+describe("INSS — Tmin homem art. 18 / art. 26", () => {
+  it("access is 15 years; coefficient Tmin is 20 (EC 103 art. 26 §2 I; IN 128 art. 233 III b)", () => {
+    // 19 complete years, age 65, filiated before the reform.
+    const history = frozenRange("2007-01", "2025-12", 50_000);
+    const base = person({
+      sex: "M",
+      birthDate: "1961-01-01",
+      filiationDate: "1990-01-01",
+      asOf: "2026-01-01",
+      history,
+    });
+    const def = evaluateInss(base, { discountReal: 0 });
+    const byAge = def.ranked.find((r) => r.ruleId === "by_age");
+    expect(byAge?.eligible).toBe(true);
+    expect(byAge?.contributionYears).toBe(19);
+    // 60% + 2% × max(0, 19−20) = 60%
+    expect(byAge?.coefficient).toBeCloseTo(0.6, 10);
+    expect(byAge?.uncertain).toBeFalsy();
+
+    const alt = evaluateInss(base, {
+      discountReal: 0,
+      premises: { maleByAgeTminYears: 15 },
+    });
+    // Alternate premise 15: 60% + 2% × 4 = 68%
+    expect(alt.ranked.find((r) => r.ruleId === "by_age")?.coefficient).toBeCloseTo(0.68, 10);
+  });
+});
+
+describe("INSS — professor 2026 (EC 103 art. 15 §3º / 16 §2º)", () => {
+  it("teacher points 2026: woman 50 + 38y magistério = 88, not the general 93", () => {
+    const history = frozenRange("1988-01", "2025-12", 50_000, "clt", { teacher: true });
+    const ev = evaluateInss(
+      person({
+        sex: "F",
+        birthDate: "1976-01-01",
+        filiationDate: "1988-01-01",
+        asOf: "2026-01-01",
+        teacher: true,
+        history,
+      }),
+      { discountReal: 0 }
+    );
+    const teacherPts = ev.ranked.find((r) => r.ruleId === "teacher_points");
+    expect(teacherPts?.eligible).toBe(true);
+    expect(teacherPts?.uncertain).toBeFalsy();
+    expect(teacherPts!.eligibilityDate.startsWith("2026-01")).toBe(true);
+    const general = ev.ranked.find((r) => r.ruleId === "points");
+    expect(general?.eligible).toBe(true);
+    expect(general!.eligibilityDate > teacherPts!.eligibilityDate).toBe(true);
+  });
+
+  it("teacher progressive age 2026 is 54y6m for women", () => {
+    const history = frozenRange("2001-01", "2025-12", 50_000, "clt", { teacher: true });
+    const tooYoung = evaluateInss(
+      person({
+        sex: "F",
+        birthDate: "1972-01-01",
+        filiationDate: "2001-01-01",
+        asOf: "2026-01-01",
+        teacher: true,
+        history,
+      })
+    );
+    const progressive = tooYoung.ranked.find((r) => r.ruleId === "teacher_progressive_age");
+    expect(progressive?.eligible).toBe(true);
+    expect(progressive!.eligibilityDate > "2026-01-01").toBe(true);
+
+    const oldEnough = evaluateInss(
+      person({
+        sex: "F",
+        birthDate: "1971-07-01",
+        filiationDate: "2001-01-01",
+        asOf: "2026-01-01",
+        teacher: true,
+        history,
+      })
+    );
+    expect(
+      oldEnough.ranked.find((r) => r.ruleId === "teacher_progressive_age")?.eligible
+    ).toBe(true);
+    expect(
+      oldEnough.ranked.find((r) => r.ruleId === "teacher_progressive_age")?.uncertain
+    ).toBeFalsy();
   });
 });

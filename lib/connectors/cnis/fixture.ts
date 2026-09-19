@@ -8,13 +8,18 @@ export const CNIS_FIXTURE_FILIATION = "1994-02-01";
 export const CNIS_FIXTURE_NAME = "MARIA SILVA";
 export const CNIS_FIXTURE_NIT = "12345678901";
 
-/** Unique wage months since 07/1994 after collapsing concomitância. */
+/**
+ * Unique wage months since 07/1994 after collapsing concomitância.
+ */
 export const CNIS_FIXTURE_SB_MONTHS = 378;
 /**
- * (132×150000 + 6×350000 + 156×200000 + 84×400000) / 378
- * = 86_700_000 / 378 = 229365.079… → 229365 cents.
+ * Independent of the engine: cap each competence at the official teto then
+ * apply INPC (BCB SGS 188) to the month before DIB 2026-09
+ * (Lei 8.213 art. 29-B). 132×R$1.500 + 6×R$3.500 + 156×R$2.000 + 84×R$4.000
+ * → 101 months above the teto of the competence; corrected average
+ * R$ 4.968,62.
  */
-export const CNIS_FIXTURE_SB_CENTS = 229_365;
+export const CNIS_FIXTURE_SB_CENTS = 496_862;
 /** CLT months as common TC. Special months before 2019-11 still convert (EC 103). 294 + 10 (2019-01..2019-10) = 304. */
 export const CNIS_FIXTURE_TC_MONTHS = 304;
 export const CNIS_FIXTURE_ESPECIAL_MONTHS = 84;
