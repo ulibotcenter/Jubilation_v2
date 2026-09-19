@@ -23,6 +23,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
 import { HouseholdCard } from "@/components/settings/HouseholdCard";
+import { B3ConsentCard } from "@/components/settings/B3ConsentCard";
 
 const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
   { code: "en", labelKey: "locale.en" },
@@ -172,6 +173,7 @@ export function SettingsPageContent() {
         </section>
 
         <HouseholdCard />
+        <B3ConsentCard />
 
         <section className="settings-page-card">
           <div className="settings-page-card-head">

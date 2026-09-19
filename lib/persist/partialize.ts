@@ -16,6 +16,9 @@ export function partializePersistedState<
     institutions: unknown;
     accounts: unknown;
     entitlements: unknown;
+    consents: unknown;
+    consentAuditLog: unknown;
+    connectorSync: unknown;
     household: unknown;
     user: unknown;
     explainSimple: unknown;
@@ -45,6 +48,9 @@ export function partializePersistedState<
     institutions: state.institutions,
     accounts: state.accounts,
     entitlements: state.entitlements,
+    consents: state.consents,
+    consentAuditLog: state.consentAuditLog,
+    connectorSync: state.connectorSync,
     household: state.household,
     user: state.user,
     planTier: "free" as const,

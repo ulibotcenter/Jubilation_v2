@@ -89,6 +89,11 @@ export function PortfolioHoldingsTable({
                       <p className="text-[11px] text-muted-foreground truncate">
                         {asset.name}
                       </p>
+                      {asset.source === "B3_API" && asset.asOf ? (
+                        <p className="text-[10px] text-muted tabular-nums">
+                          {t("portfolio.b3.sourceAsOf", { date: asset.asOf })}
+                        </p>
+                      ) : null}
                       <span className="portfolio-asset-class-badge mt-0.5 inline-block">
                         {getAssetClassLabel(locale, asset.assetClass)}
                         {asset.currency === "BRL" && (

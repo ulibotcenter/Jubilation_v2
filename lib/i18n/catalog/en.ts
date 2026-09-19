@@ -687,6 +687,32 @@ export const EN = {
     "Dashboard ready in {currency}. Edit assumptions anytime — we'll recalculate instantly.",
   "toast.onboarding.completeDescReal":
     "The numbers on the dashboard come from what you typed.",
+  "portfolio.connectB3": "Connect B3",
+  "portfolio.syncB3": "Sync B3",
+  "portfolio.b3.syncing": "Syncing B3…",
+  "portfolio.b3.consentTitle": "Authorize B3 custody",
+  "portfolio.b3.authorize": "Authorize and load",
+  "portfolio.b3.revoke": "Revoke B3 access",
+  "portfolio.b3.asOf": "as of {date}",
+  "portfolio.b3.stale": "B3 stale since {date}",
+  "portfolio.b3.fixture": "fixture",
+  "portfolio.b3.partial": "partial",
+  "portfolio.b3.sourceAsOf": "B3 · {date}",
+  "portfolio.b3.noAdvice":
+    "We consolidate position and return of the imported sleeve. We do not recommend a ticker (CVM 19).",
+  "settings.b3.title": "B3 connection",
+  "settings.b3.body":
+    "Commercial licence to the Investor Logged Area (not Open Finance). Consent is revocable; collection stops immediately.",
+  "settings.b3.active": "B3 consent is active.",
+  "settings.b3.revoked": "B3 consent revoked. Collection stopped; imported rows stay.",
+  "settings.b3.none": "B3 is not connected.",
+  "settings.b3.export": "Export consent log",
+  "toast.b3.synced": "B3 sandbox synced",
+  "toast.b3.fixtureSynced": "B3 fixture loaded",
+  "toast.b3.error": "Could not sync B3",
+  "toast.b3.consentRequired": "Authorize B3 before syncing",
+  "toast.b3.revoked": "B3 access revoked",
+  "toast.b3.exported": "Consent log downloaded",
 } as const;
 
 export type MessageKey = keyof typeof EN;

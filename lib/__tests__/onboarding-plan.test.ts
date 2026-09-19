@@ -96,6 +96,9 @@ describe("onboarding plan", () => {
       institutions: [],
       accounts: [],
       entitlements: [],
+      consents: [],
+      consentAuditLog: [],
+      connectorSync: {},
       household,
       user: {
         id: "local-user",

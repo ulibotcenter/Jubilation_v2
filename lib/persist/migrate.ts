@@ -17,6 +17,9 @@ interface LooseState {
   institutions?: unknown;
   accounts?: unknown;
   entitlements?: unknown;
+  consents?: unknown;
+  consentAuditLog?: unknown;
+  connectorSync?: unknown;
   [key: string]: unknown;
 }
 
@@ -57,6 +60,14 @@ export function migratePersistedState(
     institutions: Array.isArray(raw.institutions) ? raw.institutions : [],
     accounts: Array.isArray(raw.accounts) ? raw.accounts : [],
     entitlements: Array.isArray(raw.entitlements) ? raw.entitlements : [],
+    consents: Array.isArray(raw.consents) ? raw.consents : [],
+    consentAuditLog: Array.isArray(raw.consentAuditLog)
+      ? raw.consentAuditLog
+      : [],
+    connectorSync:
+      raw.connectorSync && typeof raw.connectorSync === "object"
+        ? raw.connectorSync
+        : {},
     household: isHousehold(raw.household) ? raw.household : undefined,
     persistVersion: Math.max(fromVersion, CURRENT_PERSIST_VERSION),
   };

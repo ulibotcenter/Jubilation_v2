@@ -59,3 +59,17 @@ export interface Entitlement {
   source: DataSource;
   confidence: Confidence;
 }
+
+export interface CashFlow {
+  id: string;
+  accountId: string;
+  date: string;
+  amountCents: number;
+  currency: Currency;
+  direction: "in" | "out";
+  category: "trade" | "dividend" | "interest" | "transfer" | "other";
+  source: DataSource;
+  asOf: string;
+  externalRef: string;
+  confidence: Confidence;
+}

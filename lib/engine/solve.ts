@@ -14,7 +14,8 @@ function survives(plan: EnginePlan): boolean {
   return projectPlan(plan).ruinAge == null;
 }
 
-function bisect(
+/** Smallest feasible x in [lo, hi]. Used for contribution. */
+function bisectMin(
   lo: number,
   hi: number,
   feasible: (x: number) => boolean,
@@ -34,6 +35,27 @@ function bisect(
   return { value: b, iterations: i + 1, feasible: true };
 }
 
+/** Largest feasible x in [lo, hi]. Used for sustainable income. */
+function bisectMax(
+  lo: number,
+  hi: number,
+  feasible: (x: number) => boolean,
+  maxIter = 48
+): { value: number; iterations: number; feasible: boolean } {
+  if (!feasible(lo)) return { value: lo, iterations: 0, feasible: false };
+  if (feasible(hi)) return { value: hi, iterations: 0, feasible: true };
+  let a = lo;
+  let b = hi;
+  let i = 0;
+  for (; i < maxIter; i++) {
+    const mid = (a + b) / 2;
+    if (feasible(mid)) a = mid;
+    else b = mid;
+    if (b - a < 1) break;
+  }
+  return { value: a, iterations: i + 1, feasible: true };
+}
+
 /**
  * One engine, one solver, three questions:
  * - income: max sustainable monthly net spending with date fixed
@@ -43,17 +65,23 @@ function bisect(
 export function solvePlan(plan: EnginePlan, unknown: SolveUnknown): SolveResult {
   if (unknown === "income") {
     const hi = Math.max(
-      100_000,
+      50_000_00,
       plan.liquidCents / 12,
-      plan.monthlySpendingCents * 4,
-      50_000_00
+      plan.monthlyContributionCents * 240,
+      1_000_00
     );
-    const found = bisect(0, hi, (cents) =>
-      survives({ ...plan, monthlySpendingCents: Math.round(cents) })
-    );
+    // Spending of 0 falls through to lifestyle / 4% inside projectPlan.
+    // Zero lifestyle and start at 1 cent so the search is the actual spend.
+    const trial = (cents: number) =>
+      survives({
+        ...plan,
+        monthlySpendingCents: Math.round(cents),
+        monthlyLifestyleCents: 0,
+      });
+    const found = bisectMax(1, hi, trial);
     return {
       unknown,
-      value: found.value / 100,
+      value: found.feasible ? found.value / 100 : 0,
       iterations: found.iterations,
       feasible: found.feasible,
     };
@@ -61,7 +89,7 @@ export function solvePlan(plan: EnginePlan, unknown: SolveUnknown): SolveResult 
 
   if (unknown === "contribution") {
     const hi = Math.max(50_000_00, plan.monthlyContributionCents * 20, 1_000_00);
-    const found = bisect(0, hi, (cents) =>
+    const found = bisectMin(0, hi, (cents) =>
       survives({ ...plan, monthlyContributionCents: Math.round(cents) })
     );
     return {
