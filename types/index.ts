@@ -5,14 +5,16 @@
 
 // ─── i18n (future: next-intl) ────────────────────────────────
 
-/** Supported locales — EN launch, PT/ES planned */
+/** Supported locales. Product default is Brazilian Portuguese (`pt` → html `pt-BR`). */
 export type Locale = "en" | "pt" | "es";
 
-export const DEFAULT_LOCALE: Locale = "en";
+export const DEFAULT_LOCALE: Locale = "pt";
 
 // ─── Currency ──────────────────────────────────────────────
 
 export type Currency = "BRL" | "USD" | "EUR";
+
+export const DEFAULT_CURRENCY: Currency = "BRL";
 
 export interface CurrencyOption {
   code: Currency;
@@ -23,8 +25,8 @@ export interface CurrencyOption {
 }
 
 export const CURRENCIES: CurrencyOption[] = [
-  { code: "USD", symbol: "$", label: "USD", name: "US Dollar" },
   { code: "BRL", symbol: "R$", label: "BRL", name: "Brazilian Real" },
+  { code: "USD", symbol: "$", label: "USD", name: "US Dollar" },
   { code: "EUR", symbol: "€", label: "EUR", name: "Euro" },
 ];
 
@@ -272,13 +274,13 @@ export interface KPIValues {
 }
 
 export const DEFAULT_KPI_VALUES: KPIValues = {
-  currentAge: 42,
-  retirementAge: 60,
+  currentAge: 40,
+  retirementAge: 65,
   lifeExpectancy: DEFAULT_LIFE_EXPECTANCY,
-  currentNetWorth: 810_000,
-  monthlyContribution: 4_500,
-  monthlyExpenses: 9_500,
-  desiredMonthlyIncome: 7_000,
+  currentNetWorth: 0,
+  monthlyContribution: 0,
+  monthlyExpenses: 0,
+  desiredMonthlyIncome: 0,
   /** Nominal; engine converts via Fisher. 7.1% ≈ 4% real at 3% inflation. */
   expectedCAGR: 7.1,
   annualInflation: 3.0,
@@ -329,6 +331,25 @@ export type DataSource =
   | "COINGECKO";
 export type Confidence = "high" | "medium" | "low";
 
+export type ManualKind =
+  | "cash"
+  | "pgbl"
+  | "vgbl"
+  | "fgts"
+  | "home"
+  | "rental"
+  | "land"
+  | "vehicle"
+  | "jewelry"
+  | "collection"
+  | "custom";
+
+export interface DatedValuePoint {
+  asOf: string;
+  value: number;
+  source: DataSource;
+}
+
 export interface PortfolioAsset {
   id: string;
   ticker: string;
@@ -358,6 +379,12 @@ export interface PortfolioAsset {
   institutionId?: string | null;
   accountId?: string | null;
   ownership?: "holder" | "spouse" | "joint";
+  /** Preset used for B3-outside holdings (PGBL, FGTS, home, …). */
+  manualKind?: ManualKind;
+  /** Explicit real appreciation between dated updates (%). */
+  realReturn?: number;
+  /** Append-only (as_of, value) series. Latest point is currentPrice × quantity. */
+  valueHistory?: DatedValuePoint[];
 }
 
 export interface TickerSearchResult {
@@ -565,9 +592,9 @@ export interface UserProfile {
 }
 
 export const DEFAULT_USER: UserProfile = {
-  id: "demo-user",
-  name: "Alex Morgan",
-  email: "alex@demo.jubilation.app",
+  id: "local-user",
+  name: "Você",
+  email: "",
   avatarUrl: null,
   plan: "free",
   subscriptionStatus: "none",

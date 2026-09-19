@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { htmlLang } from "@/lib/i18n/htmlLang";
 import { t, type AppLocale, type MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -10,7 +11,7 @@ export function useTranslation() {
 
   useEffect(() => {
     if (typeof document !== "undefined") {
-      document.documentElement.lang = locale;
+      document.documentElement.lang = htmlLang(locale);
     }
   }, [locale]);
 

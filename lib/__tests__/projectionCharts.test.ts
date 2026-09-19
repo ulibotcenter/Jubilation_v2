@@ -29,12 +29,28 @@ import {
 import { normalizePortfolioCagr } from "@/lib/portfolioCagr";
 import { syncNetWorthWithPortfolio } from "@/lib/netWorthSync";
 
+/** Chart tests keep the old funded demo plan. Product defaults are empty until onboarding. */
+const DEMO_KPI_FIXTURE = normalizeKpiValues({
+  currentAge: 42,
+  retirementAge: 60,
+  lifeExpectancy: 90,
+  currentNetWorth: 810_000,
+  monthlyContribution: 4_500,
+  monthlyExpenses: 9_500,
+  desiredMonthlyIncome: 7_000,
+  expectedCAGR: 7.1,
+  annualInflation: 3,
+});
+
 function demoStoreProjections() {
   const portfolio = normalizePortfolioCagr(MOCK_PORTFOLIO);
   const includedIds = applyScopePreset(portfolio, "investmentsOnly");
   const seedTotal = Math.round(calculatePortfolioValue(portfolio));
   const kpis = syncNetWorthWithPortfolio(
-    normalizeKpiValues({ currentNetWorth: seedTotal }),
+    normalizeKpiValues({
+      ...DEMO_KPI_FIXTURE,
+      currentNetWorth: seedTotal,
+    }),
     portfolio,
     0
   );
@@ -46,7 +62,7 @@ function demoStoreProjections() {
 }
 
 describe("projection engine", () => {
-  const kpis = DEFAULT_KPI_VALUES;
+  const kpis = DEMO_KPI_FIXTURE;
   const projections = generateExtendedProjections(kpis);
 
   it("runs through user life expectancy", () => {
@@ -59,7 +75,10 @@ describe("projection engine", () => {
     const includedIds = applyScopePreset(portfolio, "investmentsOnly");
     const seedTotal = Math.round(calculatePortfolioValue(portfolio));
     const kpis = syncNetWorthWithPortfolio(
-      normalizeKpiValues({ currentNetWorth: seedTotal }),
+      normalizeKpiValues({
+        ...DEMO_KPI_FIXTURE,
+        currentNetWorth: seedTotal,
+      }),
       portfolio,
       0
     );
@@ -130,7 +149,7 @@ describe("projection engine", () => {
 });
 
 describe("projection chart data", () => {
-  const kpis = DEFAULT_KPI_VALUES;
+  const kpis = DEMO_KPI_FIXTURE;
   const projections = generateExtendedProjections(kpis);
 
   it("extends chart through life expectancy", () => {
@@ -148,7 +167,10 @@ describe("projection chart data", () => {
     const includedIds = applyScopePreset(portfolio, "investmentsOnly");
     const seedTotal = Math.round(calculatePortfolioValue(portfolio));
     const demoKpis = syncNetWorthWithPortfolio(
-      normalizeKpiValues({ currentNetWorth: seedTotal }),
+      normalizeKpiValues({
+        ...DEMO_KPI_FIXTURE,
+        currentNetWorth: seedTotal,
+      }),
       portfolio,
       0
     );
@@ -214,7 +236,10 @@ describe("projection chart data", () => {
     const includedIds = applyScopePreset(portfolio, "investmentsOnly");
     const seedTotal = Math.round(calculatePortfolioValue(portfolio));
     const demoKpis = syncNetWorthWithPortfolio(
-      normalizeKpiValues({ currentNetWorth: seedTotal }),
+      normalizeKpiValues({
+        ...DEMO_KPI_FIXTURE,
+        currentNetWorth: seedTotal,
+      }),
       portfolio,
       0
     );
@@ -245,7 +270,7 @@ describe("projection chart data", () => {
 });
 
 describe("cash flow chart data", () => {
-  const kpis = DEFAULT_KPI_VALUES;
+  const kpis = DEMO_KPI_FIXTURE;
   const projections = generateExtendedProjections(kpis);
 
   it("line matches portfolio value every year (zero drift)", () => {
@@ -328,7 +353,7 @@ describe("cash flow chart data", () => {
   it("demo cash flow reconciles end-to-end", () => {
     const projections = demoStoreProjections();
     const kpis = {
-      ...DEFAULT_KPI_VALUES,
+      ...DEMO_KPI_FIXTURE,
       currentNetWorth: projections[0]?.portfolioValue ?? 0,
     };
     const series = buildCashFlowChartSeries(projections, kpis);
@@ -358,7 +383,7 @@ describe("cash flow chart data", () => {
 
 describe("legacy monte carlo wrapper", () => {
   it("uses real-return engine for KPI-only simulations", () => {
-    const kpis = DEFAULT_KPI_VALUES;
+    const kpis = DEMO_KPI_FIXTURE;
     const projections = generateExtendedProjections(kpis);
     const det = getRetirementPortfolioValue(projections, kpis.retirementAge);
     const config = buildSingleBucketConfig(kpis);

@@ -46,6 +46,14 @@ describe("persist migrate", () => {
     expect(next.portfolio).toBeUndefined();
   });
 
+  it("keeps an explicitly empty portfolio empty", () => {
+    const next = migratePersistedState(
+      { kpis: { currentAge: 48, monthlyContribution: 600 }, portfolio: [] },
+      0
+    );
+    expect(next.portfolio).toEqual([]);
+  });
+
   it("keeps the named user and the spouse through migrate", () => {
     const asOf = "2026-01-01";
     const household = defaultHousehold(asOf, "1976-06-01", "F");

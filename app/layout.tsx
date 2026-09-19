@@ -21,11 +21,11 @@ const APP_URL =
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: "Jubilation — Retirement Planning",
+    default: "Jubilation — Planejamento de aposentadoria",
     template: "%s | Jubilation",
   },
   description:
-    "Premium retirement planning dashboard. Track your portfolio, edit assumptions, run Monte Carlo simulations and stress tests. Free beta.",
+    "Painel de planejamento de aposentadoria. Acompanhe a carteira, edite premissas, rode simulações e testes de estresse. Beta gratuito.",
   applicationName: "Jubilation",
   keywords: [
     "retirement planning",
@@ -47,12 +47,12 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    locale: "en_US",
+    locale: "pt_BR",
     url: APP_URL,
     siteName: "Jubilation",
-    title: "Jubilation — Retirement Planning",
+    title: "Jubilation — Planejamento de aposentadoria",
     description:
-      "Plan your retirement with confidence. Projections, simulations, and stress tests in one premium dashboard.",
+      "Planeje a aposentadoria com projeções, simulações e testes de estresse em um painel só.",
   },
   twitter: {
     card: "summary_large_image",
@@ -93,14 +93,14 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var r=localStorage.getItem('jubilation-v2-state');var s=r?JSON.parse(r):null;var st=s&&s.state;var th=(st&&st.theme)||'light';var loc=(st&&st.locale)||'en';var el=document.documentElement;el.classList.remove('dark','light');el.classList.add(th);el.style.colorScheme=th;el.lang=loc;}catch(e){document.documentElement.classList.add('light');}})();`,
+            __html: `(function(){try{var r=localStorage.getItem('jubilation-v2-state');var s=r?JSON.parse(r):null;var st=s&&s.state;var th=(st&&st.theme)||'light';var loc=(st&&st.locale)||'pt';var el=document.documentElement;el.classList.remove('dark','light');el.classList.add(th);el.style.colorScheme=th;el.lang=loc==='pt'?'pt-BR':loc==='es'?'es':'en';}catch(e){document.documentElement.classList.add('light');document.documentElement.lang='pt-BR';}})();`,
           }}
         />
       </head>
