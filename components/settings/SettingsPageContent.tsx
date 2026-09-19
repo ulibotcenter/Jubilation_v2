@@ -235,9 +235,9 @@ export function SettingsPageContent() {
             <h2>{t("settings.account")}</h2>
           </div>
           <p className="settings-page-card-body font-medium text-foreground">
-            {user.name}
+            {user?.name}
           </p>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
           <span className="settings-plan-badge">
             {t("plan.currentBadge", {
               plan: t(`plan.${planTier}` as MessageKey),

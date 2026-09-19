@@ -1575,6 +1575,7 @@ export const useAppStore = create<AppStore>()(
           ...migrated,
           persistVersion: CURRENT_PERSIST_VERSION,
           planTier: "free",
+          user: migrated.user ?? current.user,
           tenant: migrated.tenant ?? DEFAULT_TENANT,
           institutions: migrated.institutions ?? [],
           accounts: migrated.accounts ?? [],
