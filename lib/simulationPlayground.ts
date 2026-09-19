@@ -8,6 +8,8 @@ import {
   applyPortfolioCagrToKpis,
   normalizePortfolioCagr,
 } from "@/lib/portfolioCagr";
+import { liveFxQuote, type FxSnapshot } from "@/lib/fx/types";
+import type { Currency } from "@/types";
 import {
   DEFAULT_KPI_VALUES,
   normalizeKpiValues,
@@ -101,18 +103,22 @@ export function buildPlaygroundProjections(state: {
   portfolio: PortfolioAsset[];
   simulationIncludedAssetIds: string[];
   kpiOutsidePortfolio: number;
+  currency?: Currency;
+  fxSnapshot?: FxSnapshot | null;
   monteCarlo?: {
     hasRun?: boolean;
     results: MonteCarloResult[];
     pathsByAge?: MonteCarloState["pathsByAge"];
   };
 }) {
+  const quote = liveFxQuote(state.currency ?? "USD", state.fxSnapshot);
   const portfolio = normalizePortfolioCagr(state.portfolio);
   const syncedKpis = applyPortfolioCagrToKpis(
     syncNetWorthWithPortfolio(
       normalizeKpiValues(state.kpis),
       portfolio,
-      state.kpiOutsidePortfolio
+      state.kpiOutsidePortfolio,
+      quote
     ),
     portfolio
   );
@@ -120,13 +126,15 @@ export function buildPlaygroundProjections(state: {
     syncedKpis,
     portfolio,
     state.simulationIncludedAssetIds,
-    state.kpiOutsidePortfolio
+    state.kpiOutsidePortfolio,
+    quote
   );
   const engineConfig = buildProjectionEngineConfig(
     effectiveKpis,
     portfolio,
     state.simulationIncludedAssetIds,
-    state.kpiOutsidePortfolio
+    state.kpiOutsidePortfolio,
+    quote
   );
   const projections = projectPlan(engineConfig.plan).years;
   const mcBase =
@@ -156,6 +164,8 @@ export function snapshotFromRealState(real: {
   kpiOutsidePortfolio: number;
   portfolio: PortfolioAsset[];
   simulationIncludedAssetIds: string[];
+  currency?: Currency;
+  fxSnapshot?: FxSnapshot | null;
 }): SimulationPlaygroundState {
   const { portfolio, idMap } = clonePortfolioForSimulation(real.portfolio);
   const simulationIncludedAssetIds = real.simulationIncludedAssetIds
@@ -172,6 +182,8 @@ export function snapshotFromRealState(real: {
     kpiOutsidePortfolio: real.kpiOutsidePortfolio,
     portfolio,
     simulationIncludedAssetIds: included,
+    currency: real.currency,
+    fxSnapshot: real.fxSnapshot,
   });
 
   return {
@@ -219,6 +231,8 @@ export function normalizeSimPlayground(
     kpiOutsidePortfolio: number;
     portfolio: PortfolioAsset[];
     simulationIncludedAssetIds: string[];
+    currency?: Currency;
+    fxSnapshot?: FxSnapshot | null;
   }
 ): SimulationPlaygroundState {
   if (!persisted?.isActive || !persisted.portfolio?.length) {
@@ -226,7 +240,11 @@ export function normalizeSimPlayground(
   }
 
   const merged = mergePersistedPlayground(persisted);
-  const built = buildPlaygroundProjections(merged);
+  const built = buildPlaygroundProjections({
+    ...merged,
+    currency: real.currency,
+    fxSnapshot: real.fxSnapshot,
+  });
 
   return {
     ...merged,
@@ -241,12 +259,16 @@ export function initialPlaygroundFromMock(
   kpis: KPIValues,
   kpiOutsidePortfolio: number,
   portfolio: PortfolioAsset[],
-  simulationIncludedAssetIds: string[]
+  simulationIncludedAssetIds: string[],
+  currency?: Currency,
+  fxSnapshot?: FxSnapshot | null
 ): SimulationPlaygroundState {
   return snapshotFromRealState({
     kpis,
     kpiOutsidePortfolio,
     portfolio,
     simulationIncludedAssetIds,
+    currency,
+    fxSnapshot,
   });
 }

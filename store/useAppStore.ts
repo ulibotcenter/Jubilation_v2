@@ -5,9 +5,8 @@ import { persist } from "zustand/middleware";
 import { normalizeB3Ticker } from "@/lib/market/b3";
 import type { QuoteResult } from "@/lib/market/types";
 import { convertAmount, convertKpis } from "@/lib/fx/convert";
-import { FALLBACK_FX_RATES } from "@/lib/fx/types";
+import { liveFxQuote, type FxSnapshot } from "@/lib/fx/types";
 import { fetchFxRates } from "@/lib/fx/client";
-import type { FxSnapshot } from "@/lib/fx/types";
 import { fetchPortfolioQuotes } from "@/lib/marketClient";
 import { isNonMarketAsset } from "@/lib/physicalAssetPresets";
 import {
@@ -167,10 +166,7 @@ function buildProjectionsFromState(state: {
   currency?: Currency;
   fxSnapshot?: FxSnapshot | null;
 }) {
-  const quote = {
-    currency: state.currency ?? "USD",
-    rates: state.fxSnapshot?.rates ?? FALLBACK_FX_RATES,
-  };
+  const quote = liveFxQuote(state.currency ?? "USD", state.fxSnapshot);
   const portfolio = normalizePortfolioAssets(
     normalizePortfolioCagr(state.portfolio)
   );
@@ -409,10 +405,13 @@ function invalidateSimMonteCarlo(
 }
 
 function rebuildSimPlayground(
-  sim: SimulationPlaygroundState
+  sim: SimulationPlaygroundState,
+  fx: { currency: Currency; fxSnapshot?: FxSnapshot | null }
 ): SimulationPlaygroundState {
   const built = buildPlaygroundProjections({
     ...sim,
+    currency: fx.currency,
+    fxSnapshot: fx.fxSnapshot,
     monteCarlo: sim.monteCarlo.hasRun
       ? { hasRun: true, results: sim.monteCarlo.results }
       : undefined,
@@ -510,7 +509,9 @@ export const useAppStore = create<AppStore>()(
         initialBuild.kpis,
         initialOutside,
         SEED_PORTFOLIO,
-        defaultIncludedIds
+        defaultIncludedIds,
+        "USD",
+        null
       ),
 
       setLocale: (locale) => {
@@ -678,12 +679,15 @@ export const useAppStore = create<AppStore>()(
                 snapshot.rates
               )
             );
-            simPlayground = rebuildSimPlayground({
-              ...simPlayground,
-              kpis: convertedSimKpis,
-              kpiOutsidePortfolio: convertedSimOutside,
-              portfolio: simPlayground.portfolio,
-            });
+            simPlayground = rebuildSimPlayground(
+              {
+                ...simPlayground,
+                kpis: convertedSimKpis,
+                kpiOutsidePortfolio: convertedSimOutside,
+                portfolio: simPlayground.portfolio,
+              },
+              { currency: next, fxSnapshot: snapshot }
+            );
           }
 
           set({
@@ -1057,6 +1061,8 @@ export const useAppStore = create<AppStore>()(
             kpiOutsidePortfolio: state.kpiOutsidePortfolio,
             portfolio: state.portfolio,
             simulationIncludedAssetIds: state.simulationIncludedAssetIds,
+            currency: state.currency,
+            fxSnapshot: state.fxSnapshot,
           }),
         });
       },
@@ -1069,6 +1075,8 @@ export const useAppStore = create<AppStore>()(
             kpiOutsidePortfolio: state.kpiOutsidePortfolio,
             portfolio: state.portfolio,
             simulationIncludedAssetIds: state.simulationIncludedAssetIds,
+            currency: state.currency,
+            fxSnapshot: state.fxSnapshot,
           }),
         });
       },
@@ -1086,11 +1094,14 @@ export const useAppStore = create<AppStore>()(
             state.simPlayground.portfolio
           );
         }
-        const next = rebuildSimPlayground({
-          ...state.simPlayground,
-          kpis,
-          kpiOutsidePortfolio,
-        });
+        const next = rebuildSimPlayground(
+          {
+            ...state.simPlayground,
+            kpis,
+            kpiOutsidePortfolio,
+          },
+          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+        );
         set({
           simPlayground: next,
           simUndoStack: pushSimUndo(state.simPlayground, state.simUndoStack),
@@ -1112,11 +1123,14 @@ export const useAppStore = create<AppStore>()(
           ...state.simPlayground.simulationIncludedAssetIds,
           asset.id,
         ];
-        const next = rebuildSimPlayground({
-          ...state.simPlayground,
-          portfolio,
-          simulationIncludedAssetIds,
-        });
+        const next = rebuildSimPlayground(
+          {
+            ...state.simPlayground,
+            portfolio,
+            simulationIncludedAssetIds,
+          },
+          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+        );
         set({ simPlayground: next });
       },
 
@@ -1125,10 +1139,13 @@ export const useAppStore = create<AppStore>()(
         const portfolio = state.simPlayground.portfolio.map((a) =>
           a.id === id ? { ...a, ...patch } : a
         );
-        const next = rebuildSimPlayground({
-          ...state.simPlayground,
-          portfolio,
-        });
+        const next = rebuildSimPlayground(
+          {
+            ...state.simPlayground,
+            portfolio,
+          },
+          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+        );
         set({ simPlayground: next });
       },
 
@@ -1139,11 +1156,14 @@ export const useAppStore = create<AppStore>()(
           state.simPlayground.simulationIncludedAssetIds.filter(
             (aid) => aid !== id
           );
-        const next = rebuildSimPlayground({
-          ...state.simPlayground,
-          portfolio,
-          simulationIncludedAssetIds,
-        });
+        const next = rebuildSimPlayground(
+          {
+            ...state.simPlayground,
+            portfolio,
+            simulationIncludedAssetIds,
+          },
+          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+        );
         set({ simPlayground: next });
       },
 
@@ -1200,11 +1220,14 @@ export const useAppStore = create<AppStore>()(
           };
         });
 
-        const next = rebuildSimPlayground({
-          ...sim,
-          portfolio,
-          portfolioLastRefreshedAt: fetchedAt,
-        });
+        const next = rebuildSimPlayground(
+          {
+            ...sim,
+            portfolio,
+            portfolioLastRefreshedAt: fetchedAt,
+          },
+          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+        );
         set({ simPlayground: next });
         return {
           updated,
@@ -1218,10 +1241,13 @@ export const useAppStore = create<AppStore>()(
           state.simPlayground.portfolio.some((a) => a.id === id)
         );
         if (validIds.length === 0) return;
-        const next = rebuildSimPlayground({
-          ...state.simPlayground,
-          simulationIncludedAssetIds: validIds,
-        });
+        const next = rebuildSimPlayground(
+          {
+            ...state.simPlayground,
+            simulationIncludedAssetIds: validIds,
+          },
+          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+        );
         set({ simPlayground: next });
       },
 
@@ -1263,10 +1289,16 @@ export const useAppStore = create<AppStore>()(
         });
         await new Promise((r) => setTimeout(r, 1200));
         const current = get();
-        const builtPg = buildPlaygroundProjections(current.simPlayground);
+        const builtPg = buildPlaygroundProjections({
+          ...current.simPlayground,
+          currency: current.currency,
+          fxSnapshot: current.fxSnapshot,
+        });
         const output = monteCarloOutputFromEngine(builtPg.engineConfig);
         const built = buildPlaygroundProjections({
           ...current.simPlayground,
+          currency: current.currency,
+          fxSnapshot: current.fxSnapshot,
           monteCarlo: {
             hasRun: true,
             results: output.results,
@@ -1296,9 +1328,11 @@ export const useAppStore = create<AppStore>()(
 
       runSimStressTestById: (testId) => {
         const state = get();
-        const { effectiveKpis } = buildPlaygroundProjections(
-          state.simPlayground
-        );
+        const { effectiveKpis } = buildPlaygroundProjections({
+          ...state.simPlayground,
+          currency: state.currency,
+          fxSnapshot: state.fxSnapshot,
+        });
         const result = runStressTest(
           testId,
           effectiveKpis,
@@ -1362,6 +1396,8 @@ export const useAppStore = create<AppStore>()(
           kpiOutsidePortfolio,
           portfolio,
           simulationIncludedAssetIds,
+          currency: migrated.currency ?? current.currency,
+          fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
         });
 
         const monteCarlo = persistedMc

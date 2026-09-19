@@ -8,6 +8,7 @@ export {
   convertMoney,
   CurrencyMismatchError,
   MissingFxRateError,
+  IdentityFxRatesError,
 } from "@/lib/engine/money";
 export { fisherReal, fisherNominal, annualToMonthly } from "@/lib/engine/rates";
 export { ASSUMPTIONS, assumptionImpact, DEFAULT_LIFE_EXPECTANCY_AGE } from "@/lib/engine/assumptions";

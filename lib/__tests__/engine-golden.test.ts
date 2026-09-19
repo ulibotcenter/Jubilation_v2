@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMoney, convertMoney, fromMajor, CurrencyMismatchError } from "@/lib/engine/money";
+import { addMoney, convertMoney, fromMajor, CurrencyMismatchError, MissingFxRateError, IdentityFxRatesError } from "@/lib/engine/money";
 import { fisherReal, annualToMonthly } from "@/lib/engine/rates";
 import { defaultPlan } from "@/lib/engine/plan";
 import { projectPlan } from "@/lib/engine/project";
@@ -10,6 +10,7 @@ import { shockReturn, mulberry32 } from "@/lib/engine/rng";
 import { applyPortfolioCagrToKpis } from "@/lib/portfolioCagr";
 import { calculatePortfolioValue, normalizeKpiValues } from "@/types";
 import { buildProjectionEngineConfig } from "@/lib/projectionEngine";
+import { buildPlaygroundProjections } from "@/lib/simulationPlayground";
 
 const TOL_BRL = 2;
 
@@ -223,6 +224,69 @@ describe("M7 — mixed currency is converted", () => {
     const usd = fromMajor(40_000, "USD", "real", "2026-01-01");
     const brl = convertMoney(usd, "BRL", { USD: 1, BRL: 5, EUR: 0.9 });
     expect(brl.cents).toBe(20_000_000);
+  });
+});
+
+describe("M7 — sandbox must not sum mixed FX at 1:1", () => {
+  const mixed = [
+    {
+      id: "br",
+      ticker: "CASH-BRL",
+      name: "Cash BRL",
+      assetClass: "cash" as const,
+      quantity: 1000,
+      currentPrice: 40,
+      costBasis: 40,
+      currency: "BRL" as const,
+      nativeCurrency: "BRL" as const,
+      allocation: 50,
+    },
+    {
+      id: "us",
+      ticker: "CASH-USD",
+      name: "Cash USD",
+      assetClass: "cash" as const,
+      quantity: 1000,
+      currentPrice: 40,
+      costBasis: 40,
+      currency: "USD" as const,
+      nativeCurrency: "USD" as const,
+      allocation: 50,
+    },
+  ];
+  const kpis = normalizeKpiValues({ currentNetWorth: 80_000 });
+  const ids = mixed.map((a) => a.id);
+
+  it("refuses IDENTITY_RATES instead of reporting 80_000", () => {
+    expect(() =>
+      buildProjectionEngineConfig(kpis, mixed, ids, 0)
+    ).toThrow(MissingFxRateError);
+    expect(() =>
+      buildProjectionEngineConfig(kpis, mixed, ids, 0, {
+        currency: "BRL",
+        rates: { USD: 1, BRL: 1, EUR: 1 },
+      })
+    ).toThrow(IdentityFxRatesError);
+  });
+
+  it("playground converts 1_000×40 BRL + 1_000×40 USD to 240_000 BRL", () => {
+    // 40_000 BRL + 40_000 USD × 5 = 240_000. Old IDENTITY path summed 80_000.
+    const built = buildPlaygroundProjections({
+      kpis,
+      portfolio: mixed,
+      simulationIncludedAssetIds: ids,
+      kpiOutsidePortfolio: 0,
+      currency: "BRL",
+      fxSnapshot: {
+        base: "USD",
+        date: "2026-01-01",
+        fetchedAt: "2026-01-01T00:00:00.000Z",
+        rates: { USD: 1, BRL: 5, EUR: 0.9 },
+      },
+    });
+    expect(built.engineConfig.buckets.investable).toBe(240_000);
+    expect(built.engineConfig.buckets.investable).not.toBe(80_000);
+    expect(built.engineConfig.plan.liquidCents).toBe(24_000_000);
   });
 });
 

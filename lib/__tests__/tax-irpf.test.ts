@@ -7,6 +7,8 @@ import {
 } from "@/lib/engine/tax";
 import { estimateRetirementTax } from "@/lib/tax/estimates";
 import { normalizeKpiValues } from "@/types";
+import { buildEnginePlan } from "@/lib/engine/adapter";
+import { projectPlan } from "@/lib/engine/project";
 
 describe("M9 — IRPF progressive, no 400k cliff", () => {
   const kpis = normalizeKpiValues({
@@ -72,5 +74,56 @@ describe("parameterized Brazilian rules", () => {
     // R$ 1.500,01 → 30% + R$ 150 = 600.003, not 50%+40%+30% slices
     const cents = fgtsBirthdayWithdrawalCents(150_001);
     expect(cents).toBe(Math.round(150_001 * 0.3 + 15_000));
+  });
+});
+
+describe("live path deducts IRPF (not a decorative preview)", () => {
+  it("R$ 10.000/mês at 65 costs R$ 1.150,70/mês — net liquid is lower than gross", () => {
+    // RFB 2026 monthly table, retirement income at 65:
+    // exemption R$ 1.903,98 → remaining 8.096,02
+    // simplified R$ 607,20 → base 7.488,82
+    // 27.5% − R$ 908,73 = R$ 1.150,6955 → 115.070 cents
+    const monthlyTaxCents = Math.round(748_882 * 0.275 - 90_873);
+    expect(monthlyTaxCents).toBe(115_070);
+
+    const kpis = normalizeKpiValues({
+      currentAge: 64,
+      retirementAge: 65,
+      lifeExpectancy: 65,
+      currentNetWorth: 2_000_000,
+      monthlyContribution: 0,
+      monthlyExpenses: 0,
+      desiredMonthlyIncome: 10_000,
+      expectedCAGR: 0,
+      annualInflation: 0,
+    });
+    const quote = {
+      currency: "BRL" as const,
+      rates: { USD: 1, BRL: 5.45, EUR: 0.92 },
+    };
+    const live = buildEnginePlan({
+      kpis,
+      portfolio: [],
+      includedAssetIds: [],
+      outsidePortfolio: 2_000_000,
+      quote,
+    });
+    expect(live.applyTaxes).toBe(true);
+
+    const gross = buildEnginePlan({
+      kpis,
+      portfolio: [],
+      includedAssetIds: [],
+      outsidePortfolio: 2_000_000,
+      quote,
+      applyTaxes: false,
+    });
+
+    const taxedYear = projectPlan(live).years.find((y) => y.age === 65)!;
+    const grossYear = projectPlan(gross).years.find((y) => y.age === 65)!;
+    expect(grossYear.taxes).toBe(0);
+    expect(taxedYear.taxes).toBe(Math.round((monthlyTaxCents * 12) / 100));
+    expect(taxedYear.liquidValue).toBeLessThan(grossYear.liquidValue);
+    expect(grossYear.liquidValue - taxedYear.liquidValue).toBe(taxedYear.taxes);
   });
 });

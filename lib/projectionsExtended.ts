@@ -12,11 +12,13 @@ import {
   type PortfolioAsset,
   type ProjectionYear,
 } from "@/types";
+import type { FxQuote } from "@/lib/engine/adapter";
 
 export interface ProjectionOptions {
   portfolio?: PortfolioAsset[];
   includedAssetIds?: string[];
   outsidePortfolio?: number;
+  quote?: FxQuote;
 }
 
 function resolveEngineConfig(
@@ -32,7 +34,8 @@ function resolveEngineConfig(
       kpis,
       options.portfolio,
       options.includedAssetIds,
-      options.outsidePortfolio ?? 0
+      options.outsidePortfolio ?? 0,
+      options.quote
     );
   }
   return buildSingleBucketConfig(kpis);

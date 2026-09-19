@@ -23,6 +23,14 @@ export class MissingFxRateError extends Error {
   }
 }
 
+/** 1:1 USD/BRL/EUR is how M7 hid mixed-currency sums. Never use as a quote. */
+export class IdentityFxRatesError extends Error {
+  constructor() {
+    super("Refusing to aggregate mixed currencies at 1:1 FX");
+    this.name = "IdentityFxRatesError";
+  }
+}
+
 /**
  * Integer cents + native currency + real/nominal + as-of date.
  * Arithmetic that would recreate M1 (double deflation) or M7 (summing

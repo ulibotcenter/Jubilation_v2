@@ -1,6 +1,12 @@
 import type { Currency, KPIValues, PortfolioAsset } from "@/types";
 import type { FxRates } from "@/lib/fx/types";
-import { convertMoney, fromMajor, toMajor } from "@/lib/engine/money";
+import {
+  convertMoney,
+  fromMajor,
+  toMajor,
+  IdentityFxRatesError,
+  MissingFxRateError,
+} from "@/lib/engine/money";
 import { fisherReal } from "@/lib/engine/rates";
 import { defaultPlan, type EnginePlan } from "@/lib/engine/plan";
 import { resolveLiquidity } from "@/lib/engine/liquidity";
@@ -25,6 +31,36 @@ export interface EngineBuildInput {
   seed?: number;
   /** When set (sensitivity slider), replaces portfolio-implied liquid return. */
   nominalReturnOverride?: number;
+}
+
+function assetCurrencies(assets: PortfolioAsset[]): Currency[] {
+  return [
+    ...new Set(assets.map((a) => a.nativeCurrency ?? a.currency)),
+  ];
+}
+
+/** Mixed holdings require a real FX quote — never USD=BRL=EUR=1. */
+export function assertQuoteForPortfolio(
+  assets: PortfolioAsset[],
+  quote: FxQuote
+): void {
+  const currencies = assetCurrencies(assets);
+  if (currencies.length === 0) return;
+  const foreign = currencies.filter((c) => c !== quote.currency);
+  if (foreign.length === 0) return;
+  for (const from of foreign) {
+    if (!quote.rates[from] || !quote.rates[quote.currency]) {
+      throw new MissingFxRateError(from, quote.currency);
+    }
+  }
+  const involved = [...new Set([quote.currency, ...currencies])];
+  const first = quote.rates[involved[0]!];
+  if (
+    involved.length > 1 &&
+    involved.every((c) => quote.rates[c] === first)
+  ) {
+    throw new IdentityFxRatesError();
+  }
 }
 
 function assetValueInQuote(asset: PortfolioAsset, quote: FxQuote): number {
@@ -57,6 +93,7 @@ export function aggregatePortfolioMajor(
   assets: PortfolioAsset[],
   quote: FxQuote
 ): number {
+  assertQuoteForPortfolio(assets, quote);
   let cents = 0;
   for (const asset of assets) {
     const native = fromMajor(
@@ -71,6 +108,7 @@ export function aggregatePortfolioMajor(
 }
 
 export function buildEnginePlan(input: EngineBuildInput): EnginePlan {
+  assertQuoteForPortfolio(input.portfolio, input.quote);
   const included = new Set(input.includedAssetIds);
   const liquidAssets = input.portfolio.filter(
     (a) => included.has(a.id) && resolveLiquidity(a) === "liquid"
@@ -107,7 +145,7 @@ export function buildEnginePlan(input: EngineBuildInput): EnginePlan {
     illiquidRealReturn: fisherReal((illiquidCagr ?? 0) / 100, inflation),
     inflation,
     allowIlliquidSale: illiquidAssets.some((a) => a.allowSale === true),
-    applyTaxes: input.applyTaxes ?? false,
+    applyTaxes: input.applyTaxes ?? true,
     inssMonthlyCents: Math.round((input.inssMonthly ?? 0) * 100),
     seed: input.seed ?? 1,
     parameterSet: DEFAULT_PARAMETER_SET,

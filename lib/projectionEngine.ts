@@ -11,7 +11,7 @@ import {
 import { computeWeightedPortfolioCagr } from "@/lib/portfolioCagr";
 import { resolveLiquidity } from "@/lib/engine/liquidity";
 import { aggregatePortfolioMajor } from "@/lib/engine/adapter";
-import type { FxRates } from "@/lib/fx/types";
+import { MissingFxRateError } from "@/lib/engine/money";
 import {
   type KPIValues,
   type PortfolioAsset,
@@ -34,16 +34,17 @@ export interface ProjectionEngineConfig {
 
 export type { EnginePlan };
 
-const IDENTITY_RATES: FxRates = { USD: 1, BRL: 1, EUR: 1 };
-
-function quoteFromKpis(
-  kpis: KPIValues,
+function sameCurrencyQuote(
   portfolio: PortfolioAsset[]
 ): EngineBuildInput["quote"] {
-  const currency = (portfolio[0]?.nativeCurrency ??
-    portfolio[0]?.currency ??
-    "BRL") as Currency;
-  return { currency, rates: IDENTITY_RATES };
+  const currencies = [
+    ...new Set(portfolio.map((a) => a.nativeCurrency ?? a.currency)),
+  ];
+  if (currencies.length > 1) {
+    throw new MissingFxRateError(currencies[0]!, currencies[1]!);
+  }
+  const currency = (currencies[0] ?? "USD") as Currency;
+  return { currency, rates: { USD: 1, BRL: 1, EUR: 1 } };
 }
 
 /** Split wealth into liquid (in-scope) vs illiquid. Illiquid is never sold. */
@@ -54,7 +55,7 @@ export function buildProjectionEngineConfig(
   outsidePortfolio = 0,
   quote?: EngineBuildInput["quote"]
 ): ProjectionEngineConfig {
-  const fx = quote ?? quoteFromKpis(kpis, portfolio);
+  const fx = quote ?? sameCurrencyQuote(portfolio);
   const plan = buildEnginePlan({
     kpis,
     portfolio,
@@ -89,7 +90,7 @@ export function buildSingleBucketConfig(kpis: KPIValues): ProjectionEngineConfig
     liquidRealReturn: fisherReal(kpis.expectedCAGR / 100, inflation),
     illiquidRealReturn: 0,
     inflation,
-    applyTaxes: false,
+    applyTaxes: true,
   });
   return {
     kpis,
@@ -190,7 +191,7 @@ export function runMonteCarloFromConfig(
 
 /** @deprecated Use buildEnginePlan — kept so tests can inspect implied returns. */
 export function inspectPortfolioReturns(
-  kpis: KPIValues,
+  _kpis: KPIValues,
   portfolio: PortfolioAsset[],
   includedAssetIds: string[]
 ) {
@@ -203,7 +204,7 @@ export function inspectPortfolioReturns(
         (a) =>
           includedAssetIds.includes(a.id) && resolveLiquidity(a) === "liquid"
       ),
-      quoteFromKpis(kpis, portfolio)
+      sameCurrencyQuote(portfolio)
     ),
   };
 }
