@@ -112,8 +112,8 @@ export const EN = {
   "income.status.behind": "Below your goal",
   "income.status.farBehind": "Well below your goal",
   "income.progressOfGoal": "{n}% of goal",
-  "income.shortfall": "{amount}/mo still to go to hit your goal",
-  "income.surplus": "Surplus of {amount}/mo above your goal",
+  "income.shortfall": "{amount} /mo still to go to hit your goal",
+  "income.surplus": "Surplus of {amount} /mo above your goal",
   "dashboard.projection.title": "Real portfolio projection",
   "dashboard.projection.subtitle":
     "Accumulation and drawdown — from today through your life expectancy",

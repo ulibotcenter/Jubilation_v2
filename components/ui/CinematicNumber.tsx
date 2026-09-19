@@ -54,10 +54,11 @@ export function CinematicNumber({
   }, [value, reduced]);
 
   const display = reduced === false ? animated : value;
+  const shown = compact ? display : Math.round(display);
 
   return (
     <span className={className}>
-      {formatCurrencyValue(display, currency, compact, htmlLang(locale))}
+      {formatCurrencyValue(shown, currency, compact, htmlLang(locale))}
     </span>
   );
 }

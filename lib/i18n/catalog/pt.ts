@@ -114,8 +114,8 @@ export const PT: Record<MessageKey, string> = {
   "income.status.behind": "Abaixo da sua meta",
   "income.status.farBehind": "Bem abaixo da sua meta",
   "income.progressOfGoal": "{n}% da meta",
-  "income.shortfall": "Faltam {amount}/mês para a sua meta",
-  "income.surplus": "Excedente de {amount}/mês acima da sua meta",
+  "income.shortfall": "Faltam {amount} /mês para a sua meta",
+  "income.surplus": "Excedente de {amount} /mês acima da sua meta",
   "dashboard.projection.title": "Projeção do portfólio real",
   "dashboard.projection.subtitle":
     "Acumulação e drawdown — da idade atual até sua expectativa de vida",

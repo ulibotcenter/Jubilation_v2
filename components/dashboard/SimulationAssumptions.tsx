@@ -4,7 +4,7 @@ import { Filter, PiggyBank, TrendingDown, TrendingUp, Wallet } from "lucide-reac
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { isScopeFiltered, resolveSimulationKpis } from "@/lib/simulationScope";
 import { useAppStore } from "@/store/useAppStore";
-import { CURRENCY_SYMBOLS, formatCurrencyValue } from "@/types";
+import { formatCurrencyValue } from "@/types";
 
 interface SimulationAssumptionsProps {
   mode?: "real" | "playground";
@@ -24,7 +24,6 @@ export function SimulationAssumptions({
   const realIncluded = useAppStore((s) => s.simulationIncludedAssetIds);
   const simIncluded = useAppStore((s) => s.simPlayground.simulationIncludedAssetIds);
   const includedIds = mode === "playground" ? simIncluded : realIncluded;
-  const sym = CURRENCY_SYMBOLS[currency];
 
   const effectiveKpis = resolveSimulationKpis(kpis, portfolio, includedIds);
   const filtered = isScopeFiltered(portfolio, includedIds);
@@ -45,7 +44,7 @@ export function SimulationAssumptions({
     {
       icon: PiggyBank,
       label: t("simulation.assumptions.monthlySavings"),
-      value: `${sym}${kpis.monthlyContribution.toLocaleString("en-US")}${t("common.perMonth")}`,
+      value: `${formatCurrencyValue(kpis.monthlyContribution, currency)} ${t("common.perMonth")}`,
     },
     {
       icon: TrendingUp,

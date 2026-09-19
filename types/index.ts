@@ -928,12 +928,21 @@ export function formatCurrencyValue(
   locale?: string
 ): string {
   const option = getCurrencyOption(currency);
-  return new Intl.NumberFormat(locale ?? localeForCurrency(currency), {
+  const amount = Number.isFinite(value)
+    ? compact
+      ? value
+      : Math.round(value)
+    : 0;
+  const formatted = new Intl.NumberFormat(locale ?? localeForCurrency(currency), {
     style: "currency",
     currency: option.code,
     notation: compact ? "compact" : "standard",
     maximumFractionDigits: compact ? 1 : 0,
-  }).format(value);
+    minimumFractionDigits: 0,
+  }).format(amount);
+  // Intl uses NBSP / NNBSP between symbol and digits; some webfonts
+  // collapse those glyphs, which reads as "R$3.4001" next to "/mês".
+  return formatted.replace(/\u00a0|\u202f/g, " ");
 }
 
 export function formatPercentValue(value: number, decimals = 1): string {
