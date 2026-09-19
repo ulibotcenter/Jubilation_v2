@@ -22,6 +22,7 @@ import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
+import { HouseholdCard } from "@/components/settings/HouseholdCard";
 
 const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
   { code: "en", labelKey: "locale.en" },
@@ -170,6 +171,8 @@ export function SettingsPageContent() {
           )}
         </section>
 
+        <HouseholdCard />
+
         <section className="settings-page-card">
           <div className="settings-page-card-head">
             <Languages className="w-4 h-4 text-accent" size={16} />
@@ -232,9 +235,9 @@ export function SettingsPageContent() {
             <h2>{t("settings.account")}</h2>
           </div>
           <p className="settings-page-card-body font-medium text-foreground">
-            {user.name}
+            {user?.name}
           </p>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
           <span className="settings-plan-badge">
             {t("plan.currentBadge", {
               plan: t(`plan.${planTier}` as MessageKey),

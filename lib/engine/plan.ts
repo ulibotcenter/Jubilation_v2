@@ -34,11 +34,25 @@ export interface EnginePlan {
   illiquidTransactionCostRate: number;
   /** Manual or estimated INSS (Phase 1 fills the full RGPS module). */
   inssMonthlyCents: number;
+  /** Age-ranged benefit slices (INSS, survivor pension, RendA+). */
+  benefits: BenefitSlice[];
   applyTaxes: boolean;
   taxRegime: TaxRegime;
   comeCotasRate: number;
+  /**
+   * Share of liquid wealth in open non-equity funds (IN 1.585 come-cotas).
+   * 0 = no fund slice; 1 = whole liquid bucket. Mixed portfolios use a
+   * fraction so stocks are not come-cota'd and funds are not skipped.
+   */
+  comeCotasFraction: number;
   seed: number;
   parameterSet: ParameterSet;
+}
+
+export interface BenefitSlice {
+  startAge: number;
+  endAge: number;
+  monthlyCents: number;
 }
 
 export interface EngineRunMeta {
@@ -68,9 +82,11 @@ export function defaultPlan(overrides: Partial<EnginePlan> = {}): EnginePlan {
     illiquidSaleMonth: null,
     illiquidTransactionCostRate: 0.06,
     inssMonthlyCents: 0,
+    benefits: [],
     applyTaxes: false,
     taxRegime: "taxable",
     comeCotasRate: 0.15,
+    comeCotasFraction: 0,
     seed: 1,
     parameterSet: DEFAULT_PARAMETER_SET,
     ...overrides,

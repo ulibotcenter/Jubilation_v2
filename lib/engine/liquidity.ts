@@ -42,6 +42,7 @@ export function normalizePortfolioAsset(asset: PortfolioAsset): PortfolioAsset {
     externalRef: asset.externalRef ?? null,
     institutionId: asset.institutionId ?? null,
     accountId: asset.accountId ?? null,
+    ownership: asset.ownership ?? "holder",
   };
 }
 

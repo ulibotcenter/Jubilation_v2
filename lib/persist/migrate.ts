@@ -2,6 +2,7 @@ import type { PlanTier } from "@/lib/plans";
 import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
 import { normalizePortfolioCagr } from "@/lib/portfolioCagr";
 import { DEFAULT_TENANT, type Tenant } from "@/lib/engine/canonical";
+import { isHousehold } from "@/lib/engine/household";
 import { PERSIST_VERSION, normalizeKpiValues, type PortfolioAsset } from "@/types";
 
 export const CURRENT_PERSIST_VERSION = PERSIST_VERSION;
@@ -56,6 +57,7 @@ export function migratePersistedState(
     institutions: Array.isArray(raw.institutions) ? raw.institutions : [],
     accounts: Array.isArray(raw.accounts) ? raw.accounts : [],
     entitlements: Array.isArray(raw.entitlements) ? raw.entitlements : [],
+    household: isHousehold(raw.household) ? raw.household : undefined,
     persistVersion: Math.max(fromVersion, CURRENT_PERSIST_VERSION),
   };
 }

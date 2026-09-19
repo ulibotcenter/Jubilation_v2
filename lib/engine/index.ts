@@ -12,8 +12,31 @@ export {
 } from "@/lib/engine/money";
 export { fisherReal, fisherNominal, annualToMonthly } from "@/lib/engine/rates";
 export { ASSUMPTIONS, assumptionImpact, DEFAULT_LIFE_EXPECTANCY_AGE } from "@/lib/engine/assumptions";
-export { DEFAULT_PARAMETER_SET, paramsForYear } from "@/lib/engine/parameters";
+export { DEFAULT_PARAMETER_SET, paramsForYear, DEFAULT_LEGAL_PREMISES } from "@/lib/engine/parameters";
 export { calculateMonthlyIrpf, calculateAnnualIrpf } from "@/lib/engine/tax";
+export {
+  evaluateInss,
+  fillContributionRange,
+  fatorPrevidenciario,
+  fatorPrevidenciarioLegal,
+  fatorTcBonusYears,
+  FATOR_PREVIDENCIARIO_SOURCE,
+  rgpsCoefficient,
+} from "@/lib/engine/inss";
+export { contributorCharge, complementToNormal } from "@/lib/engine/contributor";
+export { redeemLots, pgblDeduction } from "@/lib/engine/previdencia";
+export { comeCotasRate, comeCotasApplies, comeCotasLevyCents } from "@/lib/engine/comeCotas";
+export { survivorPension } from "@/lib/engine/survivorPension";
+export {
+  lastSurvivorAgeInHolderYears,
+  ownershipInScope,
+  defaultHousehold,
+  householdFromKpis,
+  createPerson,
+} from "@/lib/engine/household";
+export type { Household, HouseholdScope, Person } from "@/lib/engine/household";
+export { projectFgtsYear, fgtsBirthdayOneBracketCents } from "@/lib/engine/fgts";
+export { rendaMaisMonthlyParcelCents, RENDA_MAIS_INSTALLMENTS } from "@/lib/engine/rendaMais";
 export { retirementTarget } from "@/lib/engine/target";
 export { defaultPlan, type EnginePlan } from "@/lib/engine/plan";
 export { projectPlan, projectYears } from "@/lib/engine/project";
