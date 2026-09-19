@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { FileUp, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -29,8 +30,13 @@ export function ImportFilesCard() {
   const holderInss = useAppStore((s) => s.household.holder.inss);
 
   const [pending, setPending] = useState<FileKind | null>(null);
+  const [mounted, setMounted] = useState(false);
   const cnisInput = useRef<HTMLInputElement>(null);
   const irpfInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const cnisOk = canCollect(consents.find((c) => c.provider === "cnis"));
   const irpfOk = canCollect(consents.find((c) => c.provider === "irpf"));
@@ -80,9 +86,10 @@ export function ImportFilesCard() {
       <div className="flex flex-col gap-3 mt-4">
         <div className="flex flex-wrap items-center gap-2">
           <input
+            id="cnis-file-input"
             ref={cnisInput}
             type="file"
-            className="hidden"
+            className="sr-only"
             accept=".pdf,.txt,.csv,text/plain,application/pdf"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -127,9 +134,10 @@ export function ImportFilesCard() {
 
         <div className="flex flex-wrap items-center gap-2">
           <input
+            id="irpf-file-input"
             ref={irpfInput}
             type="file"
-            className="hidden"
+            className="sr-only"
             accept=".dbk,.dec,.txt,text/plain"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -165,67 +173,71 @@ export function ImportFilesCard() {
         </p>
       </div>
 
-      <AnimatePresence>
-        {pending && (
-          <div className="add-asset-modal-root">
-            <motion.div
-              className="add-asset-modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setPending(null)}
-            />
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="file-consent-title"
-              className="add-asset-modal max-w-md"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 16 }}
-            >
-              <div className="add-asset-modal-header">
-                <h2 id="file-consent-title" className="text-base font-semibold">
-                  {pending === "cnis"
-                    ? t("settings.files.cnisConsentTitle")
-                    : t("settings.files.irpfConsentTitle")}
-                </h2>
-                <button
-                  type="button"
-                  className="btn-ghost"
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {pending && (
+              <div className="add-asset-modal-root">
+                <motion.div
+                  className="add-asset-modal-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                   onClick={() => setPending(null)}
-                  aria-label={t("common.close")}
+                />
+                <motion.div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="file-consent-title"
+                  className="add-asset-modal max-w-md"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 16 }}
                 >
-                  <X className="w-4 h-4" size={16} />
-                </button>
+                  <div className="add-asset-modal-header">
+                    <h2 id="file-consent-title" className="text-base font-semibold">
+                      {pending === "cnis"
+                        ? t("settings.files.cnisConsentTitle")
+                        : t("settings.files.irpfConsentTitle")}
+                    </h2>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => setPending(null)}
+                      aria-label={t("common.close")}
+                    >
+                      <X className="w-4 h-4" size={16} />
+                    </button>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed px-5 pb-4">
+                    {evidence}
+                  </p>
+                  <div className="flex justify-end gap-2 px-5 pb-5">
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => setPending(null)}
+                    >
+                      {t("common.close")}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => {
+                        const kind = pending;
+                        setPending(null);
+                        (kind === "cnis" ? cnisInput : irpfInput).current?.click();
+                      }}
+                    >
+                      {t("settings.files.authorize")}
+                    </button>
+                  </div>
+                </motion.div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed px-5 pb-4">
-                {evidence}
-              </p>
-              <div className="flex justify-end gap-2 px-5 pb-5">
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => setPending(null)}
-                >
-                  {t("common.close")}
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => {
-                    const kind = pending;
-                    setPending(null);
-                    (kind === "cnis" ? cnisInput : irpfInput).current?.click();
-                  }}
-                >
-                  {t("settings.files.authorize")}
-                </button>
-              </div>
-            </motion.div>
-          </div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </section>
   );
 }
