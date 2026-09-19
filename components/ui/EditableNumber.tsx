@@ -117,7 +117,7 @@ export function EditableNumber({
       const clamped = clamp(rounded, min, max);
       onChange(clamped);
     },
-    [decimals, min, max, onChange, displayValue]
+    [decimals, min, max, onChange, displayValue, setDraft]
   );
 
   const startEditing = useCallback(() => {
@@ -126,7 +126,7 @@ export function EditableNumber({
       format === "percent" ? value.toFixed(decimals) : String(value)
     );
     setIsEditing(true);
-  }, [disabled, format, value, decimals]);
+  }, [disabled, format, value, decimals, setDraft, setIsEditing]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
