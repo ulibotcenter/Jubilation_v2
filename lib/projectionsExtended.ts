@@ -3,7 +3,6 @@ import {
   buildSingleBucketConfig,
   percentile,
   runProjectionEngine,
-  simulateMonteCarloPathsByAge,
   type ProjectionEngineConfig,
 } from "@/lib/projectionEngine";
 import {
@@ -47,53 +46,62 @@ export function generateExtendedProjections(
   return runProjectionEngine(resolveEngineConfig(kpis, options));
 }
 
+/**
+ * Attach MC bands from a completed run. Does NOT resample Math.random()
+ * during render (M14). Width is 0 at today's age and opens with time.
+ */
 export function chartDataWithMcBands(
   projections: ProjectionYear[],
   mcP10?: number,
   mcP90?: number,
   anchorAge?: number,
   mcMedian?: number,
-  engineConfig?: ProjectionEngineConfig
+  _engineConfig?: ProjectionEngineConfig,
+  pathsByAge?: Map<number, number[]> | Record<number, { p10: number; p50: number; p90: number }> | null
 ): ChartDataPoint[] {
   const base = generateChartData(projections);
-  if (mcP10 == null || mcP90 == null) return base;
+  const startAge = projections[0]?.age ?? 0;
+  const endAge =
+    anchorAge ??
+    projections[projections.length - 1]?.age ??
+    startAge;
 
-  // Prefer per-age path percentiles when engine config is available
-  if (engineConfig) {
-    const pathsByAge = simulateMonteCarloPathsByAge(engineConfig, {
-      iterations: 400,
-      volatility: 0.15,
-    });
+  if (pathsByAge) {
     return base.map((point) => {
-      if (anchorAge != null && point.age > anchorAge) {
-        return { ...point, pessimistic: undefined, optimistic: undefined, band: 0 };
+      if (pathsByAge instanceof Map) {
+        const values = [...(pathsByAge.get(point.age) ?? [])].sort(
+          (a, b) => a - b
+        );
+        if (values.length === 0) return point;
+        const pessimistic = Math.round(percentile(values, 0.1));
+        const optimistic = Math.round(percentile(values, 0.9));
+        return {
+          ...point,
+          pessimistic,
+          optimistic,
+          band: optimistic - pessimistic,
+        };
       }
-      const values = [...(pathsByAge.get(point.age) ?? [])].sort(
-        (a, b) => a - b
-      );
-      if (values.length === 0) return point;
-      const pessimistic = Math.round(percentile(values, 0.1));
-      const optimistic = Math.round(percentile(values, 0.9));
+      const row = pathsByAge[point.age];
+      if (!row) return point;
       return {
         ...point,
-        pessimistic,
-        optimistic,
-        band: optimistic - pessimistic,
+        pessimistic: row.p10,
+        optimistic: row.p90,
+        band: row.p90 - row.p10,
       };
     });
   }
 
-  const spreadBase = mcMedian ?? mcP10;
-  if (spreadBase <= 0) return base;
+  if (mcP10 == null || mcP90 == null || mcMedian == null || mcMedian <= 0) {
+    return base;
+  }
 
-  const p10Ratio = mcP10 / spreadBase;
-  const p90Ratio = mcP90 / spreadBase;
+  const span = Math.max(1, endAge - startAge);
   return base.map((p) => {
-    if (anchorAge != null && p.age > anchorAge) {
-      return { ...p, pessimistic: undefined, optimistic: undefined, band: 0 };
-    }
-    const pessimistic = Math.round(p.value * p10Ratio);
-    const optimistic = Math.round(p.value * p90Ratio);
+    const t = (p.age - startAge) / span;
+    const pessimistic = Math.round(p.value + (mcP10 - mcMedian) * t);
+    const optimistic = Math.round(p.value + (mcP90 - mcMedian) * t);
     return {
       ...p,
       pessimistic,

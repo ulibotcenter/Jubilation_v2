@@ -16,10 +16,6 @@ export function runMonteCarloSimulation(
   kpis: KPIValues,
   iterations = 1000
 ): MonteCarloSimulationOutput {
-  const target =
-    kpis.desiredMonthlyIncome > 0
-      ? kpis.desiredMonthlyIncome * 12 * 25
-      : kpis.currentNetWorth * 25;
   const output = runMonteCarloFromConfig(
     buildSingleBucketConfig(kpis),
     iterations
@@ -37,9 +33,9 @@ export function runMonteCarloSimulation(
   for (const row of output.results) {
     distributions[row.scenario] = buildDistributionBins(
       output.finalValuesByScenario[row.scenario],
-      target
+      output.target
     );
   }
 
-  return { results, distributions, target };
+  return { results, distributions, target: output.target };
 }

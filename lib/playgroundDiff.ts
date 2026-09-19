@@ -1,5 +1,6 @@
 import type { KPIField, KPIValues, PortfolioAsset, ProjectionYear } from "@/types";
 import { calculatePortfolioValue } from "@/types";
+import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import { getRetirementPortfolioValue } from "@/lib/projectionUtils";
 import type { SimulationPlaygroundState } from "@/lib/simulationPlayground";
 
@@ -64,8 +65,12 @@ export function computePlaygroundDiff(
     sim.projections,
     sim.kpis.retirementAge
   );
-  const realPortfolioValue = calculatePortfolioValue(real.portfolio);
-  const simPortfolioValue = calculatePortfolioValue(sim.portfolio);
+  const quote = {
+    currency: real.portfolio[0]?.currency ?? sim.portfolio[0]?.currency ?? "USD",
+    rates: FALLBACK_FX_RATES,
+  };
+  const realPortfolioValue = calculatePortfolioValue(real.portfolio, quote);
+  const simPortfolioValue = calculatePortfolioValue(sim.portfolio, quote);
 
   const kpiDeltas: PlaygroundKpiDelta[] = TRACKED_KPI_FIELDS.map((field) => {
     const realVal = real.kpis[field];

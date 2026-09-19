@@ -34,64 +34,12 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   EUR: "€",
 };
 
-// ─── Subscription Plans (future: Stripe + Supabase) ──────────
+// ─── Subscription Plans ─────────────────────────────────────
+// Single source of truth lives in lib/plans. Billing is not active;
+// this alias exists so UserProfile and the store share one enum.
 
-/** Plan tier — placeholder for beta; billing not active yet */
-export type PlanTier = "free" | "monthly" | "yearly";
-
-export interface SubscriptionPlan {
-  id: PlanTier;
-  name: string;
-  price: number;
-  currency: Currency;
-  interval: "month" | "year" | null;
-  features: string[];
-  /** Stripe Price ID — TODO: Stripe + Supabase */
-  stripePriceId: string | null;
-}
-
-export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
-  {
-    id: "free",
-    name: "Free",
-    price: 0,
-    currency: "USD",
-    interval: null,
-    features: [
-      "Basic retirement projection",
-      "Up to 10 portfolio assets",
-      "Monte Carlo simulation",
-    ],
-    stripePriceId: null,
-  },
-  {
-    id: "monthly",
-    name: "Pro Monthly",
-    price: 9.99,
-    currency: "USD",
-    interval: "month",
-    features: [
-      "Unlimited assets",
-      "Advanced stress tests",
-      "Export reports (PDF/CSV)",
-      "Priority support",
-    ],
-    stripePriceId: null, // TODO: Stripe + Supabase
-  },
-  {
-    id: "yearly",
-    name: "Pro Yearly",
-    price: 89.99,
-    currency: "USD",
-    interval: "year",
-    features: [
-      "Everything in Pro Monthly",
-      "25% savings vs monthly",
-      "Early access to new features",
-    ],
-    stripePriceId: null, // TODO: Stripe + Supabase
-  },
-];
+import type { PlanTier } from "@/lib/plans";
+export type { PlanTier };
 
 // ─── Navigation ────────────────────────────────────────────
 
@@ -172,6 +120,8 @@ export type KPIField =
 
 export const DEFAULT_LIFE_EXPECTANCY = 90;
 
+export type AssumptionImpact = "simple" | "high";
+
 export interface KPIConfig {
   field: KPIField;
   label: string;
@@ -182,6 +132,8 @@ export interface KPIConfig {
   step: number;
   decimals: number;
   format: "integer" | "currency" | "percent";
+  /** High-impact premises are editable — the UI only signals them. */
+  impact: AssumptionImpact;
 }
 
 export const KPI_CONFIGS: KPIConfig[] = [
@@ -193,6 +145,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 1,
     decimals: 0,
     format: "integer",
+    impact: "simple",
   },
   {
     field: "retirementAge",
@@ -202,6 +155,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 1,
     decimals: 0,
     format: "integer",
+    impact: "simple",
   },
   {
     field: "lifeExpectancy",
@@ -211,6 +165,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 1,
     decimals: 0,
     format: "integer",
+    impact: "high",
   },
   {
     field: "currentNetWorth",
@@ -220,6 +175,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 1000,
     decimals: 0,
     format: "currency",
+    impact: "simple",
   },
   {
     field: "monthlyContribution",
@@ -229,6 +185,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 100,
     decimals: 0,
     format: "currency",
+    impact: "simple",
   },
   {
     field: "monthlyExpenses",
@@ -238,6 +195,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 100,
     decimals: 0,
     format: "currency",
+    impact: "simple",
   },
   {
     field: "desiredMonthlyIncome",
@@ -247,6 +205,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 100,
     decimals: 0,
     format: "currency",
+    impact: "simple",
   },
   {
     field: "expectedCAGR",
@@ -257,6 +216,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 0.1,
     decimals: 1,
     format: "percent",
+    impact: "high",
   },
   {
     field: "annualInflation",
@@ -267,6 +227,7 @@ export const KPI_CONFIGS: KPIConfig[] = [
     step: 0.1,
     decimals: 1,
     format: "percent",
+    impact: "high",
   },
 ];
 
@@ -318,19 +279,22 @@ export const DEFAULT_KPI_VALUES: KPIValues = {
   monthlyContribution: 4_500,
   monthlyExpenses: 9_500,
   desiredMonthlyIncome: 7_000,
-  expectedCAGR: 8.5,
+  /** Nominal; engine converts via Fisher. 7.1% ≈ 4% real at 3% inflation. */
+  expectedCAGR: 7.1,
   annualInflation: 3.0,
 };
 
 export function normalizeKpiValues(partial?: Partial<KPIValues>): KPIValues {
   const merged = { ...DEFAULT_KPI_VALUES, ...partial };
-  let currentAge = Math.max(18, Math.min(80, merged.currentAge));
-  let lifeExpectancy = Math.max(55, Math.min(120, merged.lifeExpectancy));
-  let retirementAge = Math.max(
+  const currentAge = Math.max(18, Math.min(80, merged.currentAge));
+  const retirementAge = Math.max(
     currentAge + 1,
-    Math.min(lifeExpectancy - 1, merged.retirementAge)
+    Math.min(Math.max(55, Math.min(120, merged.lifeExpectancy)) - 1, merged.retirementAge)
   );
-  lifeExpectancy = Math.max(retirementAge + 1, lifeExpectancy);
+  const lifeExpectancy = Math.max(
+    retirementAge + 1,
+    Math.max(55, Math.min(120, merged.lifeExpectancy))
+  );
   return { ...merged, currentAge, retirementAge, lifeExpectancy };
 }
 
@@ -351,6 +315,19 @@ export type AssetClass =
   | "other";
 
 export type PriceSource = "yahoo" | "coingecko" | "manual";
+export type Liquidity = "liquid" | "illiquid";
+export type DataSource =
+  | "MANUAL"
+  | "ESTIMATED"
+  | "DERIVED"
+  | "B3_API"
+  | "OPEN_FINANCE"
+  | "FILE_OFX"
+  | "FILE_CNIS"
+  | "FILE_IRPF"
+  | "YAHOO"
+  | "COINGECKO";
+export type Confidence = "high" | "medium" | "low";
 
 export interface PortfolioAsset {
   id: string;
@@ -360,7 +337,9 @@ export interface PortfolioAsset {
   quantity: number;
   currentPrice: number;
   costBasis: number;
+  /** Native currency of the holding — never rewritten on FX display change */
   currency: Currency;
+  nativeCurrency?: Currency;
   /** Allocation weight 0–100 */
   allocation: number;
   /** Expected nominal annual return (%) for this holding */
@@ -368,6 +347,16 @@ export interface PortfolioAsset {
   priceSource?: PriceSource;
   lastPriceAt?: string | null;
   previousPrice?: number | null;
+  liquidity?: Liquidity;
+  transactionCostRate?: number;
+  allowSale?: boolean;
+  scheduledSaleOn?: string | null;
+  source?: DataSource;
+  asOf?: string;
+  confidence?: Confidence;
+  externalRef?: string | null;
+  institutionId?: string | null;
+  accountId?: string | null;
 }
 
 export interface TickerSearchResult {
@@ -399,16 +388,24 @@ export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
 export interface ProjectionYear {
   year: number;
   age: number;
+  /** Real (today's money). Same unit as inflationAdjusted. */
   portfolioValue: number;
   contributions: number;
   returns: number;
+  /** Real value — equal to portfolioValue. Never deflate a real series twice. */
   inflationAdjusted: number;
-  /** Annual living expenses (lifestyle, paid from income — not drawn from portfolio) */
+  /** Nominal counterpart, derived as real × inflation factor. */
+  nominalValue: number;
+  /** Annual living expenses (accumulation: reference) or net withdrawal (retirement) */
   expenses: number;
   /** Annual amount invested into the portfolio */
   invested: number;
   /** Implied gross income need: expenses + invested */
   requiredIncome: number;
+  taxes: number;
+  liquidValue: number;
+  illiquidValue: number;
+  ruined: boolean;
 }
 
 export interface ChartDataPoint {
@@ -455,7 +452,7 @@ export interface DistributionBin {
 export interface MonteCarloSimulationOutput {
   results: MonteCarloResult[];
   distributions: Record<MonteCarloScenario, DistributionBin[]>;
-  target: number;
+  target: number | null;
 }
 
 export interface MonteCarloState {
@@ -467,6 +464,9 @@ export interface MonteCarloState {
   distributions: Record<MonteCarloScenario, DistributionBin[]> | null;
   target: number | null;
   iterations: number;
+  seed?: number;
+  engineVersion?: string;
+  pathsByAge?: Record<number, { p10: number; p50: number; p90: number }> | null;
 }
 
 export const MONTE_CARLO_SCENARIO_LABELS: Record<MonteCarloScenario, string> = {
@@ -536,6 +536,8 @@ export interface StressTestResult {
   stressedValue: number;
   shortfall: number;
   stillOnTrack: boolean;
+  ruinAge?: number | null;
+  target?: number | null;
 }
 
 // ─── Onboarding ────────────────────────────────────────────
@@ -870,18 +872,35 @@ export const MOCK_TICKER_SEARCH: TickerSearchResult[] = [
 // ─── Helpers ───────────────────────────────────────────────
 
 export const LOCAL_STORAGE_KEY = "jubilation-v2-state";
+export const PERSIST_VERSION = 1;
+
+export {
+  DEFAULT_TENANT,
+  type Tenant,
+  type DataRegion,
+  type Institution,
+  type FinancialAccount,
+  type Entitlement,
+} from "@/lib/engine/canonical";
 
 export function getCurrencyOption(code: Currency): CurrencyOption {
   return CURRENCIES.find((c) => c.code === code) ?? CURRENCIES[0];
 }
 
+function localeForCurrency(currency: Currency): string {
+  if (currency === "BRL") return "pt-BR";
+  if (currency === "EUR") return "de-DE";
+  return "en-US";
+}
+
 export function formatCurrencyValue(
   value: number,
   currency: Currency,
-  compact = false
+  compact = false,
+  locale?: string
 ): string {
   const option = getCurrencyOption(currency);
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(locale ?? localeForCurrency(currency), {
     style: "currency",
     currency: option.code,
     notation: compact ? "compact" : "standard",
@@ -893,54 +912,49 @@ export function formatPercentValue(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`;
 }
 
-export function calculatePortfolioValue(assets: PortfolioAsset[]): number {
-  return assets.reduce(
-    (sum, asset) => sum + asset.quantity * asset.currentPrice,
-    0
-  );
+export interface PortfolioValueQuote {
+  currency: Currency;
+  rates: Record<Currency, number>;
 }
 
-export function generateProjections(kpis: KPIValues): ProjectionYear[] {
-  const projections: ProjectionYear[] = [];
-  const yearsToRetirement = kpis.retirementAge - kpis.currentAge;
-  let portfolioValue = kpis.currentNetWorth;
-  const annualContribution = kpis.monthlyContribution * 12;
-  const annualExpenses = kpis.monthlyExpenses * 12;
-  const realReturn =
-    (kpis.expectedCAGR - kpis.annualInflation) / 100;
-
-  for (let i = 0; i <= yearsToRetirement; i++) {
-    const year = new Date().getFullYear() + i;
-    const age = kpis.currentAge + i;
-    const returns = i === 0 ? 0 : portfolioValue * realReturn;
-    const contributions = i === 0 ? 0 : annualContribution;
-    const expenses = i === 0 ? 0 : annualExpenses;
-    const invested = contributions;
-    const requiredIncome = expenses + invested;
-
-    if (i > 0) {
-      portfolioValue = portfolioValue + returns + contributions;
+export function calculatePortfolioValue(
+  assets: PortfolioAsset[],
+  quote?: PortfolioValueQuote
+): number {
+  if (assets.length === 0) return 0;
+  const currencies = new Set(
+    assets.map((a) => a.nativeCurrency ?? a.currency)
+  );
+  if (currencies.size === 1) {
+    const only = [...currencies][0]!;
+    if (!quote || quote.currency === only) {
+      return assets.reduce(
+        (sum, asset) => sum + asset.quantity * asset.currentPrice,
+        0
+      );
     }
-
-    const inflationFactor = Math.pow(
-      1 + kpis.annualInflation / 100,
-      i
-    );
-
-    projections.push({
-      year,
-      age,
-      portfolioValue: Math.round(portfolioValue),
-      contributions: Math.round(contributions),
-      returns: Math.round(returns),
-      inflationAdjusted: Math.round(portfolioValue / inflationFactor),
-      expenses: Math.round(expenses),
-      invested: Math.round(invested),
-      requiredIncome: Math.round(requiredIncome),
-    });
   }
-
-  return projections;
+  if (!quote) {
+    throw new Error(
+      "Mixed-currency portfolio requires quote currency and FX rates"
+    );
+  }
+  let total = 0;
+  for (const asset of assets) {
+    const from = asset.nativeCurrency ?? asset.currency;
+    const native = asset.quantity * asset.currentPrice;
+    if (from === quote.currency) {
+      total += native;
+      continue;
+    }
+    const fromRate = quote.rates[from];
+    const toRate = quote.rates[quote.currency];
+    if (!fromRate || !toRate) {
+      throw new Error(`No FX rate for ${from}→${quote.currency}`);
+    }
+    total += native * (toRate / fromRate);
+  }
+  return total;
 }
 
 /** Base chart points — confidence bands come from Monte Carlo via chartDataWithMcBands */
@@ -967,7 +981,7 @@ function formatDistributionBinLabel(value: number): string {
 
 export function buildDistributionBins(
   values: number[],
-  target: number,
+  target: number | null,
   binCount = 14
 ): DistributionBin[] {
   if (values.length === 0) return [];
@@ -994,7 +1008,7 @@ export function buildDistributionBins(
       max: bMax,
       midpoint,
       count,
-      meetsTarget: midpoint >= target,
+      meetsTarget: target != null && midpoint >= target,
     });
   }
 

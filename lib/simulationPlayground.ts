@@ -1,22 +1,22 @@
 import { getDefaultIncludedAssetIds } from "@/lib/simulationScope";
 import { buildProjectionEngineConfig } from "@/lib/projectionEngine";
-import { chartDataWithMcBands, generateExtendedProjections } from "@/lib/projectionsExtended";
+import { projectPlan } from "@/lib/engine/project";
+import { chartDataWithMcBands } from "@/lib/projectionsExtended";
 import { syncNetWorthWithPortfolio } from "@/lib/netWorthSync";
 import { resolveSimulationKpis } from "@/lib/simulationScope";
 import {
-  applyIncludedPortfolioCagr,
   applyPortfolioCagrToKpis,
   normalizePortfolioCagr,
 } from "@/lib/portfolioCagr";
 import {
   DEFAULT_KPI_VALUES,
   normalizeKpiValues,
-  MOCK_PORTFOLIO,
   type ChartDataPoint,
   type DistributionBin,
   type KPIValues,
   type MonteCarloResult,
   type MonteCarloScenario,
+  type MonteCarloState,
   type PortfolioAsset,
   type ProjectionYear,
   type StressTestId,
@@ -44,6 +44,7 @@ export interface SimulationPlaygroundState {
     distributions: Record<MonteCarloScenario, DistributionBin[]> | null;
     target: number | null;
     iterations: number;
+    pathsByAge?: MonteCarloState["pathsByAge"];
   };
   activeStressTest: StressTestId | null;
   stressTestResults: StressTestResult[];
@@ -59,6 +60,7 @@ function emptyMonteCarlo(): SimulationPlaygroundState["monteCarlo"] {
     distributions: null,
     target: null,
     iterations: 1000,
+    pathsByAge: null,
   };
 }
 
@@ -102,6 +104,7 @@ export function buildPlaygroundProjections(state: {
   monteCarlo?: {
     hasRun?: boolean;
     results: MonteCarloResult[];
+    pathsByAge?: MonteCarloState["pathsByAge"];
   };
 }) {
   const portfolio = normalizePortfolioCagr(state.portfolio);
@@ -113,15 +116,11 @@ export function buildPlaygroundProjections(state: {
     ),
     portfolio
   );
-  const effectiveKpis = applyIncludedPortfolioCagr(
-    resolveSimulationKpis(
-      syncedKpis,
-      portfolio,
-      state.simulationIncludedAssetIds,
-      state.kpiOutsidePortfolio
-    ),
+  const effectiveKpis = resolveSimulationKpis(
+    syncedKpis,
     portfolio,
-    state.simulationIncludedAssetIds
+    state.simulationIncludedAssetIds,
+    state.kpiOutsidePortfolio
   );
   const engineConfig = buildProjectionEngineConfig(
     effectiveKpis,
@@ -129,11 +128,7 @@ export function buildPlaygroundProjections(state: {
     state.simulationIncludedAssetIds,
     state.kpiOutsidePortfolio
   );
-  const projections = generateExtendedProjections(effectiveKpis, {
-    portfolio,
-    includedAssetIds: state.simulationIncludedAssetIds,
-    outsidePortfolio: state.kpiOutsidePortfolio,
-  });
+  const projections = projectPlan(engineConfig.plan).years;
   const mcBase =
     state.monteCarlo?.hasRun && (state.monteCarlo.results?.length ?? 0) > 0
       ? state.monteCarlo.results.find((r) => r.scenario === "base")
@@ -142,9 +137,10 @@ export function buildPlaygroundProjections(state: {
     projections,
     mcBase?.percentile10,
     mcBase?.percentile90,
-    effectiveKpis.retirementAge,
+    effectiveKpis.lifeExpectancy,
     mcBase?.medianValue,
-    engineConfig
+    engineConfig,
+    state.monteCarlo?.pathsByAge
   );
   return {
     kpis: syncedKpis,

@@ -2,6 +2,7 @@ import {
   calculatePortfolioValue,
   type KPIValues,
   type PortfolioAsset,
+  type PortfolioValueQuote,
 } from "@/types";
 
 /** KPIs with net worth adjusted for included portfolio assets only */
@@ -9,9 +10,10 @@ export function resolveSimulationKpis(
   kpis: KPIValues,
   portfolio: PortfolioAsset[],
   includedAssetIds: string[],
-  outsidePortfolio?: number
+  outsidePortfolio?: number,
+  quote?: PortfolioValueQuote
 ): KPIValues {
-  const totalPortfolio = calculatePortfolioValue(portfolio);
+  const totalPortfolio = calculatePortfolioValue(portfolio, quote);
   const outside =
     outsidePortfolio ??
     Math.max(0, Math.round(kpis.currentNetWorth - totalPortfolio));

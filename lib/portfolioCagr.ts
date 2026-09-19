@@ -1,20 +1,40 @@
 import type { AssetClass, KPIValues, PortfolioAsset } from "@/types";
+import { fisherNominal } from "@/lib/engine/rates";
+import { DEFAULT_LONG_RUN_INFLATION } from "@/lib/engine/assumptions";
 
-/** Default expected nominal CAGR (%) by asset class */
-export const DEFAULT_ASSET_CLASS_CAGR: Record<AssetClass, number> = {
-  stocks: 10,
-  etf: 8.5,
-  bonds: 4.5,
-  bdr: 9,
-  funds: 7,
-  commodities: 5,
-  reit: 7.5,
-  real_estate: 3,
+/** Default expected REAL annual return (%) by asset class (BRL, conservative). */
+export const DEFAULT_ASSET_CLASS_REAL_RETURN: Record<AssetClass, number> = {
+  stocks: 4.5,
+  etf: 4,
+  bonds: 4,
+  bdr: 4.5,
+  funds: 3.5,
+  commodities: 0.5,
+  reit: 3.5,
+  real_estate: 0,
   personal: 0,
-  crypto: 12,
-  cash: 0,
-  other: 6,
+  crypto: 2,
+  cash: 2,
+  other: 3.5,
 };
+
+/** Nominal % at the long-run inflation default — UI still edits nominal. */
+export const DEFAULT_ASSET_CLASS_CAGR: Record<AssetClass, number> = (
+  Object.keys(DEFAULT_ASSET_CLASS_REAL_RETURN) as AssetClass[]
+).reduce(
+  (acc, cls) => {
+    acc[cls] =
+      Math.round(
+        fisherNominal(
+          DEFAULT_ASSET_CLASS_REAL_RETURN[cls] / 100,
+          DEFAULT_LONG_RUN_INFLATION
+        ) *
+          1000
+      ) / 10;
+    return acc;
+  },
+  {} as Record<AssetClass, number>
+);
 
 export function defaultCagrForAssetClass(assetClass: AssetClass): number {
   return DEFAULT_ASSET_CLASS_CAGR[assetClass];
@@ -65,13 +85,22 @@ export function computeWeightedPortfolioCagr(
   return Math.round((weighted / totalValue) * 10) / 10;
 }
 
+/**
+ * Display helper only. Never write the result back over the user's KPI.
+ * (M2: the old applyPortfolioCagrToKpis destroyed typed CAGR on every rebuild.)
+ */
+export function derivedPortfolioCagr(
+  portfolio: PortfolioAsset[]
+): number | null {
+  return computeWeightedPortfolioCagr(portfolio);
+}
+
+/** @deprecated No-op — kept so call sites compile while they are unwound. */
 export function applyPortfolioCagrToKpis(
   kpis: KPIValues,
-  portfolio: PortfolioAsset[]
+  _portfolio: PortfolioAsset[]
 ): KPIValues {
-  const cagr = computeWeightedPortfolioCagr(portfolio);
-  if (cagr == null) return kpis;
-  return { ...kpis, expectedCAGR: cagr };
+  return kpis;
 }
 
 export function applyIncludedPortfolioCagr(
