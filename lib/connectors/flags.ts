@@ -5,7 +5,7 @@ import type { ConnectorId } from "@/lib/connectors/types";
  * B3 Área Logada is a commercial licence, not Open Finance.
  */
 export function isConnectorEnabled(id: ConnectorId, env: Record<string, string | undefined> = process.env): boolean {
-  if (id === "manual") return true;
+  if (id === "manual" || id === "cnis" || id === "irpf") return true;
   if (id === "b3") {
     const flag = env.NEXT_PUBLIC_B3_CONNECTOR ?? env.B3_CONNECTOR;
     return flag !== "off" && flag !== "0" && flag !== "false";

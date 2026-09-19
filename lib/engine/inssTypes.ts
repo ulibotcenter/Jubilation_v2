@@ -12,6 +12,20 @@ export type ContributorKind =
 
 export type SpecialExposure = 15 | 20 | 25;
 
+export type CnisNamedIndicator = "PREC-MENOR" | "PEXT" | "PVINC";
+
+export interface CnisCompetenceFlags {
+  precMenor?: boolean;
+  pext?: boolean;
+  pvinc?: boolean;
+  concurrent?: boolean;
+  rural?: boolean;
+  /** Named special-time years (15/20/25) when the extract says so. */
+  especialYears?: SpecialExposure | null;
+  vinculoSeq?: number;
+  employerName?: string;
+}
+
 export interface ContributionCompetence {
   /** YYYY-MM */
   yearMonth: string;
@@ -23,6 +37,8 @@ export interface ContributionCompetence {
   teacher?: boolean;
   /** INPC factor to as-of money. 1 = already in as-of money (tests). */
   inpcFactor?: number;
+  /** CNIS-only named flags. Engine ignores unknown extras. */
+  cnis?: CnisCompetenceFlags;
 }
 
 export const RGPS_REFORM_ISO = "2019-11-13";

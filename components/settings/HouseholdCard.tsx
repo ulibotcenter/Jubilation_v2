@@ -113,6 +113,13 @@ export function HouseholdCard() {
         person={household.holder}
         onPatch={(patch) => patchHouseholdPerson("holder", patch)}
       />
+      {household.holder.inss?.source === "FILE_CNIS" && (
+        <p className="text-[11px] text-muted-foreground mt-2 tabular-nums">
+          {t("settings.files.cnisAsOf", {
+            date: household.holder.inss.asOf,
+          })}
+        </p>
+      )}
 
       <h3 className="household-subtitle">{t("settings.household.spouse")}</h3>
       {household.spouse ? (
