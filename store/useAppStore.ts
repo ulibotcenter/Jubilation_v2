@@ -21,6 +21,17 @@ import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
 import { ENGINE_VERSION } from "@/lib/engine/version";
 import { createId } from "@/lib/engine/ids";
 import { DEFAULT_TENANT, type Tenant } from "@/lib/engine/canonical";
+import { todayIsoDate } from "@/lib/engine/provenance";
+import {
+  createPerson,
+  householdFromKpis,
+  isHousehold,
+  syncHolderWithKpis,
+  type Household,
+  type HouseholdScope,
+  type Person,
+} from "@/lib/engine/household";
+import type { Sex } from "@/lib/engine/inssTypes";
 import { migratePersistedState, CURRENT_PERSIST_VERSION } from "@/lib/persist/migrate";
 import { percentile } from "@/lib/engine/monteCarlo";
 import type { CoachMessage } from "@/lib/ai/retirementCoach";
@@ -165,6 +176,7 @@ function buildProjectionsFromState(state: {
   };
   currency?: Currency;
   fxSnapshot?: FxSnapshot | null;
+  household?: Household | null;
 }) {
   const quote = liveFxQuote(state.currency ?? "USD", state.fxSnapshot);
   const portfolio = normalizePortfolioAssets(
@@ -195,7 +207,8 @@ function buildProjectionsFromState(state: {
     portfolio,
     state.simulationIncludedAssetIds,
     state.kpiOutsidePortfolio,
-    quote
+    quote,
+    { household: state.household }
   );
   if (state.sensitivity?.cagr != null) {
     const inflation = effectiveKpis.annualInflation / 100;
@@ -215,7 +228,7 @@ function buildProjectionsFromState(state: {
     projected,
     mcBase?.percentile10,
     mcBase?.percentile90,
-    effectiveKpis.lifeExpectancy,
+    engineConfig.plan.lifeExpectancy,
     mcBase?.medianValue,
     engineConfig,
     state.monteCarlo?.pathsByAge
@@ -293,6 +306,7 @@ export interface AppStore {
   institutions: Institution[];
   accounts: FinancialAccount[];
   entitlements: Entitlement[];
+  household: Household;
   planTier: PlanTier;
   explainSimple: boolean;
   theme: "dark" | "light";
@@ -356,6 +370,20 @@ export interface AppStore {
   setSimulationIncludedAssetIds: (ids: string[]) => void;
   toggleSimulationAsset: (assetId: string) => void;
   toggleSimulationAssetClass: (assetClass: AssetClass, include: boolean) => void;
+  setHouseholdScope: (scope: HouseholdScope) => void;
+  addSpouse: (input: {
+    displayName: string;
+    sex: Sex;
+    birthDate: string;
+    lifeExpectancy?: number;
+    marriageDate?: string | null;
+  }) => void;
+  removeSpouse: () => void;
+  patchHouseholdPerson: (
+    role: "holder" | "spouse",
+    patch: Partial<Pick<Person, "displayName" | "sex" | "birthDate" | "lifeExpectancy" | "contributorKind">>
+  ) => void;
+  setMarriageDate: (date: string | null) => void;
   recalculateProjections: () => void;
   runMonteCarlo: () => Promise<void>;
   runStressTestById: (testId: StressTestId) => void;
@@ -404,14 +432,31 @@ function invalidateSimMonteCarlo(
   };
 }
 
+function liveCtx(state: {
+  currency: Currency;
+  fxSnapshot?: FxSnapshot | null;
+  household?: Household | null;
+}) {
+  return {
+    currency: state.currency,
+    fxSnapshot: state.fxSnapshot,
+    household: state.household ?? null,
+  };
+}
+
 function rebuildSimPlayground(
   sim: SimulationPlaygroundState,
-  fx: { currency: Currency; fxSnapshot?: FxSnapshot | null }
+  fx: {
+    currency: Currency;
+    fxSnapshot?: FxSnapshot | null;
+    household?: Household | null;
+  }
 ): SimulationPlaygroundState {
   const built = buildPlaygroundProjections({
     ...sim,
     currency: fx.currency,
     fxSnapshot: fx.fxSnapshot,
+    household: fx.household,
     monteCarlo: sim.monteCarlo.hasRun
       ? { hasRun: true, results: sim.monteCarlo.results }
       : undefined,
@@ -430,6 +475,39 @@ function rebuildSimPlayground(
   };
 }
 
+function rebuildWithHousehold<
+  S extends {
+    kpis: KPIValues;
+    portfolio: PortfolioAsset[];
+    simulationIncludedAssetIds: string[];
+    kpiOutsidePortfolio: number;
+    sensitivity: SensitivityState;
+    monteCarlo: AppStore["monteCarlo"];
+    currency: Currency;
+    fxSnapshot: FxSnapshot | null;
+    household: Household;
+    simPlayground: SimulationPlaygroundState;
+    projectionRevision: number;
+  },
+>(state: S, household: Household) {
+  const built = buildProjectionsFromState({
+    ...state,
+    household,
+  });
+  const simPlayground = state.simPlayground.isActive
+    ? rebuildSimPlayground(state.simPlayground, liveCtx({ ...state, household }))
+    : state.simPlayground;
+  return {
+    household,
+    kpis: built.kpis,
+    projections: built.projections,
+    chartData: built.chartData,
+    projectionRevision: state.projectionRevision + 1,
+    monteCarlo: markMonteCarloStale(state.monteCarlo),
+    simPlayground,
+  };
+}
+
 /** Investable assets drive growth; real estate & personal stay in static bucket */
 const defaultIncludedIds = applyScopePreset(SEED_PORTFOLIO, "investmentsOnly");
 const seedPortfolioTotal = calculatePortfolioValue(SEED_PORTFOLIO);
@@ -437,12 +515,14 @@ const seedKpis = normalizeKpiValues({
   currentNetWorth: Math.round(seedPortfolioTotal),
 });
 const initialOutside = 0;
+const seedHousehold = householdFromKpis(seedKpis, todayIsoDate());
 const initialBuild = buildProjectionsFromState({
   kpis: seedKpis,
   portfolio: SEED_PORTFOLIO,
   simulationIncludedAssetIds: defaultIncludedIds,
   kpiOutsidePortfolio: initialOutside,
   sensitivity: { cagr: null, inflation: null },
+  household: seedHousehold,
 });
 
 export const useAppStore = create<AppStore>()(
@@ -493,6 +573,7 @@ export const useAppStore = create<AppStore>()(
       institutions: [],
       accounts: [],
       entitlements: [],
+      household: seedHousehold,
       planTier: "free",
       explainSimple: false,
       theme: "light",
@@ -511,7 +592,8 @@ export const useAppStore = create<AppStore>()(
         SEED_PORTFOLIO,
         defaultIncludedIds,
         "USD",
-        null
+        null,
+        seedHousehold
       ),
 
       setLocale: (locale) => {
@@ -552,6 +634,7 @@ export const useAppStore = create<AppStore>()(
           kpiOutsidePortfolio: state.kpiOutsidePortfolio,
           sensitivity,
           monteCarlo: mcBandsInput(state.monteCarlo),
+          household: state.household,
         });
         set({
           sensitivity,
@@ -572,6 +655,7 @@ export const useAppStore = create<AppStore>()(
           kpiOutsidePortfolio: state.kpiOutsidePortfolio,
           sensitivity: { cagr: null, inflation: null },
           monteCarlo: mcBandsInput(state.monteCarlo),
+          household: state.household,
         });
         set({
           sensitivity: { cagr: null, inflation: null },
@@ -686,7 +770,7 @@ export const useAppStore = create<AppStore>()(
                 kpiOutsidePortfolio: convertedSimOutside,
                 portfolio: simPlayground.portfolio,
               },
-              { currency: next, fxSnapshot: snapshot }
+              { currency: next, fxSnapshot: snapshot, household: state.household }
             );
           }
 
@@ -737,6 +821,14 @@ export const useAppStore = create<AppStore>()(
         let kpiOutsidePortfolio = state.kpiOutsidePortfolio;
         const before = state.kpis[field];
         const kpis = normalizeKpiValues({ ...state.kpis, [field]: value });
+        let household = state.household;
+        if (field === "currentAge" || field === "lifeExpectancy") {
+          household = syncHolderWithKpis(
+            household,
+            kpis,
+            household.holder.asOf
+          );
+        }
 
         if (field === "currentNetWorth") {
           kpiOutsidePortfolio = deriveOutsideFromManualNetWorth(
@@ -750,6 +842,7 @@ export const useAppStore = create<AppStore>()(
           ...state,
           kpis,
           kpiOutsidePortfolio,
+          household,
         });
         const projBefore =
           builtBefore.projections[state.kpis.retirementAge - state.kpis.currentAge]
@@ -766,6 +859,7 @@ export const useAppStore = create<AppStore>()(
         set({
           kpis: built.kpis,
           kpiOutsidePortfolio,
+          household,
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
@@ -979,6 +1073,69 @@ export const useAppStore = create<AppStore>()(
         get().setSimulationIncludedAssetIds([...setIds]);
       },
 
+      setHouseholdScope: (scope) => {
+        const state = get();
+        if (scope !== "holder" && !state.household.spouse) return;
+        set(rebuildWithHousehold(state, { ...state.household, scope }));
+      },
+
+      addSpouse: (input) => {
+        const state = get();
+        const asOf = todayIsoDate();
+        const spouse = createPerson({
+          role: "spouse",
+          displayName: input.displayName.trim() || "Spouse",
+          sex: input.sex,
+          birthDate: input.birthDate,
+          asOf,
+          lifeExpectancy: input.lifeExpectancy,
+        });
+        set(
+          rebuildWithHousehold(state, {
+            ...state.household,
+            spouse,
+            marriageDate: input.marriageDate ?? state.household.marriageDate,
+          })
+        );
+      },
+
+      removeSpouse: () => {
+        const state = get();
+        set(
+          rebuildWithHousehold(state, {
+            ...state.household,
+            spouse: null,
+            marriageDate: null,
+            scope: "holder",
+          })
+        );
+      },
+
+      patchHouseholdPerson: (role, patch) => {
+        const state = get();
+        if (role === "spouse" && !state.household.spouse) return;
+        const current =
+          role === "holder" ? state.household.holder : state.household.spouse!;
+        const nextPerson = { ...current, ...patch, asOf: todayIsoDate() };
+        set(
+          rebuildWithHousehold(state, {
+            ...state.household,
+            holder: role === "holder" ? nextPerson : state.household.holder,
+            spouse: role === "spouse" ? nextPerson : state.household.spouse,
+          })
+        );
+      },
+
+      setMarriageDate: (date) => {
+        const state = get();
+        set(
+          rebuildWithHousehold(state, {
+            ...state.household,
+            marriageDate: date,
+          })
+        );
+      },
+
       recalculateProjections: () => {
         const state = get();
         const built = buildProjectionsFromState({
@@ -988,6 +1145,7 @@ export const useAppStore = create<AppStore>()(
           kpiOutsidePortfolio: state.kpiOutsidePortfolio,
           sensitivity: state.sensitivity,
           monteCarlo: mcBandsInput(state.monteCarlo),
+          household: state.household,
         });
         set({
           kpis: built.kpis,
@@ -1063,6 +1221,7 @@ export const useAppStore = create<AppStore>()(
             simulationIncludedAssetIds: state.simulationIncludedAssetIds,
             currency: state.currency,
             fxSnapshot: state.fxSnapshot,
+            household: state.household,
           }),
         });
       },
@@ -1077,6 +1236,7 @@ export const useAppStore = create<AppStore>()(
             simulationIncludedAssetIds: state.simulationIncludedAssetIds,
             currency: state.currency,
             fxSnapshot: state.fxSnapshot,
+            household: state.household,
           }),
         });
       },
@@ -1100,7 +1260,7 @@ export const useAppStore = create<AppStore>()(
             kpis,
             kpiOutsidePortfolio,
           },
-          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+          { currency: state.currency, fxSnapshot: state.fxSnapshot, household: state.household }
         );
         set({
           simPlayground: next,
@@ -1129,7 +1289,7 @@ export const useAppStore = create<AppStore>()(
             portfolio,
             simulationIncludedAssetIds,
           },
-          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+          { currency: state.currency, fxSnapshot: state.fxSnapshot, household: state.household }
         );
         set({ simPlayground: next });
       },
@@ -1144,7 +1304,7 @@ export const useAppStore = create<AppStore>()(
             ...state.simPlayground,
             portfolio,
           },
-          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+          { currency: state.currency, fxSnapshot: state.fxSnapshot, household: state.household }
         );
         set({ simPlayground: next });
       },
@@ -1162,7 +1322,7 @@ export const useAppStore = create<AppStore>()(
             portfolio,
             simulationIncludedAssetIds,
           },
-          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+          { currency: state.currency, fxSnapshot: state.fxSnapshot, household: state.household }
         );
         set({ simPlayground: next });
       },
@@ -1226,7 +1386,7 @@ export const useAppStore = create<AppStore>()(
             portfolio,
             portfolioLastRefreshedAt: fetchedAt,
           },
-          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+          { currency: state.currency, fxSnapshot: state.fxSnapshot, household: state.household }
         );
         set({ simPlayground: next });
         return {
@@ -1246,7 +1406,7 @@ export const useAppStore = create<AppStore>()(
             ...state.simPlayground,
             simulationIncludedAssetIds: validIds,
           },
-          { currency: state.currency, fxSnapshot: state.fxSnapshot }
+          { currency: state.currency, fxSnapshot: state.fxSnapshot, household: state.household }
         );
         set({ simPlayground: next });
       },
@@ -1371,6 +1531,10 @@ export const useAppStore = create<AppStore>()(
         const kpiOutsidePortfolio =
           migrated.kpiOutsidePortfolio ?? current.kpiOutsidePortfolio;
         const kpis = normalizeKpiValues(migrated.kpis ?? current.kpis);
+        const asOf = todayIsoDate();
+        const household = isHousehold(migrated.household)
+          ? migrated.household
+          : householdFromKpis(kpis, asOf);
 
         const persistedMc = migrated.monteCarlo;
         const built = buildProjectionsFromState({
@@ -1389,6 +1553,7 @@ export const useAppStore = create<AppStore>()(
               : undefined,
           currency: migrated.currency ?? current.currency,
           fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
+          household,
         });
 
         const simPlayground = normalizeSimPlayground(migrated.simPlayground, {
@@ -1398,6 +1563,7 @@ export const useAppStore = create<AppStore>()(
           simulationIncludedAssetIds,
           currency: migrated.currency ?? current.currency,
           fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
+          household,
         });
 
         const monteCarlo = persistedMc
@@ -1413,6 +1579,7 @@ export const useAppStore = create<AppStore>()(
           institutions: migrated.institutions ?? [],
           accounts: migrated.accounts ?? [],
           entitlements: migrated.entitlements ?? [],
+          household,
           portfolio,
           simulationIncludedAssetIds,
           kpiOutsidePortfolio,
@@ -1434,6 +1601,7 @@ export const useAppStore = create<AppStore>()(
         institutions: state.institutions,
         accounts: state.accounts,
         entitlements: state.entitlements,
+        household: state.household,
         planTier: "free" as const,
         explainSimple: state.explainSimple,
         theme: state.theme,

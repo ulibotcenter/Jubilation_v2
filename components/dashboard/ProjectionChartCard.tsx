@@ -26,6 +26,7 @@ import {
 import { ChartSkeleton } from "@/components/ui/ChartSkeleton";
 import { ChartTooltip } from "@/components/ui/ChartTooltip";
 import { SimulationAssetFilter } from "@/components/ui/SimulationAssetFilter";
+import { HouseholdScopeToggle } from "@/components/ui/HouseholdScopeToggle";
 import { PROJECTION_COLORS } from "@/lib/chartColors";
 import { getChartScenarioLabel } from "@/lib/i18n/resolve";
 import {
@@ -221,6 +222,7 @@ export function ProjectionChartCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <HouseholdScopeToggle />
           {showAssetFilter && <SimulationAssetFilter mode={mode} />}
           <ChartScenarioToggles
             visibility={lineVisibility}

@@ -12,6 +12,7 @@ import { computeWeightedPortfolioCagr } from "@/lib/portfolioCagr";
 import { resolveLiquidity } from "@/lib/engine/liquidity";
 import { aggregatePortfolioMajor } from "@/lib/engine/adapter";
 import { MissingFxRateError } from "@/lib/engine/money";
+import type { Household } from "@/lib/engine/household";
 import {
   type KPIValues,
   type PortfolioAsset,
@@ -53,7 +54,8 @@ export function buildProjectionEngineConfig(
   portfolio: PortfolioAsset[],
   includedAssetIds: string[],
   outsidePortfolio = 0,
-  quote?: EngineBuildInput["quote"]
+  quote?: EngineBuildInput["quote"],
+  extras?: { household?: Household | null }
 ): ProjectionEngineConfig {
   const fx = quote ?? sameCurrencyQuote(portfolio);
   const plan = buildEnginePlan({
@@ -62,6 +64,7 @@ export function buildProjectionEngineConfig(
     includedAssetIds,
     outsidePortfolio,
     quote: fx,
+    household: extras?.household,
   });
   return {
     kpis,

@@ -8,6 +8,11 @@ import {
 } from "@/lib/engine/plan";
 import { retirementTarget } from "@/lib/engine/target";
 import type { ProjectionYear } from "@/types";
+import {
+  calendarMonthAfter,
+  comeCotasLevyCents,
+  isComeCotasCalendarMonth,
+} from "@/lib/engine/comeCotas";
 
 export interface ProjectionResult {
   years: ProjectionYear[];
@@ -100,6 +105,10 @@ export function projectPlan(
     const ageAtEnd = plan.currentAge + Math.ceil(month / 12);
     const row = ensure(ageAtEnd);
     const retired = ageAtEnd >= plan.retirementAge;
+    const fromBenefits = (plan.benefits ?? [])
+      .filter((b) => ageAtEnd >= b.startAge && ageAtEnd <= b.endAge)
+      .reduce((s, b) => s + b.monthlyCents, 0);
+    const inssLike = fromBenefits > 0 ? fromBenefits : plan.inssMonthlyCents;
 
     const liqRet = Math.round(liquid * liquidRate(month));
     const illRet = Math.round(illiquid * illiquidRate(month));
@@ -108,10 +117,10 @@ export function projectPlan(
     row.returns += liqRet + illRet;
 
     if (plan.taxRegime === "come_cotas") {
-      const calendarMonth = (asOfYear(plan.asOf) * 0 + (month - 1)) % 12;
-      if (calendarMonth === 4 || calendarMonth === 10) {
+      const cal = calendarMonthAfter(plan.asOf, month - 1);
+      if (isComeCotasCalendarMonth(cal.month, cal.year, plan.parameterSet)) {
         const gain = Math.max(0, liquid - comeCotasBase);
-        const levy = Math.round(gain * plan.comeCotasRate);
+        const levy = comeCotasLevyCents(gain, plan.comeCotasRate);
         liquid = Math.max(0, liquid - levy);
         row.taxes += levy;
         comeCotasBase = liquid;
@@ -132,6 +141,10 @@ export function projectPlan(
       row.contributions += plan.monthlyContributionCents;
       row.invested += plan.monthlyContributionCents;
       row.expenses += plan.monthlyLifestyleCents;
+      if (fromBenefits > 0) {
+        liquid += fromBenefits;
+        row.contributions += fromBenefits;
+      }
     } else {
       if (monthlyNeed === 0) {
         const target = retirementTarget({
@@ -145,7 +158,7 @@ export function projectPlan(
         }
       }
 
-      const fromInss = Math.min(monthlyNeed, plan.inssMonthlyCents);
+      const fromInss = Math.min(monthlyNeed, inssLike);
       const netFromPortfolio = Math.max(0, monthlyNeed - fromInss);
       const tax = taxOnRetirementIncome(plan, ageAtEnd, monthlyNeed);
       const grossFromPortfolio = netFromPortfolio + tax;

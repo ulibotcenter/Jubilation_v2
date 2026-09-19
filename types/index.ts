@@ -357,6 +357,7 @@ export interface PortfolioAsset {
   externalRef?: string | null;
   institutionId?: string | null;
   accountId?: string | null;
+  ownership?: "holder" | "spouse" | "joint";
 }
 
 export interface TickerSearchResult {

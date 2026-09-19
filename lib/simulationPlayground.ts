@@ -9,6 +9,7 @@ import {
   normalizePortfolioCagr,
 } from "@/lib/portfolioCagr";
 import { liveFxQuote, type FxSnapshot } from "@/lib/fx/types";
+import type { Household } from "@/lib/engine/household";
 import type { Currency } from "@/types";
 import {
   DEFAULT_KPI_VALUES,
@@ -105,6 +106,7 @@ export function buildPlaygroundProjections(state: {
   kpiOutsidePortfolio: number;
   currency?: Currency;
   fxSnapshot?: FxSnapshot | null;
+  household?: Household | null;
   monteCarlo?: {
     hasRun?: boolean;
     results: MonteCarloResult[];
@@ -134,7 +136,8 @@ export function buildPlaygroundProjections(state: {
     portfolio,
     state.simulationIncludedAssetIds,
     state.kpiOutsidePortfolio,
-    quote
+    quote,
+    { household: state.household }
   );
   const projections = projectPlan(engineConfig.plan).years;
   const mcBase =
@@ -145,7 +148,7 @@ export function buildPlaygroundProjections(state: {
     projections,
     mcBase?.percentile10,
     mcBase?.percentile90,
-    effectiveKpis.lifeExpectancy,
+    engineConfig.plan.lifeExpectancy,
     mcBase?.medianValue,
     engineConfig,
     state.monteCarlo?.pathsByAge
@@ -166,6 +169,7 @@ export function snapshotFromRealState(real: {
   simulationIncludedAssetIds: string[];
   currency?: Currency;
   fxSnapshot?: FxSnapshot | null;
+  household?: Household | null;
 }): SimulationPlaygroundState {
   const { portfolio, idMap } = clonePortfolioForSimulation(real.portfolio);
   const simulationIncludedAssetIds = real.simulationIncludedAssetIds
@@ -184,6 +188,7 @@ export function snapshotFromRealState(real: {
     simulationIncludedAssetIds: included,
     currency: real.currency,
     fxSnapshot: real.fxSnapshot,
+    household: real.household,
   });
 
   return {
@@ -233,6 +238,7 @@ export function normalizeSimPlayground(
     simulationIncludedAssetIds: string[];
     currency?: Currency;
     fxSnapshot?: FxSnapshot | null;
+    household?: Household | null;
   }
 ): SimulationPlaygroundState {
   if (!persisted?.isActive || !persisted.portfolio?.length) {
@@ -244,6 +250,7 @@ export function normalizeSimPlayground(
     ...merged,
     currency: real.currency,
     fxSnapshot: real.fxSnapshot,
+    household: real.household,
   });
 
   return {
@@ -261,7 +268,8 @@ export function initialPlaygroundFromMock(
   portfolio: PortfolioAsset[],
   simulationIncludedAssetIds: string[],
   currency?: Currency,
-  fxSnapshot?: FxSnapshot | null
+  fxSnapshot?: FxSnapshot | null,
+  household?: Household | null
 ): SimulationPlaygroundState {
   return snapshotFromRealState({
     kpis,
@@ -270,5 +278,6 @@ export function initialPlaygroundFromMock(
     simulationIncludedAssetIds,
     currency,
     fxSnapshot,
+    household,
   });
 }

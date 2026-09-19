@@ -30,6 +30,23 @@ export interface YearLegalParams {
   specialPoints15: number;
   specialPoints20: number;
   specialPoints26: number;
+  /** IN RFB 1.585/2015 art. 9 §1º I — short-term funds. */
+  comeCotasShortTermRate: number;
+  /** IN RFB 1.585/2015 art. 9 §1º II — long-term funds. */
+  comeCotasLongTermRate: number;
+  /** Calendar months (1–12) of come-cotas. May and November. */
+  comeCotasMonths: number[];
+  pgblDeductionRate: number;
+  contributorMeiRate: number;
+  contributorMeiTruckerRate: number;
+  contributorSimplifiedRate: number;
+  contributorNormalRate: number;
+  factorPrevidenciarioAlfa: number;
+  survivorFamilyQuota: number;
+  survivorDependentQuota: number;
+  survivorMaxQuota: number;
+  rendaMaisInstallments: number;
+  rendaMaisCustodyFreeMinWages: number;
   fgtsBirthdayBrackets: Array<{
     upToCents: number;
     rate: number;
@@ -38,12 +55,53 @@ export interface YearLegalParams {
   source: string;
 }
 
+/**
+ * Named premises that are not a closed legal number (checklist 4.12).
+ * Defaults are conservative; never present an uncertain rule as a closed number.
+ */
+export interface LegalPremises {
+  /** ADI 6309 did not expressly strike special points. Default: keep 66/76/86. */
+  requireSpecialPoints: boolean;
+  /** Lei 14.754/2023 closed/exclusive/offshore — default: come-cotas only on open funds. */
+  comeCotasAppliesToClosedFunds: boolean;
+  comeCotasAppliesToExclusiveFunds: boolean;
+  comeCotasAppliesToOffshore: boolean;
+  /** Art. 18 male T_min for the coefficient. Uncertain; default 20. */
+  maleByAgeTminYears: number;
+  maleByAgeTminUncertain: boolean;
+  /** Teacher 2026 reduced points/age not confirmed — apply −5 and flag. */
+  teacherTransitionUnconfirmed: boolean;
+  teacherAgeReductionYears: number;
+  teacherTimeReductionYears: number;
+  teacherPointsReduction: number;
+  /** Lot consumption on PGBL/VGBL redemption. FIFO is market practice. */
+  previdenciaLotOrder: "fifo" | "lifo";
+  /** Household expense after first death, as a fraction of the couple's spend. */
+  survivorExpenseFraction: number;
+}
+
+export const DEFAULT_LEGAL_PREMISES: LegalPremises = {
+  requireSpecialPoints: true,
+  comeCotasAppliesToClosedFunds: false,
+  comeCotasAppliesToExclusiveFunds: false,
+  comeCotasAppliesToOffshore: false,
+  maleByAgeTminYears: 20,
+  maleByAgeTminUncertain: true,
+  teacherTransitionUnconfirmed: true,
+  teacherAgeReductionYears: 5,
+  teacherTimeReductionYears: 5,
+  teacherPointsReduction: 5,
+  previdenciaLotOrder: "fifo",
+  survivorExpenseFraction: 0.7,
+};
+
 export interface ParameterSet {
   id: string;
   version: string;
   jurisdiction: "BR";
   asOf: string;
   years: Record<number, YearLegalParams>;
+  premises: LegalPremises;
 }
 
 const IRPF_2026_BRACKETS: RateBracket[] = [
@@ -93,9 +151,23 @@ function year2026(): YearLegalParams {
     specialPoints15: 66,
     specialPoints20: 76,
     specialPoints26: 86,
+    comeCotasShortTermRate: 0.2,
+    comeCotasLongTermRate: 0.15,
+    comeCotasMonths: [5, 11],
+    pgblDeductionRate: 0.12,
+    contributorMeiRate: 0.05,
+    contributorMeiTruckerRate: 0.12,
+    contributorSimplifiedRate: 0.11,
+    contributorNormalRate: 0.2,
+    factorPrevidenciarioAlfa: 0.31,
+    survivorFamilyQuota: 0.5,
+    survivorDependentQuota: 0.1,
+    survivorMaxQuota: 1,
+    rendaMaisInstallments: 240,
+    rendaMaisCustodyFreeMinWages: 6,
     fgtsBirthdayBrackets: FGTS_BIRTHDAY,
     source:
-      "Decreto 12.797/2025; Portaria MPS/MF 13/2026; RFB tabela IR mensal 2026",
+      "Decreto 12.797/2025; Portaria MPS/MF 13/2026; RFB tabela IR mensal 2026; IN RFB 1.585/2015 art. 9; EC 103/2019; Lei 11.053/2004; Lei 13.135/2015",
   };
 }
 
@@ -127,6 +199,7 @@ export function defaultParameterSet(asOf = "2026-01-01"): ParameterSet {
     jurisdiction: "BR",
     asOf,
     years,
+    premises: { ...DEFAULT_LEGAL_PREMISES },
   };
 }
 

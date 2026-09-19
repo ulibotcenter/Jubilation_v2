@@ -41,6 +41,7 @@ import {
   type PortfolioAsset,
   type PriceSource,
 } from "@/types";
+import type { Ownership } from "@/lib/engine/canonical";
 
 interface AddAssetModalProps {
   open: boolean;
@@ -94,6 +95,7 @@ export function AddAssetModal({
   const [physicalName, setPhysicalName] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [currentValue, setCurrentValue] = useState("");
+  const [ownership, setOwnership] = useState<Ownership>("holder");
 
   const resetManual = () => {
     setTicker("");
@@ -118,6 +120,7 @@ export function AddAssetModal({
     setTab("search");
     resetManual();
     resetPhysical();
+    setOwnership("holder");
   }, []);
 
   useEffect(() => {
@@ -167,6 +170,7 @@ export function AddAssetModal({
       priceSource: payload.priceSource,
       lastPriceAt: new Date().toISOString(),
       previousPrice: null,
+      ownership,
     };
 
     addAsset(asset);
@@ -363,6 +367,18 @@ export function AddAssetModal({
                 </button>
               ))}
             </div>
+
+            <label className="add-asset-field px-5 mt-3">
+              <span>{t("portfolio.ownership")}</span>
+              <select
+                value={ownership}
+                onChange={(e) => setOwnership(e.target.value as Ownership)}
+              >
+                <option value="holder">{t("portfolio.ownership.holder")}</option>
+                <option value="spouse">{t("portfolio.ownership.spouse")}</option>
+                <option value="joint">{t("portfolio.ownership.joint")}</option>
+              </select>
+            </label>
 
             {tab === "search" ? (
               selectedSearch ? (

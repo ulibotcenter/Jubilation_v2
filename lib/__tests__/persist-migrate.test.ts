@@ -29,6 +29,7 @@ describe("persist migrate", () => {
     expect((next.kpis as { currentAge: number }).currentAge).toBe(51);
     expect(next.planTier).toBe("premium");
     expect((next.tenant as { dataRegion: string }).dataRegion).toBe("eu");
+    expect(next.household).toBeUndefined();
   });
 
   it("maps yearly → horizon and keeps free as free", () => {

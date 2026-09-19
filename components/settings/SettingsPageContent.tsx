@@ -22,6 +22,7 @@ import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
+import { HouseholdCard } from "@/components/settings/HouseholdCard";
 
 const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
   { code: "en", labelKey: "locale.en" },
@@ -169,6 +170,8 @@ export function SettingsPageContent() {
             </div>
           )}
         </section>
+
+        <HouseholdCard />
 
         <section className="settings-page-card">
           <div className="settings-page-card-head">
