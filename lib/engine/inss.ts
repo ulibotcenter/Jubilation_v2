@@ -1,10 +1,13 @@
 import {
   DEFAULT_PARAMETER_SET,
   paramsForYear,
+  paramsForYearMonth,
   type LegalPremises,
   type ParameterSet,
   type YearLegalParams,
 } from "@/lib/engine/parameters";
+import { inpcCorrectionFactor } from "@/lib/engine/inpc";
+import { rgpsCeilingAt } from "@/lib/engine/rgpsLegalSeries";
 import { DEFAULT_PORTFOLIO_REAL_RETURN } from "@/lib/engine/assumptions";
 import { annualToMonthly } from "@/lib/engine/rates";
 import { expectedRemainingYearsBothSexes } from "@/lib/engine/mortality";
@@ -56,7 +59,7 @@ const TRANSITION_SOURCE =
 const SPECIAL_SOURCE =
   "EC 103/2019 art. 19 §1º; ADI 6309 (STF, 03/06/2026) derrubou idade mínima 55/58/60";
 const TEACHER_SOURCE =
-  "EC 103/2019 — professor da educação básica, redução de 5 anos em idade e tempo";
+  "EC 103/2019 art. 15 §3º (pontos), art. 16 §2º (idade progressiva), art. 19 §1º II (permanente), art. 20 §1º (pedágio 100%)";
 
 export interface EvaluateInssOptions {
   parameterSet?: ParameterSet;
@@ -158,7 +161,8 @@ export function teacherMonths(
 
 /**
  * SB = simple average of 100% of contribution wages since 07/1994,
- * each competence capped at that year's ceiling, INPC-corrected.
+ * each competence capped at the teto vigente naquela competência,
+ * INPC-corrected to the month before DIB (Lei 8.213 art. 29-B).
  * EC 103 ended the discard of the lowest 20%.
  */
 export function benefitSalaryCents(
@@ -172,10 +176,12 @@ export function benefitSalaryCents(
   if (rows.length === 0) return 0;
   let sum = 0;
   for (const row of rows) {
-    const year = Number(row.yearMonth.slice(0, 4));
-    const ceiling = paramsForYear(set, year).rgpsCeilingCents;
+    const ceiling = rgpsCeilingAt(
+      row.yearMonth,
+      set.rgpsCeilingSteps
+    ).cents;
     const capped = Math.min(Math.max(0, row.wageCents), ceiling);
-    const factor = row.inpcFactor ?? 1;
+    const factor = row.inpcFactor ?? inpcCorrectionFactor(row.yearMonth, asOf);
     sum += capped * factor;
   }
   return Math.round(sum / rows.length);
@@ -191,9 +197,10 @@ export function rgpsCoefficient(
 export function applyFloorCeiling(
   rmiCents: number,
   year: number,
-  set: ParameterSet
+  set: ParameterSet,
+  atYm?: string
 ): number {
-  const p = paramsForYear(set, year);
+  const p = paramsForYearMonth(set, atYm ?? `${year}-01`);
   return Math.min(
     p.rgpsCeilingCents,
     Math.max(p.minimumWageCents, Math.round(rmiCents))
@@ -222,8 +229,8 @@ export const FATOR_PREVIDENCIARIO_SOURCE =
 
 /**
  * Lei 9.876/1999 §9º — years added to Tc before the factor:
- * I woman +5; II teacher +5 (infantil/fundamental) or +10 (médio).
- * Default teacher bonus is +5 when the person is flagged teacher without a level.
+ * I woman +5; II teacher (infantil/fundamental/médio) +5; III professora +10.
+ * Default teacher bonus is +5, so a woman teacher totals +10 (= §9º III).
  */
 export function fatorTcBonusYears(input: {
   sex: "F" | "M";
@@ -331,7 +338,7 @@ function rmiFrom(
   set: ParameterSet
 ): number {
   const year = Number(eligibilityDate.slice(0, 4));
-  return applyFloorCeiling(sb * coef * factor, year, set);
+  return applyFloorCeiling(sb * coef * factor, year, set, eligibilityDate.slice(0, 7));
 }
 
 interface ScanCtx {
@@ -644,8 +651,71 @@ export function evaluateInss(
         return {
           ok,
           reasons: ok
-            ? ["teacher permanent −5 years"]
+            ? ["teacher permanent 57/60 + 25y magistério (art. 19 §1º II)"]
             : ["teacher permanent not met"],
+          coefficient: rgpsCoefficient(years, tMinYears(sex)),
+          contributionYears: years,
+          uncertain: premises.teacherTransitionUnconfirmed,
+        };
+      }
+    )
+  );
+
+  results.push(
+    scanFirstEligible(
+      ctx,
+      "teacher_points",
+      TEACHER_SOURCE,
+      (atIso, ageM, _tc, p, personAt) => {
+        const mag = teacherMonths(personAt.history, atIso);
+        const needMag = (sex === "F" ? 25 : 30) * 12;
+        const needPts =
+          sex === "F" ? p.inssTeacherPointsWoman : p.inssTeacherPointsMan;
+        const pts = ageM / 12 + mag / 12;
+        const ok =
+          isTeacher &&
+          transition &&
+          mag >= needMag &&
+          pts + 1e-9 >= needPts &&
+          carenciaMonths(personAt.history, atIso) >= 180;
+        const years = completeYears(mag);
+        return {
+          ok,
+          reasons: ok
+            ? [`teacher points ${pts.toFixed(1)} ≥ ${needPts} in ${p.year}`]
+            : [`need ${needPts} teacher points and ${needMag / 12}y magistério`],
+          coefficient: rgpsCoefficient(years, tMinYears(sex)),
+          contributionYears: years,
+          uncertain: premises.teacherTransitionUnconfirmed,
+        };
+      }
+    )
+  );
+
+  results.push(
+    scanFirstEligible(
+      ctx,
+      "teacher_progressive_age",
+      TEACHER_SOURCE,
+      (atIso, ageM, _tc, p, personAt) => {
+        const mag = teacherMonths(personAt.history, atIso);
+        const needAge =
+          sex === "F"
+            ? p.inssTeacherProgressiveAgeWomanMonths
+            : p.inssTeacherProgressiveAgeManMonths;
+        const needMag = (sex === "F" ? 25 : 30) * 12;
+        const ok =
+          isTeacher &&
+          transition &&
+          ageM >= needAge &&
+          mag >= needMag &&
+          carenciaMonths(personAt.history, atIso) >= 180;
+        const years = completeYears(mag);
+        return {
+          ok,
+          reasons: ok
+            ? [`teacher progressive age ${needAge} months in ${p.year}`]
+            : ["teacher progressive age or magistério not met"],
           coefficient: rgpsCoefficient(years, tMinYears(sex)),
           contributionYears: years,
           uncertain: premises.teacherTransitionUnconfirmed,
@@ -676,7 +746,7 @@ export function evaluateInss(
         return {
           ok,
           reasons: ok
-            ? ["teacher pedágio 100% (−5 years, 2026 values unconfirmed)"]
+            ? ["teacher pedágio 100% (art. 20 §1º −5 years)"]
             : ["teacher pedágio 100% not met"],
           coefficient: 1,
           contributionYears: years,

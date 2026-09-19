@@ -1,4 +1,12 @@
 import { PARAMETER_SET_VERSION } from "@/lib/engine/version";
+import {
+  MINIMUM_WAGE_STEPS,
+  RGPS_CEILING_STEPS,
+  minimumWageAt,
+  rgpsCeilingAt,
+  rgpsTransitionForYear,
+  type DatedLegalAmount,
+} from "@/lib/engine/rgpsLegalSeries";
 
 export interface RateBracket {
   /** Inclusive upper bound in cents. Last bracket uses Infinity. */
@@ -27,6 +35,12 @@ export interface YearLegalParams {
   inssPointsMan: number;
   inssProgressiveAgeWomanMonths: number;
   inssProgressiveAgeManMonths: number;
+  /** EC 103/2019 art. 15 §3º — 81/91 in 2019 +1/year, cap 92/100. */
+  inssTeacherPointsWoman: number;
+  inssTeacherPointsMan: number;
+  /** EC 103/2019 art. 16 §2º — 51/56 in 2019 +6m/year, cap 57/60. */
+  inssTeacherProgressiveAgeWomanMonths: number;
+  inssTeacherProgressiveAgeManMonths: number;
   specialPoints15: number;
   specialPoints20: number;
   specialPoints26: number;
@@ -66,10 +80,18 @@ export interface LegalPremises {
   comeCotasAppliesToClosedFunds: boolean;
   comeCotasAppliesToExclusiveFunds: boolean;
   comeCotasAppliesToOffshore: boolean;
-  /** Art. 18 male T_min for the coefficient. Uncertain; default 20. */
+  /**
+   * Coefficient T_min for the male by-age rule (EC 103 art. 18).
+   * Access is 15 years (art. 18 II); coefficient uses 20 (art. 26 §2 I
+   * and IN 128/2022 art. 233 III b). Kept configurable (checklist 4.12 #10).
+   */
   maleByAgeTminYears: number;
   maleByAgeTminUncertain: boolean;
-  /** Teacher 2026 reduced points/age not confirmed — apply −5 and flag. */
+  /**
+   * Teacher −5 is in the constitutional text (arts. 15 §3º, 16 §2º, 20 §1º).
+   * 2026 values are the mechanical series (88/98 points, 54y6m/59y6m).
+   * Flag stays for a caller who wants to mark a scenario, default off.
+   */
   teacherTransitionUnconfirmed: boolean;
   teacherAgeReductionYears: number;
   teacherTimeReductionYears: number;
@@ -86,8 +108,8 @@ export const DEFAULT_LEGAL_PREMISES: LegalPremises = {
   comeCotasAppliesToExclusiveFunds: false,
   comeCotasAppliesToOffshore: false,
   maleByAgeTminYears: 20,
-  maleByAgeTminUncertain: true,
-  teacherTransitionUnconfirmed: true,
+  maleByAgeTminUncertain: false,
+  teacherTransitionUnconfirmed: false,
   teacherAgeReductionYears: 5,
   teacherTimeReductionYears: 5,
   teacherPointsReduction: 5,
@@ -102,6 +124,8 @@ export interface ParameterSet {
   asOf: string;
   years: Record<number, YearLegalParams>;
   premises: LegalPremises;
+  rgpsCeilingSteps: DatedLegalAmount[];
+  minimumWageSteps: DatedLegalAmount[];
 }
 
 const IRPF_2026_BRACKETS: RateBracket[] = [
@@ -148,6 +172,10 @@ function year2026(): YearLegalParams {
     inssPointsMan: 103,
     inssProgressiveAgeWomanMonths: 59 * 12 + 6,
     inssProgressiveAgeManMonths: 64 * 12 + 6,
+    inssTeacherPointsWoman: 88,
+    inssTeacherPointsMan: 98,
+    inssTeacherProgressiveAgeWomanMonths: 54 * 12 + 6,
+    inssTeacherProgressiveAgeManMonths: 59 * 12 + 6,
     specialPoints15: 66,
     specialPoints20: 76,
     specialPoints26: 86,
@@ -167,23 +195,19 @@ function year2026(): YearLegalParams {
     rendaMaisCustodyFreeMinWages: 6,
     fgtsBirthdayBrackets: FGTS_BIRTHDAY,
     source:
-      "Decreto 12.797/2025; Portaria MPS/MF 13/2026; RFB tabela IR mensal 2026; IN RFB 1.585/2015 art. 9; EC 103/2019; Lei 11.053/2004; Lei 13.135/2015",
+      "Decreto 12.797/2025; Portaria MPS/MF 13/2026; RFB tabela IR mensal 2026; IN RFB 1.585/2015 art. 9; EC 103/2019; Lei 11.053/2004; Lei 13.135/2015; Portaria ME 424/2020",
   };
 }
 
-/** Forward-fill 2026 legal numbers so the engine can step into the future. */
-function cloneYear(base: YearLegalParams, year: number): YearLegalParams {
-  const pointsWoman = Math.min(100, base.inssPointsWoman + (year - 2026));
-  const pointsMan = Math.min(105, base.inssPointsMan + (year - 2026));
-  const ageW = Math.min(62 * 12, base.inssProgressiveAgeWomanMonths + (year - 2026) * 6);
-  const ageM = Math.min(65 * 12, base.inssProgressiveAgeManMonths + (year - 2026) * 6);
+function yearWithTransition(base: YearLegalParams, year: number): YearLegalParams {
+  const t = rgpsTransitionForYear(year);
+  const jan = `${year}-01`;
   return {
     ...base,
     year,
-    inssPointsWoman: pointsWoman,
-    inssPointsMan: pointsMan,
-    inssProgressiveAgeWomanMonths: ageW,
-    inssProgressiveAgeManMonths: ageM,
+    minimumWageCents: minimumWageAt(jan).cents,
+    rgpsCeilingCents: rgpsCeilingAt(jan).cents,
+    ...t,
   };
 }
 
@@ -191,7 +215,7 @@ export function defaultParameterSet(asOf = "2026-01-01"): ParameterSet {
   const y2026 = year2026();
   const years: Record<number, YearLegalParams> = {};
   for (let year = 1994; year <= 2100; year++) {
-    years[year] = year <= 2026 ? { ...y2026, year } : cloneYear(y2026, year);
+    years[year] = yearWithTransition(y2026, year);
   }
   return {
     id: `br-${PARAMETER_SET_VERSION}`,
@@ -200,11 +224,27 @@ export function defaultParameterSet(asOf = "2026-01-01"): ParameterSet {
     asOf,
     years,
     premises: { ...DEFAULT_LEGAL_PREMISES },
+    rgpsCeilingSteps: RGPS_CEILING_STEPS,
+    minimumWageSteps: MINIMUM_WAGE_STEPS,
   };
 }
 
 export function paramsForYear(set: ParameterSet, year: number): YearLegalParams {
   return set.years[year] ?? set.years[2026]!;
+}
+
+/** Year pack with teto/piso of that competence (mid-year reajustes). */
+export function paramsForYearMonth(
+  set: ParameterSet,
+  ym: string
+): YearLegalParams {
+  const year = Number(ym.slice(0, 4));
+  const p = paramsForYear(set, year);
+  return {
+    ...p,
+    minimumWageCents: minimumWageAt(ym, set.minimumWageSteps).cents,
+    rgpsCeilingCents: rgpsCeilingAt(ym, set.rgpsCeilingSteps).cents,
+  };
 }
 
 export const DEFAULT_PARAMETER_SET = defaultParameterSet();

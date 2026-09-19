@@ -35,7 +35,11 @@ export interface ContributionCompetence {
   complemented?: boolean;
   specialExposureYears?: SpecialExposure;
   teacher?: boolean;
-  /** INPC factor to as-of money. 1 = already in as-of money (tests). */
+  /**
+   * Override the INPC factor to as-of money. When omitted, the engine
+   * applies Lei 8.213 art. 29-B (INPC to the month before DIB).
+   * Tests that isolate coefficient/eligibility pass 1.
+   */
   inpcFactor?: number;
   /** CNIS-only named flags. Engine ignores unknown extras. */
   cnis?: CnisCompetenceFlags;
@@ -102,6 +106,8 @@ export type InssRuleId =
   | "pedagio_100"
   | "by_age"
   | "teacher_permanent"
+  | "teacher_points"
+  | "teacher_progressive_age"
   | "teacher_pedagio_100"
   | "special";
 
