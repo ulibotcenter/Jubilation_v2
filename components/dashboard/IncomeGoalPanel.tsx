@@ -12,7 +12,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { CURRENCY_SYMBOLS, formatCurrencyValue } from "@/types";
 
 interface IncomeGoalPanelProps {
-  /** Kept for callers; the panel now uses liveSolve instead of a 4% shortcut. */
+  /** Kept for callers; the panel uses liveSolve → solvePlan (one engine path). */
   projectedPortfolio?: number;
   mode?: "real" | "playground";
 }

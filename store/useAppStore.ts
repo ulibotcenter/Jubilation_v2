@@ -23,6 +23,19 @@ import { createId } from "@/lib/engine/ids";
 import { DEFAULT_TENANT, type Tenant } from "@/lib/engine/canonical";
 import { todayIsoDate } from "@/lib/engine/provenance";
 import {
+  appendAudit,
+  auditEntry,
+  canCollect,
+  ConsentRequiredError,
+  exportConsents,
+  grantB3Consent as createB3Consent,
+  reconcileHoldings,
+  revokeConsent as revokeB3ConsentRecord,
+  type Consent,
+  type ConsentAuditEntry,
+  type ConnectorSyncState,
+} from "@/lib/connectors";
+import {
   createPerson,
   householdFromKpis,
   isHousehold,
@@ -88,6 +101,19 @@ import {
 } from "@/types";
 import { runStressTestFromConfig } from "@/lib/stressTest";
 import type { Institution, FinancialAccount, Entitlement } from "@/lib/engine/canonical";
+
+function emptyB3Sync(): ConnectorSyncState {
+  return {
+    connectorId: "b3",
+    lastSuccessAt: null,
+    lastError: null,
+    staleness: "unknown",
+    asOf: null,
+    mode: "fixture",
+    partial: false,
+    rawHash: null,
+  };
+}
 
 function compactPaths(
   paths: Map<number, number[]>
@@ -310,6 +336,11 @@ export interface AppStore {
   institutions: Institution[];
   accounts: FinancialAccount[];
   entitlements: Entitlement[];
+  consents: Consent[];
+  consentAuditLog: ConsentAuditEntry[];
+  connectorSync: Partial<Record<"b3" | "manual", ConnectorSyncState>>;
+  isSyncingB3: boolean;
+  b3SyncGeneration: number;
   household: Household;
   planTier: PlanTier;
   explainSimple: boolean;
@@ -376,6 +407,10 @@ export interface AppStore {
   ) => void;
   removePortfolioAsset: (id: string) => void;
   refreshPortfolioPrices: () => Promise<{ updated: number; skipped: number }>;
+  grantB3Consent: () => Consent;
+  revokeB3Consent: () => void;
+  syncB3: () => Promise<ConnectorSyncState>;
+  exportConsentLog: () => string;
   setSimulationIncludedAssetIds: (ids: string[]) => void;
   toggleSimulationAsset: (assetId: string) => void;
   toggleSimulationAssetClass: (assetClass: AssetClass, include: boolean) => void;
@@ -579,6 +614,11 @@ export const useAppStore = create<AppStore>()(
       institutions: [],
       accounts: [],
       entitlements: [],
+      consents: [],
+      consentAuditLog: [],
+      connectorSync: { b3: emptyB3Sync() },
+      isSyncingB3: false,
+      b3SyncGeneration: 0,
       household: seedHousehold,
       planTier: "free",
       explainSimple: false,
@@ -1005,6 +1045,7 @@ export const useAppStore = create<AppStore>()(
             (a) =>
               a.assetClass !== "cash" &&
               a.ticker !== "CASH" &&
+              a.source !== "B3_API" &&
               !isNonMarketAsset(a)
           );
 
@@ -1026,6 +1067,7 @@ export const useAppStore = create<AppStore>()(
             if (
               asset.assetClass === "cash" ||
               asset.ticker === "CASH" ||
+              asset.source === "B3_API" ||
               isNonMarketAsset(asset)
             ) {
               return asset;
@@ -1090,6 +1132,159 @@ export const useAppStore = create<AppStore>()(
           projectionRevision: state.projectionRevision + 1,
           monteCarlo: markMonteCarloStale(state.monteCarlo),
         });
+      },
+
+      grantB3Consent: () => {
+        const state = get();
+        const existing = state.consents.find(
+          (c) => c.provider === "b3" && canCollect(c)
+        );
+        if (existing) return existing;
+        const { consent, audit } = createB3Consent({
+          subjectId: state.user.id,
+          partnerId: state.tenant.id,
+          locale: state.locale,
+        });
+        set({
+          consents: [...state.consents, consent],
+          consentAuditLog: appendAudit(state.consentAuditLog, audit),
+        });
+        return consent;
+      },
+
+      revokeB3Consent: () => {
+        const state = get();
+        const current = state.consents.find((c) => c.provider === "b3");
+        if (!current || current.revokedAt) return;
+        const { consent, audit } = revokeB3ConsentRecord(current, {
+          actor: state.user.id,
+          channel: "app",
+        });
+        set({
+          consents: state.consents.map((c) =>
+            c.id === consent.id ? consent : c
+          ),
+          consentAuditLog: appendAudit(state.consentAuditLog, audit),
+          b3SyncGeneration: state.b3SyncGeneration + 1,
+          isSyncingB3: false,
+        });
+      },
+
+      syncB3: async () => {
+        const started = get();
+        let consent = started.consents.find(
+          (c) => c.provider === "b3" && canCollect(c)
+        );
+        if (!consent) {
+          throw new ConsentRequiredError();
+        }
+        const gen = started.b3SyncGeneration;
+        set({ isSyncingB3: true });
+        try {
+          const res = await fetch("/api/connectors/b3/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ consentId: consent.id }),
+          });
+          if (!res.ok) {
+            throw new Error(`B3 sync ${res.status}`);
+          }
+          const body = (await res.json()) as {
+            mode: ConnectorSyncState["mode"];
+            asOf: string | null;
+            partial: boolean;
+            rawHash: string;
+            lastError: string | null;
+            staleness: ConnectorSyncState["staleness"];
+            institutions: Institution[];
+            accounts: FinancialAccount[];
+            holdings: PortfolioAsset[];
+          };
+          const latest = get();
+          if (latest.b3SyncGeneration !== gen) {
+            throw new ConsentRequiredError();
+          }
+          consent = latest.consents.find(
+            (c) => c.provider === "b3" && canCollect(c)
+          );
+          if (!consent) {
+            throw new ConsentRequiredError();
+          }
+          const reconciled = reconcileHoldings({
+            existing: latest.portfolio,
+            incoming: body.holdings ?? [],
+            institutions: body.institutions ?? [],
+            accounts: body.accounts ?? [],
+            existingInstitutions: latest.institutions,
+            existingAccounts: latest.accounts,
+          });
+          const simulationIncludedAssetIds = [
+            ...new Set([
+              ...latest.simulationIncludedAssetIds,
+              ...reconciled.portfolio.map((a) => a.id),
+            ]),
+          ];
+          const built = buildProjectionsFromState({
+            ...latest,
+            portfolio: reconciled.portfolio,
+            simulationIncludedAssetIds,
+          });
+          const sync: ConnectorSyncState = {
+            connectorId: "b3",
+            lastSuccessAt: new Date().toISOString(),
+            lastError: body.lastError,
+            staleness: body.staleness,
+            asOf: body.asOf,
+            mode: body.mode,
+            partial: body.partial,
+            rawHash: body.rawHash,
+          };
+          const audit = auditEntry({
+            at: new Date().toISOString(),
+            actor: latest.user.id,
+            action: "sync",
+            consentId: consent.id,
+            detail: `mode=${sync.mode};asOf=${sync.asOf};holdings=${body.holdings?.length ?? 0}`,
+          });
+          set({
+            portfolio: reconciled.portfolio,
+            institutions: reconciled.institutions,
+            accounts: reconciled.accounts,
+            simulationIncludedAssetIds,
+            kpis: built.kpis,
+            projections: built.projections,
+            chartData: built.chartData,
+            projectionRevision: latest.projectionRevision + 1,
+            monteCarlo: markMonteCarloStale(latest.monteCarlo),
+            connectorSync: { ...latest.connectorSync, b3: sync },
+            consentAuditLog: appendAudit(latest.consentAuditLog, audit),
+            isSyncingB3: false,
+          });
+          return sync;
+        } catch (err) {
+          const latest = get();
+          const message = err instanceof Error ? err.message : String(err);
+          if (!(err instanceof ConsentRequiredError)) {
+            set({
+              isSyncingB3: false,
+              connectorSync: {
+                ...latest.connectorSync,
+                b3: {
+                  ...(latest.connectorSync.b3 ?? emptyB3Sync()),
+                  lastError: message,
+                },
+              },
+            });
+          } else {
+            set({ isSyncingB3: false });
+          }
+          throw err;
+        }
+      },
+
+      exportConsentLog: () => {
+        const state = get();
+        return exportConsents(state.consents);
       },
 
       setSimulationIncludedAssetIds: (ids) => {
@@ -1647,6 +1842,11 @@ export const useAppStore = create<AppStore>()(
           institutions: migrated.institutions ?? [],
           accounts: migrated.accounts ?? [],
           entitlements: migrated.entitlements ?? [],
+          consents: Array.isArray(migrated.consents) ? migrated.consents : [],
+          consentAuditLog: Array.isArray(migrated.consentAuditLog)
+            ? migrated.consentAuditLog
+            : [],
+          connectorSync: migrated.connectorSync ?? { b3: emptyB3Sync() },
           household,
           portfolio,
           simulationIncludedAssetIds,

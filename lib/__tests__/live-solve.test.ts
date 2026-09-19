@@ -35,11 +35,12 @@ describe("liveSolve", () => {
     currency: "BRL" as const,
   };
 
-  it("solves sustainable income with the retirement date fixed", () => {
+  it("solves the maximum sustainable income via the engine", () => {
     const result = liveSolve(input, "income");
     expect(result.unknown).toBe("income");
     expect(result.feasible).toBe(true);
-    expect(result.value).toBeGreaterThan(0);
+    expect(result.value).toBeGreaterThan(3_000);
+    expect(result.value).toBeLessThan(6_000);
   });
 
   it("solves an earlier retirement age with contribution fixed", () => {
