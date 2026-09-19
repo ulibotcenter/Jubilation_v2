@@ -6,6 +6,7 @@ import { Calendar, Target } from "lucide-react";
 import { MilestoneTimeline } from "@/components/dashboard/MilestoneTimeline";
 import { CinematicNumber } from "@/components/ui/CinematicNumber";
 import { EditableNumber } from "@/components/ui/EditableNumber";
+import { SpacedWords } from "@/components/ui/SpacedWords";
 import { usePlanSolve } from "@/hooks/usePlanSolve";
 import { analyzeIncomeGap } from "@/lib/incomeGoals";
 import { htmlLang } from "@/lib/i18n/htmlLang";
@@ -30,6 +31,12 @@ export function RetirementHero() {
 
   const yearsToRetirement = kpis.retirementAge - kpis.currentAge;
   const suggested = incomeSolve.feasible ? incomeSolve.value : 0;
+  const suggestedLabel = incomeSolve.feasible
+    ? formatCurrencyValue(suggested, currency, false, htmlLang(locale))
+    : "";
+  const suggestedParts = suggestedLabel.trim().split(/\s+/).filter(Boolean);
+  const suggestedSymbol = suggestedParts[0] ?? "";
+  const suggestedDigits = suggestedParts.slice(1).join(" ");
   const analysis = analyzeIncomeGap(suggested, kpis.desiredMonthlyIncome);
   const freedomAge = dateSolve.feasible ? Math.round(dateSolve.value) : null;
   const journeyProgress = Math.min(
@@ -63,9 +70,11 @@ export function RetirementHero() {
       aria-label={t("hero.aria")}
     >
       <div className="hero-cinematic">
-        <h1 className="hero-kicker">
-          {leadWithAge ? t("income.solve.date") : t("income.solve.income")}
-        </h1>
+        <SpacedWords
+          as="h1"
+          className="hero-kicker"
+          text={leadWithAge ? t("income.solve.date") : t("income.solve.income")}
+        />
 
         {leadWithAge && freedomAge != null ? (
           <p className="hero-number" aria-live="polite">
@@ -88,37 +97,53 @@ export function RetirementHero() {
           </p>
         )}
 
-        <p id="hero-real-terms" className="hero-real-terms">
-          {incomeSolve.feasible
-            ? t("hero.realTerms")
-            : t("income.solve.infeasible")}
-        </p>
+        <SpacedWords
+          as="p"
+          id="hero-real-terms"
+          className="hero-real-terms"
+          text={
+            incomeSolve.feasible
+              ? t("hero.realTerms")
+              : t("income.solve.infeasible")
+          }
+        />
 
         <div className="hero-support-row">
           {leadWithAge ? (
             <div className="hero-support-chip">
-              <span className="hero-support-label">{t("income.solve.income")}</span>
-              <span className="hero-support-value tabular-nums">
-                {incomeSolve.feasible
-                  ? formatCurrencyValue(
-                      suggested,
-                      currency,
-                      false,
-                      htmlLang(locale)
-                    )
-                  : "—"}
+              <SpacedWords
+                className="hero-support-label"
+                text={t("income.solve.income")}
+              />
+              <span className="money-figure hero-support-value">
+                {incomeSolve.feasible ? (
+                  <>
+                    <span className="money-figure-symbol">{suggestedSymbol}</span>
+                    <span className="tabular-nums">{suggestedDigits}</span>
+                  </>
+                ) : (
+                  "—"
+                )}
                 <span className="hero-support-unit">{t("common.perMonth")}</span>
               </span>
             </div>
           ) : (
             <div className="hero-support-chip">
               <Calendar className="w-3.5 h-3.5 text-accent" size={14} aria-hidden />
-              <span className="hero-support-label">{t("income.solve.date")}</span>
-              <span className="hero-support-value tabular-nums">
-                {freedomAge != null
-                  ? t("income.solve.dateResult", { n: freedomAge })
-                  : t("income.solve.infeasible")}
-              </span>
+              <SpacedWords
+                className="hero-support-label"
+                text={t("income.solve.date")}
+              />
+              {freedomAge != null ? (
+                <SpacedWords
+                  className="hero-support-value"
+                  text={t("income.solve.dateResult", { n: freedomAge })}
+                />
+              ) : (
+                <span className="hero-support-value">
+                  {t("income.solve.infeasible")}
+                </span>
+              )}
               {freedomAge != null && freedomAge !== kpis.retirementAge ? (
                 <button
                   type="button"
@@ -126,7 +151,7 @@ export function RetirementHero() {
                   onClick={() => setKPI("retirementAge", freedomAge)}
                   aria-label={t("hero.useAgeAria", { n: freedomAge })}
                 >
-                  {t("income.solve.useAge")}
+                  <SpacedWords text={t("income.solve.useAge")} />
                 </button>
               ) : null}
             </div>
@@ -136,7 +161,10 @@ export function RetirementHero() {
         <div className="hero-goal">
           <div className="hero-goal-edit">
             <Target className="w-3.5 h-3.5 text-muted-foreground" size={14} aria-hidden />
-            <span className="hero-support-label">{t("income.yourGoal")}</span>
+            <SpacedWords
+              className="hero-support-label"
+              text={t("income.yourGoal")}
+            />
             <EditableNumber
               value={kpis.desiredMonthlyIncome}
               onChange={(v) => setKPI("desiredMonthlyIncome", v)}
@@ -154,7 +182,7 @@ export function RetirementHero() {
           {kpis.desiredMonthlyIncome > 0 && incomeSolve.feasible ? (
             <div className="hero-goal-meter">
               <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="hero-goal-status">{t(statusKey)}</span>
+                <SpacedWords className="hero-goal-status" text={t(statusKey)} />
                 <span className="text-[11px] text-muted-foreground tabular-nums">
                   {t("income.progressOfGoal", { n: analysis.progressPct })}
                 </span>

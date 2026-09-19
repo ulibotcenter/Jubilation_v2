@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditableNumber } from "@/components/ui/EditableNumber";
+import { SpacedWords } from "@/components/ui/SpacedWords";
 import { debounce } from "@/lib/debounce";
 import { getKpiLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -169,7 +170,7 @@ function KPICard({
         </span>
       </div>
 
-      <p className="kpi-label">{label}</p>
+      <SpacedWords as="p" className="kpi-label" text={label} />
 
       <div className="kpi-value mt-1">
         {readOnly ? (
@@ -320,9 +321,11 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
       aria-label={t("kpi.assumptions")}
     >
       <div className="flex items-center justify-between mb-3 px-0.5">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-          {t("kpi.assumptions")}
-        </h2>
+        <SpacedWords
+          as="h2"
+          className="text-sm font-semibold text-muted-foreground kpi-section-title"
+          text={t("kpi.assumptions")}
+        />
         <p className="text-xs text-muted-foreground hidden sm:block">
           {mode === "playground" ? t("kpi.sandboxEdit") : t("kpi.clickEdit")}
         </p>

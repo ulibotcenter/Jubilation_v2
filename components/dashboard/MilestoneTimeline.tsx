@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Flag, MapPin, Target } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { fadeUp } from "@/lib/uiMotion";
+import { SpacedWords } from "@/components/ui/SpacedWords";
 
 interface MilestoneTimelineProps {
   currentAge: number;
@@ -53,9 +54,11 @@ export function MilestoneTimeline({
 
   return (
     <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0 border-t border-border/60">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-        {t("hero.milestones.title")}
-      </p>
+      <SpacedWords
+        as="p"
+        className="hero-milestones-title"
+        text={t("hero.milestones.title")}
+      />
 
       <div className="relative">
         <div className="absolute top-[1.125rem] left-4 right-4 h-1 rounded-full bg-surface-elevated overflow-hidden">
@@ -98,7 +101,9 @@ export function MilestoneTimeline({
                   >
                     {m.label}
                   </p>
-                  <p className="text-[10px] text-muted tabular-nums">{m.sub}</p>
+                  <p className="milestone-age text-[10px] text-muted">
+                    <SpacedWords text={m.sub} />
+                  </p>
                 </div>
               </motion.div>
             );

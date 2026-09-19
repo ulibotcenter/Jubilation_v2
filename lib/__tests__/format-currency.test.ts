@@ -22,7 +22,7 @@ describe("formatCurrencyValue", () => {
   it("keeps a space between the amount and /mês in shortfall copy", () => {
     const amount = formatCurrencyValue(8599, "BRL", false, "pt-BR");
     expect(t("pt", "income.shortfall", { params: { amount } })).toBe(
-      "Faltam R$ 8.599 /mês para a sua meta"
+      "Faltam R$ 8.599 / mês para a sua meta"
     );
   });
 });

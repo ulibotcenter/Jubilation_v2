@@ -14,6 +14,14 @@ interface CinematicNumberProps {
   compact?: boolean;
 }
 
+function splitCurrency(formatted: string): { symbol: string; digits: string } {
+  const parts = formatted.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) {
+    return { symbol: "", digits: formatted.trim() };
+  }
+  return { symbol: parts[0]!, digits: parts.slice(1).join(" ") };
+}
+
 export function CinematicNumber({
   value,
   currency,
@@ -55,10 +63,14 @@ export function CinematicNumber({
 
   const display = reduced === false ? animated : value;
   const shown = compact ? display : Math.round(display);
+  const { symbol, digits } = splitCurrency(
+    formatCurrencyValue(shown, currency, compact, htmlLang(locale))
+  );
 
   return (
-    <span className={className}>
-      {formatCurrencyValue(shown, currency, compact, htmlLang(locale))}
+    <span className="money-figure">
+      {symbol ? <span className="money-figure-symbol">{symbol}</span> : null}
+      <span className={className}>{digits}</span>
     </span>
   );
 }
