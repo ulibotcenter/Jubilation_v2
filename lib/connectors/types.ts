@@ -6,9 +6,9 @@ import type {
 } from "@/lib/engine/canonical";
 import type { PortfolioAsset } from "@/types";
 
-export type ConnectorId = "manual" | "b3";
+export type ConnectorId = "manual" | "b3" | "cnis" | "irpf";
 
-export type ConnectorMode = "fixture" | "sandbox" | "manual";
+export type ConnectorMode = "fixture" | "sandbox" | "manual" | "file";
 
 export type Staleness = "fresh" | "stale" | "unknown";
 

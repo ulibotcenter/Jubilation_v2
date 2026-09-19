@@ -713,6 +713,28 @@ export const EN = {
   "toast.b3.consentRequired": "Authorize B3 before syncing",
   "toast.b3.revoked": "B3 access revoked",
   "toast.b3.exported": "Consent log downloaded",
+  "settings.files.title": "Import CNIS and IRPF",
+  "settings.files.body":
+    "You download the extract at Meu INSS or the .DBK backup in the Receita program, then upload it here. No gov.br password, no scraping, no Open Finance.",
+  "settings.files.localOnly":
+    "The file is parsed on this device and is not sent to a server or written to logs.",
+  "settings.files.cnisButton": "Upload CNIS extract",
+  "settings.files.irpfButton": "Upload IRPF .DBK",
+  "settings.files.revokeCnis": "Revoke CNIS",
+  "settings.files.revokeIrpf": "Revoke IRPF",
+  "settings.files.cnisNone": "No CNIS imported.",
+  "settings.files.irpfNone": "No IRPF imported.",
+  "settings.files.cnisAsOf": "CNIS as of {date}",
+  "settings.files.irpfAsOf": "IRPF as of {date}",
+  "settings.files.cnisMonths": "{n} contribution months",
+  "settings.files.cnisConsentTitle": "Authorize CNIS file",
+  "settings.files.irpfConsentTitle": "Authorize IRPF file",
+  "settings.files.authorize": "Authorize and choose file",
+  "toast.files.cnisOk": "CNIS extract imported",
+  "toast.files.irpfOk": "IRPF declaration imported",
+  "toast.files.error": "Could not read the file",
+  "toast.files.consentRequired": "Authorize before importing",
+  "toast.files.revoked": "File import consent revoked",
 } as const;
 
 export type MessageKey = keyof typeof EN;

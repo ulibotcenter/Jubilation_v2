@@ -24,6 +24,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
 import { HouseholdCard } from "@/components/settings/HouseholdCard";
 import { B3ConsentCard } from "@/components/settings/B3ConsentCard";
+import { ImportFilesCard } from "@/components/settings/ImportFilesCard";
 
 const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
   { code: "en", labelKey: "locale.en" },
@@ -173,6 +174,7 @@ export function SettingsPageContent() {
         </section>
 
         <HouseholdCard />
+        <ImportFilesCard />
         <B3ConsentCard />
 
         <section className="settings-page-card">

@@ -3,6 +3,8 @@ import {
   canCollect,
   exportConsents,
   grantB3Consent,
+  grantCnisConsent,
+  grantIrpfConsent,
   PURGE_GRACE_MS,
   revokeConsent,
 } from "@/lib/connectors/consent";
@@ -95,5 +97,27 @@ describe("B3 consent", () => {
     expect(exported.format).toBe("jubilation-consent-v1");
     expect(exported.consents[0]?.id).toBe(consent.id);
     expect(exported.consents[0]?.evidence.version).toBe("b3-position-v1");
+  });
+
+  it("grants CNIS and IRPF file consents with evidence, same revoke model", () => {
+    const cnis = grantCnisConsent({
+      subjectId: "local-user",
+      partnerId: "b2c-default",
+      now,
+    });
+    expect(cnis.consent.provider).toBe("cnis");
+    expect(cnis.consent.evidence.version).toBe("cnis-file-v1");
+    expect(cnis.consent.evidence.shownText).toMatch(/Meu INSS/);
+    expect(cnis.consent.evidence.shownText).toMatch(/não é enviado/);
+    expect(canCollect(cnis.consent, now)).toBe(true);
+    const irpf = grantIrpfConsent({
+      subjectId: "local-user",
+      partnerId: "b2c-default",
+      now,
+    });
+    expect(irpf.consent.provider).toBe("irpf");
+    expect(irpf.consent.evidence.shownText).toMatch(/registro 26/i);
+    const revoked = revokeConsent(irpf.consent, { actor: "local-user", now });
+    expect(canCollect(revoked.consent, now)).toBe(false);
   });
 });

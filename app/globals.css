@@ -3468,7 +3468,7 @@ body::before {
 .add-asset-modal-root {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 200;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -3507,6 +3507,12 @@ body::before {
   border: 1px solid var(--border);
   border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
   box-shadow: var(--shadow-lg);
+  color: var(--foreground);
+}
+
+html.light .add-asset-modal {
+  background: var(--surface);
+  color: var(--foreground);
 }
 
 @media (min-width: 640px) {

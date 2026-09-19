@@ -29,12 +29,22 @@ import {
   ConsentRequiredError,
   exportConsents,
   grantB3Consent as createB3Consent,
+  grantCnisConsent as createCnisConsent,
+  grantIrpfConsent as createIrpfConsent,
   reconcileHoldings,
   revokeConsent as revokeB3ConsentRecord,
   type Consent,
   type ConsentAuditEntry,
   type ConnectorSyncState,
 } from "@/lib/connectors";
+import { parseCnisFile, mapCnisToInssPerson } from "@/lib/connectors/cnis";
+import {
+  parseIrpfFile,
+  suggestIrpfHoldings,
+  applyIrpfHoldings,
+  irpfAsOf,
+} from "@/lib/connectors/irpf";
+import { hashPayload } from "@/lib/connectors/hash";
 import {
   createPerson,
   householdFromKpis,
@@ -110,6 +120,19 @@ function emptyB3Sync(): ConnectorSyncState {
     staleness: "unknown",
     asOf: null,
     mode: "fixture",
+    partial: false,
+    rawHash: null,
+  };
+}
+
+function emptyFileSync(id: "cnis" | "irpf"): ConnectorSyncState {
+  return {
+    connectorId: id,
+    lastSuccessAt: null,
+    lastError: null,
+    staleness: "unknown",
+    asOf: null,
+    mode: "file",
     partial: false,
     rawHash: null,
   };
@@ -338,9 +361,10 @@ export interface AppStore {
   entitlements: Entitlement[];
   consents: Consent[];
   consentAuditLog: ConsentAuditEntry[];
-  connectorSync: Partial<Record<"b3" | "manual", ConnectorSyncState>>;
+  connectorSync: Partial<Record<"b3" | "manual" | "cnis" | "irpf", ConnectorSyncState>>;
   isSyncingB3: boolean;
   b3SyncGeneration: number;
+  isImportingFile: boolean;
   household: Household;
   planTier: PlanTier;
   explainSimple: boolean;
@@ -410,6 +434,11 @@ export interface AppStore {
   grantB3Consent: () => Consent;
   revokeB3Consent: () => void;
   syncB3: () => Promise<ConnectorSyncState>;
+  grantCnisConsent: () => Consent;
+  grantIrpfConsent: () => Consent;
+  revokeFileConsent: (provider: "cnis" | "irpf") => void;
+  importCnisFile: (bytes: Uint8Array, fileName?: string) => void;
+  importIrpfFile: (bytes: Uint8Array, fileName?: string) => void;
   exportConsentLog: () => string;
   setSimulationIncludedAssetIds: (ids: string[]) => void;
   toggleSimulationAsset: (assetId: string) => void;
@@ -616,9 +645,10 @@ export const useAppStore = create<AppStore>()(
       entitlements: [],
       consents: [],
       consentAuditLog: [],
-      connectorSync: { b3: emptyB3Sync() },
+      connectorSync: { b3: emptyB3Sync(), cnis: emptyFileSync("cnis"), irpf: emptyFileSync("irpf") },
       isSyncingB3: false,
       b3SyncGeneration: 0,
+      isImportingFile: false,
       household: seedHousehold,
       planTier: "free",
       explainSimple: false,
@@ -1278,6 +1308,196 @@ export const useAppStore = create<AppStore>()(
           } else {
             set({ isSyncingB3: false });
           }
+          throw err;
+        }
+      },
+
+      grantCnisConsent: () => {
+        const state = get();
+        const existing = state.consents.find(
+          (c) => c.provider === "cnis" && canCollect(c)
+        );
+        if (existing) return existing;
+        const { consent, audit } = createCnisConsent({
+          subjectId: state.user.id,
+          partnerId: state.tenant.id,
+          locale: state.locale,
+        });
+        set({
+          consents: [...state.consents, consent],
+          consentAuditLog: appendAudit(state.consentAuditLog, audit),
+        });
+        return consent;
+      },
+
+      grantIrpfConsent: () => {
+        const state = get();
+        const existing = state.consents.find(
+          (c) => c.provider === "irpf" && canCollect(c)
+        );
+        if (existing) return existing;
+        const { consent, audit } = createIrpfConsent({
+          subjectId: state.user.id,
+          partnerId: state.tenant.id,
+          locale: state.locale,
+        });
+        set({
+          consents: [...state.consents, consent],
+          consentAuditLog: appendAudit(state.consentAuditLog, audit),
+        });
+        return consent;
+      },
+
+      revokeFileConsent: (provider) => {
+        const state = get();
+        const current = state.consents.find((c) => c.provider === provider);
+        if (!current || current.revokedAt) return;
+        const { consent, audit } = revokeB3ConsentRecord(current, {
+          actor: state.user.id,
+          channel: "app",
+        });
+        set({
+          consents: state.consents.map((c) =>
+            c.id === consent.id ? consent : c
+          ),
+          consentAuditLog: appendAudit(state.consentAuditLog, audit),
+        });
+      },
+
+      importCnisFile: (bytes, fileName) => {
+        const state = get();
+        const consent = state.consents.find(
+          (c) => c.provider === "cnis" && canCollect(c)
+        );
+        if (!consent) throw new ConsentRequiredError();
+        set({ isImportingFile: true });
+        try {
+          const parsed = parseCnisFile(bytes, {
+            fileName,
+            asOf: todayIsoDate(),
+          });
+          const inss = mapCnisToInssPerson(parsed.extract, state.household.holder);
+          const household = {
+            ...state.household,
+            holder: {
+              ...state.household.holder,
+              inss,
+              filiationDate: inss.filiationDate,
+              birthDate: inss.birthDate,
+              source: "FILE_CNIS" as const,
+              asOf: inss.asOf,
+            },
+          };
+          const sync: ConnectorSyncState = {
+            connectorId: "cnis",
+            lastSuccessAt: new Date().toISOString(),
+            lastError: null,
+            staleness: "fresh",
+            asOf: parsed.extract.asOf,
+            mode: "file",
+            partial: parsed.extract.warnings.length > 0,
+            rawHash: hashPayload(parsed.persisted),
+          };
+          const audit = auditEntry({
+            at: new Date().toISOString(),
+            actor: state.user.id,
+            action: "sync",
+            consentId: consent.id,
+            detail: `source=FILE_CNIS;asOf=${sync.asOf};competences=${inss.history.length};healthDropped=${parsed.extract.discardedHealthCount}`,
+          });
+          set({
+            ...rebuildWithHousehold(state, household),
+            connectorSync: { ...state.connectorSync, cnis: sync },
+            consentAuditLog: appendAudit(state.consentAuditLog, audit),
+            isImportingFile: false,
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          set({
+            isImportingFile: false,
+            connectorSync: {
+              ...get().connectorSync,
+              cnis: {
+                ...(get().connectorSync.cnis ?? emptyFileSync("cnis")),
+                lastError: message,
+              },
+            },
+          });
+          throw err;
+        }
+      },
+
+      importIrpfFile: (bytes, fileName) => {
+        const state = get();
+        const consent = state.consents.find(
+          (c) => c.provider === "irpf" && canCollect(c)
+        );
+        if (!consent) throw new ConsentRequiredError();
+        set({ isImportingFile: true });
+        try {
+          const parsed = parseIrpfFile(bytes, { fileName });
+          const asOf = irpfAsOf(parsed.allowlisted, todayIsoDate());
+          const incoming = suggestIrpfHoldings(
+            parsed.allowlisted,
+            state.portfolio,
+            asOf
+          );
+          const portfolio = applyIrpfHoldings({
+            existing: state.portfolio,
+            incoming,
+          });
+          const simulationIncludedAssetIds = [
+            ...new Set([
+              ...state.simulationIncludedAssetIds,
+              ...portfolio.map((a) => a.id),
+            ]),
+          ];
+          const built = buildProjectionsFromState({
+            ...state,
+            portfolio,
+            simulationIncludedAssetIds,
+          });
+          const sync: ConnectorSyncState = {
+            connectorId: "irpf",
+            lastSuccessAt: new Date().toISOString(),
+            lastError: null,
+            staleness: "fresh",
+            asOf,
+            mode: "file",
+            partial: parsed.warnings.length > 0,
+            rawHash: hashPayload(parsed.persisted),
+          };
+          const audit = auditEntry({
+            at: new Date().toISOString(),
+            actor: state.user.id,
+            action: "sync",
+            consentId: consent.id,
+            detail: `source=FILE_IRPF;asOf=${asOf};holdings=${incoming.length};droppedMedical=${parsed.allowlisted.discardedRecord26}`,
+          });
+          set({
+            portfolio,
+            simulationIncludedAssetIds,
+            kpis: built.kpis,
+            projections: built.projections,
+            chartData: built.chartData,
+            projectionRevision: state.projectionRevision + 1,
+            monteCarlo: markMonteCarloStale(state.monteCarlo),
+            connectorSync: { ...state.connectorSync, irpf: sync },
+            consentAuditLog: appendAudit(state.consentAuditLog, audit),
+            isImportingFile: false,
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          set({
+            isImportingFile: false,
+            connectorSync: {
+              ...get().connectorSync,
+              irpf: {
+                ...(get().connectorSync.irpf ?? emptyFileSync("irpf")),
+                lastError: message,
+              },
+            },
+          });
           throw err;
         }
       },
