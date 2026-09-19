@@ -15,6 +15,10 @@ export function LegalFooter() {
           {t("footer.link.privacy")}
         </Link>
         {" · "}
+        <Link href="/calculadoras" className="text-accent hover:underline">
+          {t("footer.link.calculators")}
+        </Link>
+        {" · "}
         <Link href="/cash-flow" className="text-accent hover:underline">
           {t("footer.link.cashflow")}
         </Link>

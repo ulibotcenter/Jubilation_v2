@@ -129,6 +129,7 @@ export const EN = {
   "footer.link.cashflow": "View cash flow breakdown →",
   "footer.link.simulation": "Run simulations in the playground →",
   "footer.link.privacy": "What we store",
+  "footer.link.calculators": "Public calculators",
   "fi.milestones.title": "Retirement checkpoints",
   "fi.milestones.subtitle": "When your portfolio could hit three meaningful goals",
   "fi.milestones.age": "Around age {n}",

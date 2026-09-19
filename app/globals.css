@@ -5060,3 +5060,358 @@ html.light .add-asset-modal {
     width: auto !important;
   }
 }
+
+/* ─── Public calculators (SEO, no app chrome) ─── */
+
+.public-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.public-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--topbar-bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+}
+
+.public-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.public-brand-mark {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-gradient);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.public-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.public-brand-text strong {
+  font-size: 1rem;
+}
+
+.public-brand-text span {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.public-header-cta {
+  flex-shrink: 0;
+}
+
+.public-main {
+  flex: 1;
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 3rem;
+}
+
+.public-article h1 {
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0.35rem 0 0.85rem;
+}
+
+.public-article h2 {
+  font-size: 1.15rem;
+  font-weight: 650;
+  margin: 0 0 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.public-kicker {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0;
+}
+
+.public-lead {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+  margin: 0 0 1.5rem;
+}
+
+.public-prose {
+  margin: 1.75rem 0;
+}
+
+.public-prose p,
+.public-disclaimer p,
+.public-cta p,
+.public-result p {
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+.public-prose p + p,
+.public-disclaimer p + p {
+  margin-top: 0.85rem;
+}
+
+.public-tree-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1.25rem 0 1.75rem;
+}
+
+@media (min-width: 720px) {
+  .public-tree-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.public-tree {
+  padding: 1.15rem 1.2rem 1.25rem;
+}
+
+.public-tree-links {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.public-tree-links a {
+  color: var(--accent);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.public-tree-links a:hover {
+  text-decoration: underline;
+}
+
+.public-tree-links span {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+  margin-top: 0.15rem;
+}
+
+.public-form {
+  padding: 1.15rem 1.2rem 1.3rem;
+  margin-bottom: 1.25rem;
+}
+
+.public-form-grid {
+  display: grid;
+  gap: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .public-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.public-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.public-field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.public-field-control {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.public-field-control input,
+.public-field-control select {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  color: var(--foreground);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.public-field-control input:focus,
+.public-field-control select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+.public-field-suffix {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+
+.public-field-hint {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.public-result {
+  padding: 1.2rem 1.25rem 1.3rem;
+}
+
+.public-result-label {
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin: 0 0 0.35rem;
+}
+
+.public-result-hero {
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.75rem;
+  color: var(--foreground);
+}
+
+.public-result-hero span {
+  font-size: 1rem;
+  font-weight: 550;
+  color: var(--muted-foreground);
+}
+
+.public-result-hero--muted {
+  color: var(--muted);
+}
+
+.public-result-meta {
+  font-size: 0.75rem;
+  margin-top: 0.9rem;
+  color: var(--muted);
+}
+
+.public-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0.35rem 0 1rem;
+}
+
+.public-stats dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+
+.public-stats dd {
+  margin: 0.15rem 0 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.public-rule-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+.public-disclaimer,
+.public-cta {
+  margin: 1.5rem 0;
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.public-cta {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: var(--accent-muted);
+}
+
+.public-related {
+  margin-top: 1.5rem;
+}
+
+.public-related ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.public-related a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.public-footer {
+  padding: 1.5rem 1.25rem 2.25rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+.public-footer p {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.public-footer-meta {
+  margin-top: 0.5rem;
+}
+
+.public-footer-links {
+  margin-top: 0.65rem;
+}
+
+.public-footer-links a {
+  color: var(--accent);
+}

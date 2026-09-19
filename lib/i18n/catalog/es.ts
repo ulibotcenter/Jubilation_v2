@@ -131,6 +131,7 @@ export const ES: Record<MessageKey, string> = {
   "footer.link.cashflow": "Ver flujo de caja →",
   "footer.link.simulation": "Ejecutar simulaciones en el sandbox →",
   "footer.link.privacy": "Qué se guarda",
+  "footer.link.calculators": "Calculadoras públicas",
   "fi.milestones.title": "Hitos de jubilación",
   "fi.milestones.subtitle": "Cuándo tu patrimonio podría alcanzar tres metas clave",
   "fi.milestones.age": "Alrededor de los {n} años",
