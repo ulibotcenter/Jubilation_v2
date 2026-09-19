@@ -461,6 +461,7 @@ export interface AppStore {
   runMonteCarlo: () => Promise<void>;
   runStressTestById: (testId: StressTestId) => void;
   setExporting: (exporting: boolean) => void;
+  restoreFromBackup: (slice: Record<string, unknown>) => void;
   copyPortfolioToSimulation: () => void;
   ensureSimPlayground: () => void;
   setSimKPI: (field: KPIField, value: number) => void;
@@ -594,6 +595,91 @@ const initialBuild = buildProjectionsFromState({
   sensitivity: { cagr: null, inflation: null },
   household: seedHousehold,
 });
+
+function mergePersistedAppState(
+  persisted: unknown,
+  current: AppStore
+): AppStore {
+  const migrated = migratePersistedState(
+    persisted,
+    CURRENT_PERSIST_VERSION
+  ) as Partial<AppStore>;
+  const portfolio = normalizePortfolioAssets(
+    normalizePortfolioCagr(migrated.portfolio ?? current.portfolio)
+  );
+  const simulationIncludedAssetIds =
+    migrated.simulationIncludedAssetIds ??
+    current.simulationIncludedAssetIds;
+  const kpiOutsidePortfolio =
+    migrated.kpiOutsidePortfolio ?? current.kpiOutsidePortfolio;
+  const kpis = normalizeKpiValues(migrated.kpis ?? current.kpis);
+  const asOf = todayIsoDate();
+  const household = isHousehold(migrated.household)
+    ? migrated.household
+    : isHousehold(current.household)
+      ? current.household
+      : householdFromKpis(kpis, asOf);
+
+  const persistedMc = migrated.monteCarlo;
+  const built = buildProjectionsFromState({
+    kpis,
+    portfolio,
+    simulationIncludedAssetIds,
+    kpiOutsidePortfolio,
+    sensitivity: migrated.sensitivity ?? { cagr: null, inflation: null },
+    monteCarlo:
+      persistedMc?.hasRun && persistedMc.results?.length
+        ? {
+            hasRun: true,
+            results: persistedMc.results,
+            pathsByAge: persistedMc.pathsByAge,
+          }
+        : undefined,
+    currency: migrated.currency ?? current.currency,
+    fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
+    household,
+  });
+
+  const simPlayground = normalizeSimPlayground(migrated.simPlayground, {
+    kpis: built.kpis,
+    kpiOutsidePortfolio,
+    portfolio,
+    simulationIncludedAssetIds,
+    currency: migrated.currency ?? current.currency,
+    fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
+    household,
+  });
+
+  const monteCarlo = persistedMc
+    ? { ...persistedMc, stale: persistedMc.stale ?? false }
+    : current.monteCarlo;
+
+  return {
+    ...current,
+    ...migrated,
+    persistVersion: CURRENT_PERSIST_VERSION,
+    planTier: "free",
+    user: migrated.user ?? current.user,
+    tenant: migrated.tenant ?? DEFAULT_TENANT,
+    institutions: migrated.institutions ?? [],
+    accounts: migrated.accounts ?? [],
+    entitlements: migrated.entitlements ?? [],
+    consents: Array.isArray(migrated.consents) ? migrated.consents : [],
+    consentAuditLog: Array.isArray(migrated.consentAuditLog)
+      ? migrated.consentAuditLog
+      : [],
+    connectorSync: migrated.connectorSync ?? { b3: emptyB3Sync() },
+    household,
+    portfolio,
+    simulationIncludedAssetIds,
+    kpiOutsidePortfolio,
+    kpis: built.kpis,
+    projections: built.projections,
+    chartData: built.chartData,
+    monteCarlo,
+    simPlayground,
+  };
+}
 
 export const useAppStore = create<AppStore>()(
   persist(
@@ -1688,6 +1774,10 @@ export const useAppStore = create<AppStore>()(
 
       setExporting: (exporting) => set({ isExporting: exporting }),
 
+      restoreFromBackup: (slice) => {
+        set((current) => mergePersistedAppState(slice, current));
+      },
+
       ensureSimPlayground: () => {
         const state = get();
         if (state.simPlayground.isActive) {
@@ -1997,87 +2087,7 @@ export const useAppStore = create<AppStore>()(
       version: CURRENT_PERSIST_VERSION,
       migrate: (persisted, fromVersion) =>
         migratePersistedState(persisted, fromVersion) as never,
-      merge: (persisted, current) => {
-        const migrated = migratePersistedState(
-          persisted,
-          CURRENT_PERSIST_VERSION
-        ) as Partial<AppStore>;
-        const portfolio = normalizePortfolioAssets(
-          normalizePortfolioCagr(migrated.portfolio ?? current.portfolio)
-        );
-        const simulationIncludedAssetIds =
-          migrated.simulationIncludedAssetIds ??
-          current.simulationIncludedAssetIds;
-        const kpiOutsidePortfolio =
-          migrated.kpiOutsidePortfolio ?? current.kpiOutsidePortfolio;
-        const kpis = normalizeKpiValues(migrated.kpis ?? current.kpis);
-        const asOf = todayIsoDate();
-        const household = isHousehold(migrated.household)
-          ? migrated.household
-          : isHousehold(current.household)
-            ? current.household
-            : householdFromKpis(kpis, asOf);
-
-        const persistedMc = migrated.monteCarlo;
-        const built = buildProjectionsFromState({
-          kpis,
-          portfolio,
-          simulationIncludedAssetIds,
-          kpiOutsidePortfolio,
-          sensitivity: migrated.sensitivity ?? { cagr: null, inflation: null },
-          monteCarlo:
-            persistedMc?.hasRun && persistedMc.results?.length
-              ? {
-                  hasRun: true,
-                  results: persistedMc.results,
-                  pathsByAge: persistedMc.pathsByAge,
-                }
-              : undefined,
-          currency: migrated.currency ?? current.currency,
-          fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
-          household,
-        });
-
-        const simPlayground = normalizeSimPlayground(migrated.simPlayground, {
-          kpis: built.kpis,
-          kpiOutsidePortfolio,
-          portfolio,
-          simulationIncludedAssetIds,
-          currency: migrated.currency ?? current.currency,
-          fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
-          household,
-        });
-
-        const monteCarlo = persistedMc
-          ? { ...persistedMc, stale: persistedMc.stale ?? false }
-          : current.monteCarlo;
-
-        return {
-          ...current,
-          ...migrated,
-          persistVersion: CURRENT_PERSIST_VERSION,
-          planTier: "free",
-          user: migrated.user ?? current.user,
-          tenant: migrated.tenant ?? DEFAULT_TENANT,
-          institutions: migrated.institutions ?? [],
-          accounts: migrated.accounts ?? [],
-          entitlements: migrated.entitlements ?? [],
-          consents: Array.isArray(migrated.consents) ? migrated.consents : [],
-          consentAuditLog: Array.isArray(migrated.consentAuditLog)
-            ? migrated.consentAuditLog
-            : [],
-          connectorSync: migrated.connectorSync ?? { b3: emptyB3Sync() },
-          household,
-          portfolio,
-          simulationIncludedAssetIds,
-          kpiOutsidePortfolio,
-          kpis: built.kpis,
-          projections: built.projections,
-          chartData: built.chartData,
-          monteCarlo,
-          simPlayground,
-        };
-      },
+      merge: (persisted, current) => mergePersistedAppState(persisted, current),
       partialize: (state) => partializePersistedState(state),
     }
   )

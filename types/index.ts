@@ -578,7 +578,7 @@ export interface OnboardingState {
   disclaimerAccepted: boolean;
 }
 
-// ─── User Profile (future: Supabase Auth) ──────────────────
+// ─── User Profile (local by default; optional Postgres when AUTH_SECRET + DATABASE_URL are set) ──
 
 export interface UserProfile {
   id: string;
@@ -614,7 +614,7 @@ export interface AppState {
   // Onboarding
   onboarding: OnboardingState;
 
-  // User — TODO: Supabase Auth
+  // User — local profile; optional Postgres account when AUTH_SECRET + DATABASE_URL are set
   user: UserProfile;
 
   // KPIs

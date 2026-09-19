@@ -2660,6 +2660,54 @@ body::before {
   box-shadow: 0 0 0 3px var(--accent-muted);
 }
 
+.settings-backup-warning {
+  margin: 0.75rem 0 1rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--foreground);
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 112, 64, 0.28);
+  background: rgba(255, 112, 64, 0.08);
+}
+
+.settings-backup-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .settings-backup-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.settings-backup-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 0.75rem;
+}
+
+.settings-soon-badge {
+  display: inline-flex;
+  margin-top: 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid rgba(255, 112, 64, 0.28);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+
+html.light .settings-backup-warning {
+  background: rgba(255, 112, 64, 0.1);
+}
+
 .household-scope-toggle {
   display: inline-flex;
   align-items: center;
