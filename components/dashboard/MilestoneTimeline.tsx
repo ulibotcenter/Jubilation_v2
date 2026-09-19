@@ -1,8 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Flag, MapPin, Target } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { fadeUp } from "@/lib/uiMotion";
 
 interface MilestoneTimelineProps {
   currentAge: number;
@@ -16,6 +17,7 @@ export function MilestoneTimeline({
   journeyProgress,
 }: MilestoneTimelineProps) {
   const { t } = useTranslation();
+  const reduced = useReducedMotion();
   const midpoint = Math.round((currentAge + retirementAge) / 2);
   const atMidpoint = journeyProgress >= 50;
 
@@ -56,18 +58,18 @@ export function MilestoneTimeline({
       </p>
 
       <div className="relative">
-        {/* Track */}
         <div className="absolute top-[1.125rem] left-4 right-4 h-1 rounded-full bg-surface-elevated overflow-hidden">
           <motion.div
             className="h-full rounded-full"
             style={{ background: "var(--accent-gradient)" }}
-            initial={{ width: 0 }}
+            initial={{ width: reduced ? `${journeyProgress}%` : 0 }}
             animate={{ width: `${journeyProgress}%` }}
-            transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
+            transition={
+              reduced ? { duration: 0 } : { duration: 0.9, ease: [0.4, 0, 0.2, 1] }
+            }
           />
         </div>
 
-        {/* Nodes */}
         <div className="relative flex justify-between">
           {milestones.map((m, i) => {
             const Icon = m.icon;
@@ -77,18 +79,16 @@ export function MilestoneTimeline({
               <motion.div
                 key={m.id}
                 className="flex flex-col items-center gap-1.5 min-w-0"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
+                {...fadeUp(reduced, i * 0.06)}
               >
                 <div
                   className={`relative z-10 flex items-center justify-center w-9 h-9 rounded-full border-2 transition-colors duration-300 ${
                     isLit
-                      ? "border-accent bg-accent/15 text-accent shadow-[0_0_12px_rgba(255,112,64,0.25)]"
+                      ? "border-accent bg-accent/15 text-accent"
                       : "border-border bg-surface text-muted-foreground"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" size={14} />
+                  <Icon className="w-3.5 h-3.5" size={14} aria-hidden />
                 </div>
                 <div className="text-center">
                   <p

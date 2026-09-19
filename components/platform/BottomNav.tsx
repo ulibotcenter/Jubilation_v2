@@ -37,6 +37,7 @@ export function BottomNav() {
             type="button"
             className="bottom-nav-item"
             data-active={activeNav === item.id ? "true" : "false"}
+            aria-current={activeNav === item.id ? "page" : undefined}
             onClick={() => navigate(item.id)}
           >
             <Icon className="w-5 h-5" size={20} />

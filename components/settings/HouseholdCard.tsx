@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Users } from "lucide-react";
 import type { ContributorKind, Sex } from "@/lib/engine/inssTypes";
 import type { Person } from "@/lib/engine/household";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { fadeUp } from "@/lib/uiMotion";
 import { useAppStore } from "@/store/useAppStore";
 
 const SEXES: Sex[] = ["F", "M"];
@@ -90,6 +92,7 @@ function PersonFields({
 
 export function HouseholdCard() {
   const { t } = useTranslation();
+  const reduced = useReducedMotion();
   const household = useAppStore((s) => s.household);
   const addSpouse = useAppStore((s) => s.addSpouse);
   const removeSpouse = useAppStore((s) => s.removeSpouse);
@@ -100,7 +103,10 @@ export function HouseholdCard() {
   const [draftBirth, setDraftBirth] = useState(household.holder.birthDate);
 
   return (
-    <section className="settings-page-card settings-page-card--featured">
+    <motion.section
+      className="settings-page-card settings-page-card--featured"
+      {...fadeUp(reduced)}
+    >
       <div className="settings-page-card-head">
         <Users className="w-4 h-4 text-accent" size={16} />
         <h2>{t("settings.household.title")}</h2>
@@ -194,6 +200,6 @@ export function HouseholdCard() {
           </button>
         </>
       )}
-    </section>
+    </motion.section>
   );
 }

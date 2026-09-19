@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Sparkles, Target } from "lucide-react";
 import { EditableNumber } from "@/components/ui/EditableNumber";
+import { usePlanSolve } from "@/hooks/usePlanSolve";
 import { analyzeIncomeGap } from "@/lib/incomeGoals";
 import { getIncomeStatusKey } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { liveSolve } from "@/lib/solveLive";
+import { fadeUp } from "@/lib/uiMotion";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCY_SYMBOLS, formatCurrencyValue } from "@/types";
 
@@ -21,65 +21,22 @@ export function IncomeGoalPanel({
   mode = "real",
 }: IncomeGoalPanelProps) {
   const { t } = useTranslation();
-  const realKpis = useAppStore((s) => s.kpis);
-  const simKpis = useAppStore((s) => s.simPlayground.kpis);
-  const kpis = mode === "playground" ? simKpis : realKpis;
-  const realPortfolio = useAppStore((s) => s.portfolio);
-  const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
-  const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
-  const realIncluded = useAppStore((s) => s.simulationIncludedAssetIds);
-  const simIncluded = useAppStore((s) => s.simPlayground.simulationIncludedAssetIds);
-  const includedAssetIds = mode === "playground" ? simIncluded : realIncluded;
-  const realOutside = useAppStore((s) => s.kpiOutsidePortfolio);
-  const simOutside = useAppStore((s) => s.simPlayground.kpiOutsidePortfolio);
-  const outsidePortfolio = mode === "playground" ? simOutside : realOutside;
-  const household = useAppStore((s) => s.household);
-  const currency = useAppStore((s) => s.currency);
-  const fxSnapshot = useAppStore((s) => s.fxSnapshot);
+  const reduced = useReducedMotion();
   const setKPI = useAppStore((s) => s.setKPI);
   const setSimKPI = useAppStore((s) => s.setSimKPI);
   const setIncome = mode === "playground" ? setSimKPI : setKPI;
   const setRetirement = mode === "playground" ? setSimKPI : setKPI;
+  const { kpis, currency, incomeSolve, dateSolve } = usePlanSolve(mode);
   const currencySymbol = CURRENCY_SYMBOLS[currency];
-
-  const solveInput = useMemo(
-    () => ({
-      kpis,
-      portfolio,
-      includedAssetIds,
-      outsidePortfolio,
-      currency,
-      fxSnapshot,
-      household,
-    }),
-    [
-      kpis,
-      portfolio,
-      includedAssetIds,
-      outsidePortfolio,
-      currency,
-      fxSnapshot,
-      household,
-    ]
-  );
-
-  const incomeSolve = useMemo(
-    () => liveSolve(solveInput, "income"),
-    [solveInput]
-  );
-  const dateSolve = useMemo(
-    () => liveSolve(solveInput, "date"),
-    [solveInput]
-  );
 
   const suggested = incomeSolve.feasible ? incomeSolve.value : 0;
   const analysis = analyzeIncomeGap(suggested, kpis.desiredMonthlyIncome);
 
   const statusColors = {
-    ahead: "text-green-400",
+    ahead: "text-gain",
     "on-track": "text-accent",
-    behind: "text-amber-400",
-    "far-behind": "text-red-400",
+    behind: "text-amber-500",
+    "far-behind": "text-loss",
   } as const;
 
   const barColors = {
@@ -92,9 +49,7 @@ export function IncomeGoalPanel({
   return (
     <motion.div
       className="income-goal-panel card-surface"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
+      {...fadeUp(reduced, 0.12)}
     >
       <div className="income-goal-header">
         <Sparkles className="w-4 h-4 text-accent" size={16} />
@@ -182,9 +137,13 @@ export function IncomeGoalPanel({
         <div className="income-goal-bar-track">
           <motion.div
             className={`income-goal-bar-fill ${barColors[analysis.status]}`}
-            initial={{ width: 0 }}
+            initial={{
+              width: reduced ? `${Math.min(100, analysis.progressPct)}%` : 0,
+            }}
             animate={{ width: `${Math.min(100, analysis.progressPct)}%` }}
-            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+            transition={
+              reduced ? { duration: 0 } : { duration: 0.7, ease: [0.4, 0, 0.2, 1] }
+            }
           />
         </div>
         {kpis.desiredMonthlyIncome > 0 && analysis.gap > 0 && (
@@ -195,7 +154,7 @@ export function IncomeGoalPanel({
           </p>
         )}
         {analysis.gap < 0 && (
-          <p className="text-[11px] text-green-400/90 mt-2">
+          <p className="text-[11px] text-gain mt-2">
             {t("income.surplus", {
               amount: formatCurrencyValue(Math.abs(analysis.gap), currency),
             })}

@@ -243,6 +243,18 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
         </div>
       </div>
 
+      {portfolio.length === 0 ? (
+        <EmptyState
+          icon={Briefcase}
+          title={t("portfolio.empty.build.title")}
+          description={t("portfolio.empty.build.desc")}
+          action={{
+            label: t("portfolio.addAsset"),
+            onClick: () => setAddOpen(true),
+          }}
+        />
+      ) : (
+        <>
       <div className="portfolio-stat-grid">
         {[
           {
@@ -430,6 +442,8 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           <p className="portfolio-cagr-footnote text-[11px] text-muted-foreground leading-snug">
             {t("portfolio.cagrFootnote")}
           </p>
+        </>
+      )}
         </>
       )}
 

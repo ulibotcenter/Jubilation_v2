@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Calendar,
   CircleDollarSign,
@@ -18,6 +18,7 @@ import { debounce } from "@/lib/debounce";
 import { getKpiLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { fadeUp } from "@/lib/uiMotion";
 import { useAppStore } from "@/store/useAppStore";
 import { fisherReal } from "@/lib/engine/rates";
 import {
@@ -130,6 +131,7 @@ function KPICard({
   index,
   value,
   currencySymbol,
+  locale,
   subtitle,
   impactHint,
   onChange,
@@ -141,22 +143,21 @@ function KPICard({
   value: number;
   currencySymbol: string;
   currency: keyof typeof CURRENCY_SYMBOLS;
+  locale: string;
   subtitle: string;
   impactHint?: string;
   onChange: (value: number) => void;
   readOnly?: boolean;
 }) {
   const Icon = KPI_ICONS[config.field];
+  const reduced = useReducedMotion();
 
   return (
     <motion.article
       className="kpi-card group"
       data-impact={config.impact}
       title={impactHint}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.07, duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-      whileHover={{ y: -3 }}
+      {...fadeUp(reduced, index * 0.04)}
       aria-label={`${label}: ${value}`}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -175,7 +176,7 @@ function KPICard({
           <p className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
             {config.format === "percent"
               ? `${value.toFixed(config.decimals)}%`
-              : value.toLocaleString("en-US")}
+              : value.toLocaleString(locale === "pt" ? "pt-BR" : locale)}
           </p>
         ) : (
           <EditableNumber
@@ -306,6 +307,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
       value={kpis[config.field]}
       currencySymbol={currencySymbol}
       currency={currency}
+      locale={locale}
       subtitle={subtitles[config.field]}
       impactHint={config.impact === "high" ? t("kpi.impact.high") : undefined}
       readOnly={config.field === "expectedCAGR" && portfolio.length > 0}

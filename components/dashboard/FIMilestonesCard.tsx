@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Flag, HelpCircle } from "lucide-react";
 import { computeFIMilestones, type FIMilestoneId } from "@/lib/fiMilestones";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrencyValue } from "@/types";
+import { fadeUp } from "@/lib/uiMotion";
 
 const MILESTONE_ORDER: FIMilestoneId[] = ["half", "coast", "full"];
 
@@ -26,6 +28,7 @@ export function FIMilestonesCard() {
   const projections = useAppStore((s) => s.projections);
   const currency = useAppStore((s) => s.currency);
   const { t } = useTranslation();
+  const reduced = useReducedMotion();
 
   const milestones = useMemo(
     () => computeFIMilestones(kpis, projections),
@@ -38,7 +41,7 @@ export function FIMilestonesCard() {
   );
 
   return (
-    <div className="fi-milestones card-surface p-4 sm:p-5">
+    <motion.div className="fi-milestones card-surface p-4 sm:p-5" {...fadeUp(reduced, 0.08)}>
       <div className="flex items-start gap-2 mb-1">
         <Flag className="w-4 h-4 text-accent shrink-0 mt-0.5" size={16} />
         <div>
@@ -75,6 +78,6 @@ export function FIMilestonesCard() {
         <HelpCircle className="w-3 h-3 shrink-0 mt-0.5 opacity-70" size={12} />
         {t("fi.milestones.footnote")}
       </p>
-    </div>
+    </motion.div>
   );
 }

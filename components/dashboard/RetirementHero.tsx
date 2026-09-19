@@ -1,280 +1,211 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import {
-  CheckCircle2,
-  AlertCircle,
-  TrendingUp,
-  Wallet,
-  Calendar,
-} from "lucide-react";
-import { toast } from "sonner";
-import { ConfettiBurst } from "@/components/ui/ConfettiBurst";
+import { useMemo } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Calendar, Target } from "lucide-react";
 import { MilestoneTimeline } from "@/components/dashboard/MilestoneTimeline";
-import { computeFITargetFromDesired } from "@/lib/incomeGoals";
+import { CinematicNumber } from "@/components/ui/CinematicNumber";
+import { EditableNumber } from "@/components/ui/EditableNumber";
+import { usePlanSolve } from "@/hooks/usePlanSolve";
+import { analyzeIncomeGap } from "@/lib/incomeGoals";
+import { htmlLang } from "@/lib/i18n/htmlLang";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { fadeUp } from "@/lib/uiMotion";
 import { useAppStore } from "@/store/useAppStore";
-import { formatCurrencyValue, type ProjectionYear } from "@/types";
+import {
+  CURRENCY_SYMBOLS,
+  formatCurrencyValue,
+  type ProjectionYear,
+} from "@/types";
 
-function ProgressRing({
-  progress,
-  score,
-  pulseKey,
-  scoreLabel,
-}: {
-  progress: number;
-  score: number;
-  pulseKey: number;
-  scoreLabel: string;
-}) {
-  const size = 100;
-  const stroke = 6;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const journeyOffset = circumference - (progress / 100) * circumference;
-  const scoreArc = circumference - (score / 100) * circumference;
-
-  const scoreColor =
-    score >= 80 ? "#22c55e" : score >= 50 ? "#ff7040" : "#f87171";
-
-  return (
-    <motion.div
-      className="hero-ring"
-      style={{ width: size, height: size }}
-      key={pulseKey}
-      animate={{ scale: [1, 1.04, 1] }}
-      transition={{ duration: 0.45 }}
-    >
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="var(--hero-ring-track)"
-          strokeWidth={stroke}
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="rgba(255,112,64,0.2)"
-          strokeWidth={stroke - 2}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: journeyOffset }}
-          transition={{ duration: 0.85, ease: [0.4, 0, 0.2, 1] }}
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={scoreColor}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: scoreArc, stroke: scoreColor }}
-          transition={{ duration: 0.85, ease: [0.4, 0, 0.2, 1] }}
-          style={{ filter: `drop-shadow(0 0 6px ${scoreColor}50)` }}
-        />
-      </svg>
-      <div className="hero-ring-label">
-        <motion.span
-          key={score}
-          className="hero-ring-score"
-          initial={{ scale: 1.1, opacity: 0.6 }}
-          animate={{ scale: 1, opacity: 1 }}
-        >
-          {score}
-        </motion.span>
-        <span className="hero-ring-caption">{scoreLabel}</span>
-      </div>
-    </motion.div>
-  );
-}
+const AGE_LEAD_THRESHOLD_YEARS = 20;
 
 export function RetirementHero() {
-  const { t } = useTranslation();
-  const kpis = useAppStore((s) => s.kpis);
-  const currency = useAppStore((s) => s.currency);
-  const projections = useAppStore((s) => s.projections);
-  const monteCarlo = useAppStore((s) => s.monteCarlo);
-
-  const prevScoreRef = useRef<number | null>(null);
-  const prevOnTrackRef = useRef<boolean | null>(null);
-  const [confettiTrigger, setConfettiTrigger] = useState(0);
-  const [pulseKey, setPulseKey] = useState(0);
-  const [heroFlash, setHeroFlash] = useState(false);
+  const { t, locale } = useTranslation();
+  const reduced = useReducedMotion();
+  const setKPI = useAppStore((s) => s.setKPI);
+  const { kpis, currency, incomeSolve, dateSolve } = usePlanSolve("real");
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   const yearsToRetirement = kpis.retirementAge - kpis.currentAge;
+  const suggested = incomeSolve.feasible ? incomeSolve.value : 0;
+  const analysis = analyzeIncomeGap(suggested, kpis.desiredMonthlyIncome);
+  const freedomAge = dateSolve.feasible ? Math.round(dateSolve.value) : null;
+  const journeyProgress = Math.min(
+    100,
+    Math.max(
+      0,
+      ((kpis.currentAge - 18) / Math.max(1, kpis.retirementAge - 18)) * 100
+    )
+  );
 
-  const { score, onTrack, target, journeyProgress, projectedValue } =
-    useMemo(() => {
-      const targetValue =
-        kpis.desiredMonthlyIncome > 0
-          ? computeFITargetFromDesired(kpis.desiredMonthlyIncome)
-          : kpis.currentNetWorth * 25;
-      const projected =
-        projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
-          ?.portfolioValue ??
-        0;
-      const rawScore =
-        targetValue > 0 ? Math.min(100, (projected / targetValue) * 100) : 0;
+  const leadWithAge =
+    Boolean(freedomAge) && yearsToRetirement > AGE_LEAD_THRESHOLD_YEARS;
 
-      const mcBase = monteCarlo.results.find((r) => r.scenario === "base");
-      const blendedScore = mcBase
-        ? Math.round(rawScore * 0.6 + mcBase.successRate * 0.4)
-        : Math.round(rawScore);
+  const statusKey: MessageKey =
+    kpis.desiredMonthlyIncome <= 0
+      ? "income.status.setGoal"
+      : analysis.gap < 0
+        ? "income.status.ahead"
+        : analysis.status === "on-track"
+          ? "income.status.onTrack"
+          : analysis.status === "behind"
+            ? "income.status.behind"
+            : "income.status.farBehind";
 
-      const startAge = 18;
-      const journey =
-        ((kpis.currentAge - startAge) / (kpis.retirementAge - startAge)) * 100;
-
-      return {
-        score: blendedScore,
-        onTrack: blendedScore >= 75,
-        target: targetValue,
-        journeyProgress: Math.min(100, Math.max(0, journey)),
-        projectedValue: projected,
-      };
-    }, [kpis, projections, monteCarlo.results]);
-
-  useEffect(() => {
-    const prev = prevScoreRef.current;
-    const prevOnTrack = prevOnTrackRef.current;
-
-    if (prev === null) {
-      prevScoreRef.current = score;
-      prevOnTrackRef.current = onTrack;
-      return;
-    }
-
-    if (prev === score && prevOnTrack === onTrack) return;
-
-    setPulseKey((k) => k + 1);
-    setHeroFlash(true);
-    const flashTimer = setTimeout(() => setHeroFlash(false), 600);
-
-    if (!prevOnTrack && onTrack) {
-      setConfettiTrigger((c) => c + 1);
-      toast.success(t("toast.hero.onTrack"), {
-        description: t("toast.hero.onTrackDesc", { score }),
-      });
-    }
-
-    prevScoreRef.current = score;
-    prevOnTrackRef.current = onTrack;
-    return () => clearTimeout(flashTimer);
-  }, [score, onTrack, kpis, t]);
-
-  const metrics = [
-    {
-      icon: TrendingUp,
-      label: t("hero.metric.fiTarget"),
-      value: formatCurrencyValue(target, currency, true),
-      hint: t("hero.metric.fiTargetHint"),
-    },
-    {
-      icon: Wallet,
-      label: t("hero.metric.projected"),
-      value: formatCurrencyValue(projectedValue, currency, true),
-      hint: t("hero.metric.atRetirement"),
-    },
-    {
-      icon: Calendar,
-      label: t("hero.metric.timeline"),
-      value: `${yearsToRetirement}y`,
-      hint: t("hero.metric.toAge", { n: kpis.retirementAge }),
-    },
-  ];
+  const motionProps = fadeUp(reduced);
 
   return (
-    <>
-      <ConfettiBurst trigger={confettiTrigger} origin="left" />
+    <motion.section
+      className="hero-card hero-card--cinematic mb-6 sm:mb-8"
+      {...motionProps}
+      aria-label={t("hero.aria")}
+    >
+      <div className="hero-cinematic">
+        <h1 className="hero-kicker">
+          {leadWithAge ? t("income.solve.date") : t("income.solve.income")}
+        </h1>
 
-      <motion.section
-        className={`hero-card mb-4 sm:mb-5 ${heroFlash ? "hero-card-flash" : ""}`}
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        aria-label={t("hero.aria")}
-      >
-        <div className="hero-layout">
-          <div className="hero-main">
-            <ProgressRing
-              progress={journeyProgress}
-              score={score}
-              pulseKey={pulseKey}
-              scoreLabel={t("hero.score")}
+        {leadWithAge && freedomAge != null ? (
+          <p className="hero-number" aria-live="polite">
+            <span className="hero-number-value tabular-nums">{freedomAge}</span>
+            <span className="hero-number-unit">{t("hero.yearsUnit")}</span>
+          </p>
+        ) : incomeSolve.feasible ? (
+          <p className="hero-number" aria-live="polite">
+            <CinematicNumber
+              value={suggested}
+              currency={currency}
+              locale={locale}
+              className="hero-number-value"
             />
+            <span className="hero-number-unit">{t("common.perMonth")}</span>
+          </p>
+        ) : (
+          <p className="hero-number hero-number--empty" aria-live="polite">
+            —
+          </p>
+        )}
 
-            <div className="hero-copy min-w-0">
-              <div className="hero-title-row">
-                <h1 className="hero-title">{t("hero.title")}</h1>
-                <span className="hero-beta-badge">{t("common.beta")}</span>
-              </div>
+        <p id="hero-real-terms" className="hero-real-terms">
+          {incomeSolve.feasible
+            ? t("hero.realTerms")
+            : t("income.solve.infeasible")}
+        </p>
 
-              <motion.div
-                key={onTrack ? "on" : "off"}
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className={`hero-status ${onTrack ? "hero-status--ok" : "hero-status--warn"}`}
-              >
-                {onTrack ? (
-                  <CheckCircle2 className="w-3.5 h-3.5" size={14} />
-                ) : (
-                  <AlertCircle className="w-3.5 h-3.5" size={14} />
-                )}
-                {onTrack ? t("hero.status.onTrack") : t("hero.status.needsAttention")}
-              </motion.div>
-
-              <p className="hero-subline">
-                {t("hero.subline", {
-                  pct: Math.round(journeyProgress),
-                  amount: formatCurrencyValue(projectedValue, currency, true),
-                })}
-              </p>
+        <div className="hero-support-row">
+          {leadWithAge ? (
+            <div className="hero-support-chip">
+              <span className="hero-support-label">{t("income.solve.income")}</span>
+              <span className="hero-support-value tabular-nums">
+                {incomeSolve.feasible
+                  ? formatCurrencyValue(
+                      suggested,
+                      currency,
+                      false,
+                      htmlLang(locale)
+                    )
+                  : "—"}
+                <span className="hero-support-unit">{t("common.perMonth")}</span>
+              </span>
             </div>
-          </div>
-
-          <div className="hero-metrics">
-            {metrics.map((m, i) => (
-              <motion.div
-                key={m.label}
-                className="hero-metric-tile"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.05 }}
-              >
-                <m.icon className="w-3.5 h-3.5 text-accent opacity-80" size={14} />
-                <p className="hero-metric-label">{m.label}</p>
-                <p className="hero-metric-value tabular-nums">{m.value}</p>
-                <p className="hero-metric-hint">{m.hint}</p>
-              </motion.div>
-            ))}
-          </div>
+          ) : (
+            <div className="hero-support-chip">
+              <Calendar className="w-3.5 h-3.5 text-accent" size={14} aria-hidden />
+              <span className="hero-support-label">{t("income.solve.date")}</span>
+              <span className="hero-support-value tabular-nums">
+                {freedomAge != null
+                  ? t("income.solve.dateResult", { n: freedomAge })
+                  : t("income.solve.infeasible")}
+              </span>
+              {freedomAge != null && freedomAge !== kpis.retirementAge ? (
+                <button
+                  type="button"
+                  className="hero-use-age"
+                  onClick={() => setKPI("retirementAge", freedomAge)}
+                  aria-label={t("hero.useAgeAria", { n: freedomAge })}
+                >
+                  {t("income.solve.useAge")}
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
 
-        <MilestoneTimeline
-          currentAge={kpis.currentAge}
-          retirementAge={kpis.retirementAge}
-          journeyProgress={journeyProgress}
-        />
-      </motion.section>
-    </>
+        <div className="hero-goal">
+          <div className="hero-goal-edit">
+            <Target className="w-3.5 h-3.5 text-muted-foreground" size={14} aria-hidden />
+            <span className="hero-support-label">{t("income.yourGoal")}</span>
+            <EditableNumber
+              value={kpis.desiredMonthlyIncome}
+              onChange={(v) => setKPI("desiredMonthlyIncome", v)}
+              min={0}
+              max={500_000}
+              step={100}
+              decimals={0}
+              format="currency"
+              currencySymbol={currencySymbol}
+              compact
+              inputClassName="text-base sm:text-lg font-bold bg-transparent"
+            />
+            <span className="hero-support-unit">{t("common.perMonth")}</span>
+          </div>
+          {kpis.desiredMonthlyIncome > 0 && incomeSolve.feasible ? (
+            <div className="hero-goal-meter">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="hero-goal-status">{t(statusKey)}</span>
+                <span className="text-[11px] text-muted-foreground tabular-nums">
+                  {t("income.progressOfGoal", { n: analysis.progressPct })}
+                </span>
+              </div>
+              <div className="income-goal-bar-track">
+                <motion.div
+                  className="income-goal-bar-fill bg-accent"
+                  initial={{ width: reduced ? `${Math.min(100, analysis.progressPct)}%` : 0 }}
+                  animate={{ width: `${Math.min(100, analysis.progressPct)}%` }}
+                  transition={reduced ? { duration: 0 } : { duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+                />
+              </div>
+              {analysis.gap > 0 ? (
+                <p className="hero-goal-hint">
+                  {t("income.shortfall", {
+                    amount: formatCurrencyValue(analysis.gap, currency, false, htmlLang(locale)),
+                  })}
+                </p>
+              ) : analysis.gap < 0 ? (
+                <p className="hero-goal-hint hero-goal-hint--ok">
+                  {t("income.surplus", {
+                    amount: formatCurrencyValue(
+                      Math.abs(analysis.gap),
+                      currency,
+                      false,
+                      htmlLang(locale)
+                    ),
+                  })}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <MilestoneTimeline
+        currentAge={kpis.currentAge}
+        retirementAge={kpis.retirementAge}
+        journeyProgress={journeyProgress}
+      />
+    </motion.section>
   );
 }
 
 export function useHeroProjectedValue() {
   const projections = useAppStore((s) => s.projections);
   const kpis = useAppStore((s) => s.kpis);
-  return (
-    projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
-      ?.portfolioValue ?? 0
+  return useMemo(
+    () =>
+      projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
+        ?.portfolioValue ?? 0,
+    [projections, kpis.retirementAge]
   );
 }
