@@ -197,7 +197,7 @@ export const EN = {
   "settings.navigation.collapsed": "collapsed",
   "settings.household.title": "Household",
   "settings.household.body": "Couple modeling is local input this phase — no CNIS, Open Finance, or civil-registry integration.",
-  "settings.household.notice": "The holder adds a spouse by hand. Scope (me / spouse / both) filters ownership and, for both, plans to the last survivor. Survivor pension follows Lei 13.135/2015.",
+  "settings.household.notice": "The holder adds a spouse by hand. Scope (me / spouse / both) filters ownership and, for both, plans to the last survivor. Survivor pension for deaths from 2021 follows Portaria ME 424/2020 (20 years at age 44; lifetime from 45).",
   "settings.household.holder": "You",
   "settings.household.spouse": "Spouse",
   "settings.household.addSpouse": "Add spouse",

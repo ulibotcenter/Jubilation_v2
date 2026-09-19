@@ -199,7 +199,7 @@ export const ES: Record<MessageKey, string> = {
   "settings.navigation.collapsed": "contraído",
   "settings.household.title": "Hogar",
   "settings.household.body": "El modelo de pareja en esta fase es solo input local — sin CNIS, Open Finance ni registro civil.",
-  "settings.household.notice": "El titular añade al cónyuge a mano. El alcance (yo / cónyuge / ambos) filtra la titularidad y, en ambos, planifica hasta el último superviviente. Pensión de sobrevivencia según la Lei 13.135/2015.",
+  "settings.household.notice": "El titular añade al cónyuge a mano. El alcance (yo / cónyuge / ambos) filtra la titularidad y, en ambos, planifica hasta el último superviviente. Pensión de sobrevivencia para fallecimientos desde 2021 sigue la Portaria ME 424/2020 (20 años a los 44; vitalicia desde los 45).",
   "settings.household.holder": "Tú",
   "settings.household.spouse": "Cónyuge",
   "settings.household.addSpouse": "Añadir cónyuge",

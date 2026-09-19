@@ -199,7 +199,7 @@ export const PT: Record<MessageKey, string> = {
   "settings.navigation.collapsed": "recolhido",
   "settings.household.title": "Família",
   "settings.household.body": "O casal nesta fase é só input local — sem CNIS, Open Finance ou registro civil.",
-  "settings.household.notice": "O titular inclui o cônjuge à mão. O escopo (eu / cônjuge / ambos) filtra a titularidade e, em ambos, planeja até o último sobrevivente. Pensão por morte segue a Lei 13.135/2015.",
+  "settings.household.notice": "O titular inclui o cônjuge à mão. O escopo (eu / cônjuge / ambos) filtra a titularidade e, em ambos, planeja até o último sobrevivente. Pensão por morte para óbitos desde 2021 segue a Portaria ME 424/2020 (20 anos aos 44; vitalícia a partir de 45).",
   "settings.household.holder": "Você",
   "settings.household.spouse": "Cônjuge",
   "settings.household.addSpouse": "Incluir cônjuge",
