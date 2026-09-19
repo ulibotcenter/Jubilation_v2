@@ -7,7 +7,7 @@ import {
 } from "@/lib/engine/parameters";
 import { DEFAULT_PORTFOLIO_REAL_RETURN } from "@/lib/engine/assumptions";
 import { annualToMonthly } from "@/lib/engine/rates";
-import { expectedRemainingYears } from "@/lib/engine/mortality";
+import { expectedRemainingYearsBothSexes } from "@/lib/engine/mortality";
 import {
   addMonthsIso,
   ageInMonths,
@@ -202,7 +202,8 @@ export function applyFloorCeiling(
 
 /**
  * f = (Tc × 0.31 / Es) × [1 + (Id + Tc × 0.31) / 100]
- * Lei 9.876/1999, used only on the 50% pedágio (EC 103 art. 17).
+ * Lei 9.876/1999 art. 29 §7º formula only — callers must pass Es and Tc
+ * already adjusted under §8º / §9º.
  */
 export function fatorPrevidenciario(input: {
   contributionYears: number;
@@ -214,6 +215,48 @@ export function fatorPrevidenciario(input: {
   const es = Math.max(0.01, input.expectedRemainingYears);
   const tcA = input.contributionYears * a;
   return (tcA / es) * (1 + (input.ageYears + tcA) / 100);
+}
+
+export const FATOR_PREVIDENCIARIO_SOURCE =
+  "Lei 9.876/1999 art. 29 §7º–§9º; IBGE Tábua Completa de Mortalidade 2024 e(60) ambos os sexos = 22,6";
+
+/**
+ * Lei 9.876/1999 §9º — years added to Tc before the factor:
+ * I woman +5; II teacher +5 (infantil/fundamental) or +10 (médio).
+ * Default teacher bonus is +5 when the person is flagged teacher without a level.
+ */
+export function fatorTcBonusYears(input: {
+  sex: "F" | "M";
+  teacher?: boolean;
+}): number {
+  return (input.sex === "F" ? 5 : 0) + (input.teacher ? 5 : 0);
+}
+
+/**
+ * Fator as the statute applies it (not a named uncertain premise):
+ * Es = both-sexes IBGE average (§8º), Tc includes §9º bonuses.
+ */
+export function fatorPrevidenciarioLegal(input: {
+  contributionYears: number;
+  ageYears: number;
+  sex: "F" | "M";
+  teacher?: boolean;
+  alfa?: number;
+  /** Override Es (tests). Default: IBGE 2024 both-sexes curve. */
+  expectedRemainingYears?: number;
+}): number {
+  const tc =
+    input.contributionYears +
+    fatorTcBonusYears({ sex: input.sex, teacher: input.teacher });
+  const es =
+    input.expectedRemainingYears ??
+    expectedRemainingYearsBothSexes(input.ageYears);
+  return fatorPrevidenciario({
+    contributionYears: tc,
+    ageYears: input.ageYears,
+    expectedRemainingYears: es,
+    alfa: input.alfa,
+  });
 }
 
 function presentValueCents(
@@ -503,14 +546,13 @@ export function evaluateInss(
         carenciaMonths(personAt.history, atIso) >= 180;
       const years = completeYears(tc);
       const ageYears = ageM / 12;
-      const es =
-        person.survivalExpectancyYears ??
-        expectedRemainingYears(sex, ageYears);
-      const factor = fatorPrevidenciario({
+      const factor = fatorPrevidenciarioLegal({
         contributionYears: years + (tc % 12) / 12,
         ageYears,
-        expectedRemainingYears: es,
+        sex,
+        teacher: person.teacher === true,
         alfa,
+        expectedRemainingYears: person.survivalExpectancyYears,
       });
       return {
         ok,

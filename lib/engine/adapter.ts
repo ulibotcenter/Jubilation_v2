@@ -160,9 +160,12 @@ export function buildEnginePlan(input: EngineBuildInput): EnginePlan {
     input.kpis.retirementAge
   );
 
-  const fundsOnly =
-    liquidAssets.length > 0 &&
-    liquidAssets.every((a) => defaultTaxRegime(a.assetClass) === "come_cotas");
+  const comeCotasMajor = aggregatePortfolioMajor(
+    liquidAssets.filter((a) => defaultTaxRegime(a.assetClass) === "come_cotas"),
+    input.quote
+  );
+  const comeCotasFraction =
+    liquidMajor > 0 ? Math.min(1, Math.max(0, comeCotasMajor / liquidMajor)) : 0;
 
   return defaultPlan({
     currentAge:
@@ -183,11 +186,12 @@ export function buildEnginePlan(input: EngineBuildInput): EnginePlan {
     inflation,
     allowIlliquidSale: illiquidAssets.some((a) => a.allowSale === true),
     applyTaxes: input.applyTaxes ?? true,
-    taxRegime: fundsOnly ? "come_cotas" : "taxable",
+    taxRegime: comeCotasFraction >= 1 ? "come_cotas" : "taxable",
     comeCotasRate: paramsForYear(
       DEFAULT_PARAMETER_SET,
       Number(asOf.slice(0, 4)) || 2026
     ).comeCotasLongTermRate,
+    comeCotasFraction,
     inssMonthlyCents,
     benefits,
     seed: input.seed ?? 1,

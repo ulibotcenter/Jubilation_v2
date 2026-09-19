@@ -14,7 +14,15 @@ export { fisherReal, fisherNominal, annualToMonthly } from "@/lib/engine/rates";
 export { ASSUMPTIONS, assumptionImpact, DEFAULT_LIFE_EXPECTANCY_AGE } from "@/lib/engine/assumptions";
 export { DEFAULT_PARAMETER_SET, paramsForYear, DEFAULT_LEGAL_PREMISES } from "@/lib/engine/parameters";
 export { calculateMonthlyIrpf, calculateAnnualIrpf } from "@/lib/engine/tax";
-export { evaluateInss, fillContributionRange, fatorPrevidenciario, rgpsCoefficient } from "@/lib/engine/inss";
+export {
+  evaluateInss,
+  fillContributionRange,
+  fatorPrevidenciario,
+  fatorPrevidenciarioLegal,
+  fatorTcBonusYears,
+  FATOR_PREVIDENCIARIO_SOURCE,
+  rgpsCoefficient,
+} from "@/lib/engine/inss";
 export { contributorCharge, complementToNormal } from "@/lib/engine/contributor";
 export { redeemLots, pgblDeduction } from "@/lib/engine/previdencia";
 export { comeCotasRate, comeCotasApplies, comeCotasLevyCents } from "@/lib/engine/comeCotas";

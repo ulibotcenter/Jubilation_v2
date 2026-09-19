@@ -79,7 +79,15 @@ export function projectPlan(
   let illiquid = Math.max(0, Math.round(plan.illiquidCents));
   let ruinAge: number | null = null;
   let monthlyNeed = 0;
-  let comeCotasBase = liquid;
+  const comeCotasFrac =
+    plan.comeCotasFraction > 0
+      ? Math.min(1, plan.comeCotasFraction)
+      : plan.taxRegime === "come_cotas"
+        ? 1
+        : 0;
+  let fund = Math.round(liquid * comeCotasFrac);
+  let other = liquid - fund;
+  let fundBasis = fund;
 
   const acc = new Map<number, AgeAcc>();
   const ensure = (age: number): AgeAcc => {
@@ -110,20 +118,24 @@ export function projectPlan(
       .reduce((s, b) => s + b.monthlyCents, 0);
     const inssLike = fromBenefits > 0 ? fromBenefits : plan.inssMonthlyCents;
 
-    const liqRet = Math.round(liquid * liquidRate(month));
+    const liqRet = liquidRate(month);
+    fund = Math.max(0, fund + Math.round(fund * liqRet));
+    other = Math.max(0, other + Math.round(other * liqRet));
     const illRet = Math.round(illiquid * illiquidRate(month));
-    liquid = Math.max(0, liquid + liqRet);
     illiquid = Math.max(0, illiquid + illRet);
-    row.returns += liqRet + illRet;
+    const liquidBeforeReturn = liquid;
+    liquid = fund + other;
+    row.returns += liquid - liquidBeforeReturn + illRet;
 
-    if (plan.taxRegime === "come_cotas") {
+    if (comeCotasFrac > 0) {
       const cal = calendarMonthAfter(plan.asOf, month - 1);
       if (isComeCotasCalendarMonth(cal.month, cal.year, plan.parameterSet)) {
-        const gain = Math.max(0, liquid - comeCotasBase);
+        const gain = Math.max(0, fund - fundBasis);
         const levy = comeCotasLevyCents(gain, plan.comeCotasRate);
-        liquid = Math.max(0, liquid - levy);
+        fund = Math.max(0, fund - levy);
+        fundBasis = fund;
+        liquid = fund + other;
         row.taxes += levy;
-        comeCotasBase = liquid;
       }
     }
 
@@ -132,17 +144,24 @@ export function projectPlan(
       plan.illiquidSaleMonth === month &&
       illiquid > 0
     ) {
-      liquid += Math.round(illiquid * (1 - plan.illiquidTransactionCostRate));
+      other += Math.round(illiquid * (1 - plan.illiquidTransactionCostRate));
       illiquid = 0;
+      liquid = fund + other;
     }
 
     if (!retired) {
-      liquid += plan.monthlyContributionCents;
-      row.contributions += plan.monthlyContributionCents;
-      row.invested += plan.monthlyContributionCents;
+      const contrib = plan.monthlyContributionCents;
+      const toFund = Math.round(contrib * comeCotasFrac);
+      fund += toFund;
+      fundBasis += toFund;
+      other += contrib - toFund;
+      liquid = fund + other;
+      row.contributions += contrib;
+      row.invested += contrib;
       row.expenses += plan.monthlyLifestyleCents;
       if (fromBenefits > 0) {
-        liquid += fromBenefits;
+        other += fromBenefits;
+        liquid = fund + other;
         row.contributions += fromBenefits;
       }
     } else {
@@ -167,9 +186,21 @@ export function projectPlan(
 
       if (grossFromPortfolio > 0) {
         if (liquid >= grossFromPortfolio) {
-          liquid -= grossFromPortfolio;
+          const total = fund + other;
+          const fromFund =
+            total > 0 ? Math.round(grossFromPortfolio * (fund / total)) : 0;
+          const fromOther = grossFromPortfolio - fromFund;
+          if (fund > 0 && fromFund > 0) {
+            fundBasis = Math.round(fundBasis * ((fund - fromFund) / fund));
+          }
+          fund = Math.max(0, fund - fromFund);
+          other = Math.max(0, other - fromOther);
+          liquid = fund + other;
         } else {
           liquid = 0;
+          fund = 0;
+          other = 0;
+          fundBasis = 0;
           if (ruinAge == null) ruinAge = ageAtEnd;
           row.ruined = true;
         }

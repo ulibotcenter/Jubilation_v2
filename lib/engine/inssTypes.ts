@@ -70,7 +70,10 @@ export interface InssPerson {
   asOf: string;
   teacher?: boolean;
   specialExposureYears?: SpecialExposure | null;
-  /** Override Es (years) for the fator previdenciário. */
+  /**
+   * Optional Es override for the fator. Live path leaves this unset so
+   * Lei 9.876/1999 §8º applies (IBGE both-sexes national average).
+   */
   survivalExpectancyYears?: number;
   source?: DataSource;
 }

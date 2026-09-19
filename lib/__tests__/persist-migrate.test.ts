@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { migratePersistedState } from "@/lib/persist/migrate";
+import { partializePersistedState } from "@/lib/persist/partialize";
+import { createPerson, defaultHousehold } from "@/lib/engine/household";
 
 describe("persist migrate", () => {
   it("never replaces a user portfolio with the demo seed", () => {
@@ -42,5 +44,99 @@ describe("persist migrate", () => {
   it("does not invent a portfolio when none was persisted", () => {
     const next = migratePersistedState({ kpis: { currentAge: 40 } }, 0);
     expect(next.portfolio).toBeUndefined();
+  });
+
+  it("keeps the named user and the spouse through migrate", () => {
+    const asOf = "2026-01-01";
+    const household = defaultHousehold(asOf, "1976-06-01", "F");
+    household.scope = "both";
+    household.marriageDate = "2005-03-12";
+    household.spouse = createPerson({
+      role: "spouse",
+      displayName: "João Silva",
+      sex: "M",
+      birthDate: "1974-02-01",
+      asOf,
+    });
+    const next = migratePersistedState(
+      {
+        user: {
+          id: "u-maria",
+          name: "Maria Silva",
+          email: "maria@example.com",
+          avatarUrl: null,
+          plan: "free",
+          subscriptionStatus: "none",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+        household,
+        kpis: { currentAge: 50 },
+      },
+      1
+    );
+    expect((next.user as { name: string }).name).toBe("Maria Silva");
+    const kept = next.household as typeof household;
+    expect(kept.scope).toBe("both");
+    expect(kept.spouse?.displayName).toBe("João Silva");
+    expect(kept.marriageDate).toBe("2005-03-12");
+  });
+});
+
+describe("persist partialize", () => {
+  it("writes user and household so the spouse card survives reload", () => {
+    const asOf = "2026-01-01";
+    const household = defaultHousehold(asOf, "1976-06-01", "F");
+    household.spouse = createPerson({
+      role: "spouse",
+      displayName: "João Silva",
+      sex: "M",
+      birthDate: "1974-02-01",
+      asOf,
+    });
+    const user = {
+      id: "u-maria",
+      name: "Maria Silva",
+      email: "maria@example.com",
+      avatarUrl: null,
+      plan: "free" as const,
+      subscriptionStatus: "none" as const,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    };
+    const persisted = partializePersistedState({
+      locale: "pt",
+      currency: "BRL",
+      fxSnapshot: null,
+      onboarding: { completed: true },
+      sidebarCollapsed: false,
+      persistVersion: 1,
+      tenant: { dataRegion: "br" },
+      institutions: [],
+      accounts: [],
+      entitlements: [],
+      household,
+      user,
+      explainSimple: false,
+      theme: "dark",
+      coachMarksDismissed: false,
+      sensitivity: { cagr: null, inflation: null },
+      netWorthSnapshots: [],
+      aiChatHistory: [],
+      savedScenarios: [],
+      kpis: { currentAge: 50 },
+      kpiOutsidePortfolio: 0,
+      portfolio: [],
+      portfolioLastRefreshedAt: null,
+      simulationIncludedAssetIds: [],
+      monteCarlo: { hasRun: false },
+      simPlayground: {},
+    });
+    expect(Object.keys(persisted)).toEqual(
+      expect.arrayContaining(["user", "household"])
+    );
+    expect(persisted.user).toEqual(user);
+    expect(persisted.household).toEqual(household);
+    expect((persisted.household as typeof household).spouse?.displayName).toBe(
+      "João Silva"
+    );
   });
 });

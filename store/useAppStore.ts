@@ -33,6 +33,7 @@ import {
 } from "@/lib/engine/household";
 import type { Sex } from "@/lib/engine/inssTypes";
 import { migratePersistedState, CURRENT_PERSIST_VERSION } from "@/lib/persist/migrate";
+import { partializePersistedState } from "@/lib/persist/partialize";
 import { percentile } from "@/lib/engine/monteCarlo";
 import type { CoachMessage } from "@/lib/ai/retirementCoach";
 import type { AppLocale } from "@/lib/i18n/messages";
@@ -1534,7 +1535,9 @@ export const useAppStore = create<AppStore>()(
         const asOf = todayIsoDate();
         const household = isHousehold(migrated.household)
           ? migrated.household
-          : householdFromKpis(kpis, asOf);
+          : isHousehold(current.household)
+            ? current.household
+            : householdFromKpis(kpis, asOf);
 
         const persistedMc = migrated.monteCarlo;
         const built = buildProjectionsFromState({
@@ -1591,34 +1594,7 @@ export const useAppStore = create<AppStore>()(
           simPlayground,
         };
       },
-      partialize: (state) => ({
-        locale: state.locale,
-        currency: state.currency,
-        fxSnapshot: state.fxSnapshot,
-        onboarding: state.onboarding,
-        sidebarCollapsed: state.sidebarCollapsed,
-        persistVersion: state.persistVersion,
-        tenant: state.tenant,
-        institutions: state.institutions,
-        accounts: state.accounts,
-        entitlements: state.entitlements,
-        household: state.household,
-        planTier: "free" as const,
-        explainSimple: state.explainSimple,
-        theme: state.theme,
-        coachMarksDismissed: state.coachMarksDismissed,
-        sensitivity: state.sensitivity,
-        netWorthSnapshots: state.netWorthSnapshots,
-        aiChatHistory: state.aiChatHistory,
-        savedScenarios: state.savedScenarios,
-        kpis: state.kpis,
-        kpiOutsidePortfolio: state.kpiOutsidePortfolio,
-        portfolio: state.portfolio,
-        portfolioLastRefreshedAt: state.portfolioLastRefreshedAt,
-        simulationIncludedAssetIds: state.simulationIncludedAssetIds,
-        monteCarlo: state.monteCarlo,
-        simPlayground: state.simPlayground,
-      }),
+      partialize: (state) => partializePersistedState(state),
     }
   )
 );

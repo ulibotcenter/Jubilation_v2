@@ -4,6 +4,8 @@ import {
   benefitSalaryCents,
   evaluateInss,
   fatorPrevidenciario,
+  fatorPrevidenciarioLegal,
+  fatorTcBonusYears,
   fillContributionRange,
   rgpsCoefficient,
 } from "@/lib/engine/inss";
@@ -35,6 +37,14 @@ import {
 } from "@/lib/engine/rendaMais";
 import { DEFAULT_LEGAL_PREMISES } from "@/lib/engine/parameters";
 import { buildEnginePlan } from "@/lib/engine/adapter";
+import { defaultPlan } from "@/lib/engine/plan";
+import { projectPlan } from "@/lib/engine/project";
+import {
+  IBGE_2024_E60_BOTH_SEXES,
+  IBGE_2024_E60_WOMAN,
+  expectedRemainingYearsBothSexes,
+} from "@/lib/engine/mortality";
+import { annualToMonthly } from "@/lib/engine/rates";
 import { normalizeKpiValues } from "@/types";
 import type { InssPerson } from "@/lib/engine/inssTypes";
 
@@ -188,15 +198,44 @@ describe("INSS — permanent vs 2026 transition", () => {
     ).toBe(true);
   });
 
-  it("fator previdenciário at 60 / Tc 30 / Es 24.2 (IBGE 2024 woman)", () => {
-    // f = (30×0.31 / 24.2) × [1 + (60 + 30×0.31)/100]
-    //   = 9.3/24.2 × 1.693 = 0.650615702479...
-    const f = fatorPrevidenciario({
+  it("fator previdenciário: Lei 9.876 §8º Es both-sexes 22.6 and §9º I woman +5 Tc", () => {
+    // Premise: compact IBGE 2024 uses the published e(60) both-sexes = 22.6
+    // (not the woman's 24.2). Intermediate ages interpolate; this golden is at 60.
+    expect(expectedRemainingYearsBothSexes(60)).toBe(IBGE_2024_E60_BOTH_SEXES);
+    expect(fatorTcBonusYears({ sex: "F" })).toBe(5);
+    expect(fatorTcBonusYears({ sex: "M" })).toBe(0);
+    expect(fatorTcBonusYears({ sex: "F", teacher: true })).toBe(10);
+
+    // Lei 9.876/1999 art. 29: f = (Tc×0.31/Es)×[1+(Id+Tc×0.31)/100]
+    // §8º Es = both-sexes; §9º I woman +5 on Tc. Woman 60, Tc 30 → Tc' = 35.
+    const tc = 30 + 5;
+    const es = IBGE_2024_E60_BOTH_SEXES;
+    const statute = ((tc * 0.31) / es) * (1 + (60 + tc * 0.31) / 100);
+    const legal = fatorPrevidenciarioLegal({
       contributionYears: 30,
       ageYears: 60,
-      expectedRemainingYears: 24.2,
+      sex: "F",
     });
-    expect(f).toBeCloseTo(0.650615702479, 10);
+    expect(legal).toBeCloseTo(statute, 10);
+    expect(legal).toBeCloseTo(0.82023119469, 8);
+
+    const man = fatorPrevidenciarioLegal({
+      contributionYears: 30,
+      ageYears: 60,
+      sex: "M",
+    });
+    const manStatute =
+      ((30 * 0.31) / es) * (1 + (60 + 30 * 0.31) / 100);
+    expect(man).toBeCloseTo(manStatute, 10);
+
+    // 0.6506 was Tc=30 and woman's e(60)=24.2 — wrong inputs, not the statute.
+    const oldWrongInputs = fatorPrevidenciario({
+      contributionYears: 30,
+      ageYears: 60,
+      expectedRemainingYears: IBGE_2024_E60_WOMAN,
+    });
+    expect(oldWrongInputs).toBeCloseTo(0.650615702479, 10);
+    expect(legal - oldWrongInputs).toBeGreaterThan(0.15);
   });
 
   it("ADI 6309: special has no minimum age; points 86 kept by default", () => {
@@ -405,7 +444,7 @@ describe("Pensão por morte RGPS", () => {
     expect(r.floored).toBe(true);
   });
 
-  it("Lei 13.135 duration: 4 months if marriage < 2 years; 3 years if age 20; lifetime from 44", () => {
+  it("Portaria ME 424/2020: 4 months if marriage < 2y; 3y if age 20; 20y at 44; lifetime from 45", () => {
     expect(
       survivorPension({
         deceasedRetirementCents: 500_000,
@@ -413,6 +452,7 @@ describe("Pensão por morte RGPS", () => {
         deceasedContributionMonths: 120,
         marriageMonths: 12,
         survivorAgeAtDeath: 50,
+        year: 2026,
       }).durationMonths
     ).toBe(4);
     expect(
@@ -422,6 +462,38 @@ describe("Pensão por morte RGPS", () => {
         deceasedContributionMonths: 120,
         marriageMonths: 60,
         survivorAgeAtDeath: 20,
+        year: 2026,
+      }).durationMonths
+    ).toBe(36);
+    const at44 = survivorPension({
+      deceasedRetirementCents: 500_000,
+      dependentCount: 1,
+      deceasedContributionMonths: 120,
+      marriageMonths: 60,
+      survivorAgeAtDeath: 44,
+      year: 2026,
+    });
+    expect(at44.lifetime).toBe(false);
+    expect(at44.durationMonths).toBe(20 * 12);
+    const at45 = survivorPension({
+      deceasedRetirementCents: 500_000,
+      dependentCount: 1,
+      deceasedContributionMonths: 120,
+      marriageMonths: 60,
+      survivorAgeAtDeath: 45,
+      year: 2026,
+    });
+    expect(at45.lifetime).toBe(true);
+    expect(at45.durationMonths).toBeNull();
+    // Portaria 424 brackets: 21→3y, 22→6y, 42→20y (not lifetime).
+    expect(
+      survivorPension({
+        deceasedRetirementCents: 500_000,
+        dependentCount: 1,
+        deceasedContributionMonths: 120,
+        marriageMonths: 60,
+        survivorAgeAtDeath: 21,
+        year: 2026,
       }).durationMonths
     ).toBe(36);
     expect(
@@ -430,9 +502,42 @@ describe("Pensão por morte RGPS", () => {
         dependentCount: 1,
         deceasedContributionMonths: 120,
         marriageMonths: 60,
-        survivorAgeAtDeath: 44,
-      }).lifetime
-    ).toBe(true);
+        survivorAgeAtDeath: 22,
+        year: 2026,
+      }).durationMonths
+    ).toBe(72);
+    expect(
+      survivorPension({
+        deceasedRetirementCents: 500_000,
+        dependentCount: 1,
+        deceasedContributionMonths: 120,
+        marriageMonths: 60,
+        survivorAgeAtDeath: 42,
+        year: 2026,
+      }).durationMonths
+    ).toBe(240);
+  });
+
+  it("Lei 13.135 original: deaths in 2020 are still lifetime from 44", () => {
+    const at44 = survivorPension({
+      deceasedRetirementCents: 500_000,
+      dependentCount: 1,
+      deceasedContributionMonths: 120,
+      marriageMonths: 60,
+      survivorAgeAtDeath: 44,
+      year: 2020,
+    });
+    expect(at44.lifetime).toBe(true);
+    expect(
+      survivorPension({
+        deceasedRetirementCents: 500_000,
+        dependentCount: 1,
+        deceasedContributionMonths: 120,
+        marriageMonths: 60,
+        survivorAgeAtDeath: 43,
+        year: 2020,
+      }).durationMonths
+    ).toBe(240);
   });
 });
 
@@ -555,7 +660,171 @@ describe("Household scope and last-survivor horizon", () => {
       asOf: "2026-01-01",
     });
     expect(plan.taxRegime).toBe("come_cotas");
+    expect(plan.comeCotasFraction).toBe(1);
     expect(plan.comeCotasRate).toBe(0.15);
+  });
+
+  it("PETR4 + fundo: come-cotas only on the fund holding (IN RFB 1.585/2015 art. 9 vs art. 16)", () => {
+    const quote = {
+      currency: "BRL" as const,
+      rates: { USD: 1, BRL: 5.45, EUR: 0.92 },
+    };
+    const holding = (
+      id: string,
+      ticker: string,
+      assetClass: "stocks" | "funds",
+      price: number
+    ) => ({
+      id,
+      ticker,
+      name: ticker,
+      assetClass,
+      quantity: 1,
+      currentPrice: price,
+      costBasis: price,
+      currency: "BRL" as const,
+      nativeCurrency: "BRL" as const,
+      allocation: 50,
+    });
+    const mixedPlan = buildEnginePlan({
+      kpis: normalizeKpiValues({ currentAge: 40, expectedCAGR: 12, annualInflation: 0 }),
+      portfolio: [
+        holding("eq", "PETR4", "stocks", 10_000),
+        holding("fi", "FUND", "funds", 10_000),
+      ],
+      includedAssetIds: ["eq", "fi"],
+      quote,
+      asOf: "2026-01-01",
+    });
+    expect(mixedPlan.comeCotasFraction).toBeCloseTo(0.5, 10);
+    expect(mixedPlan.taxRegime).toBe("taxable");
+    expect(mixedPlan.comeCotasRate).toBe(0.15);
+
+    const stocksOnly = buildEnginePlan({
+      kpis: normalizeKpiValues({ currentAge: 40 }),
+      portfolio: [holding("eq", "PETR4", "stocks", 20_000)],
+      includedAssetIds: ["eq"],
+      quote,
+      asOf: "2026-01-01",
+    });
+    expect(stocksOnly.comeCotasFraction).toBe(0);
+    expect(stocksOnly.taxRegime).toBe("taxable");
+  });
+});
+
+/**
+ * IN RFB 1.585/2015 art. 9: 15% of the open-fund gain on month-end May and Nov.
+ * Equity (art. 16) is not come-cota'd. Compound monthly with cent rounding —
+ * the statute algorithm, not a snapshot of a previous engine output.
+ */
+function statuteComeCotasYear(input: {
+  fundCents: number;
+  otherCents: number;
+  monthlyRate: number;
+}): { liquidCents: number; taxCents: number } {
+  let fund = input.fundCents;
+  let other = input.otherCents;
+  let basis = fund;
+  let taxes = 0;
+  for (let month = 1; month <= 12; month++) {
+    fund = Math.max(0, fund + Math.round(fund * input.monthlyRate));
+    other = Math.max(0, other + Math.round(other * input.monthlyRate));
+    if (month === 5 || month === 11) {
+      const levy = comeCotasLevyCents(fund - basis, 0.15);
+      fund = Math.max(0, fund - levy);
+      basis = fund;
+      taxes += levy;
+    }
+  }
+  return { liquidCents: fund + other, taxCents: taxes };
+}
+
+describe("Come-cotas per holding in the monthly loop", () => {
+  it("mixed 50/50 fund+stock: 15% only on the fund gain in May and November", () => {
+    const monthly = annualToMonthly(0.12);
+    const fund0 = 1_000_000;
+    const other0 = 1_000_000;
+    const statuteMixed = statuteComeCotasYear({
+      fundCents: fund0,
+      otherCents: other0,
+      monthlyRate: monthly,
+    });
+    const statuteFunds = statuteComeCotasYear({
+      fundCents: fund0 + other0,
+      otherCents: 0,
+      monthlyRate: monthly,
+    });
+    const statuteStocks = statuteComeCotasYear({
+      fundCents: 0,
+      otherCents: fund0 + other0,
+      monthlyRate: monthly,
+    });
+
+    const mixed = projectPlan(
+      defaultPlan({
+        currentAge: 40,
+        retirementAge: 65,
+        lifeExpectancy: 41,
+        asOf: "2026-01-01",
+        liquidCents: fund0 + other0,
+        monthlyContributionCents: 0,
+        monthlySpendingCents: 0,
+        liquidRealReturn: 0.12,
+        inflation: 0,
+        applyTaxes: false,
+        comeCotasFraction: 0.5,
+        comeCotasRate: 0.15,
+      })
+    );
+    const funds = projectPlan(
+      defaultPlan({
+        currentAge: 40,
+        retirementAge: 65,
+        lifeExpectancy: 41,
+        asOf: "2026-01-01",
+        liquidCents: fund0 + other0,
+        monthlyContributionCents: 0,
+        monthlySpendingCents: 0,
+        liquidRealReturn: 0.12,
+        inflation: 0,
+        applyTaxes: false,
+        comeCotasFraction: 1,
+        comeCotasRate: 0.15,
+        taxRegime: "come_cotas",
+      })
+    );
+    const stocks = projectPlan(
+      defaultPlan({
+        currentAge: 40,
+        retirementAge: 65,
+        lifeExpectancy: 41,
+        asOf: "2026-01-01",
+        liquidCents: fund0 + other0,
+        monthlyContributionCents: 0,
+        monthlySpendingCents: 0,
+        liquidRealReturn: 0.12,
+        inflation: 0,
+        applyTaxes: false,
+        comeCotasFraction: 0,
+        comeCotasRate: 0.15,
+      })
+    );
+
+    const mixedYear = mixed.years.find((y) => y.age === 41)!;
+    const fundsYear = funds.years.find((y) => y.age === 41)!;
+    const stocksYear = stocks.years.find((y) => y.age === 41)!;
+
+    expect(mixed.liquidEndCents).toBe(statuteMixed.liquidCents);
+    expect(mixedYear.taxes).toBe(Math.round(statuteMixed.taxCents / 100));
+    expect(funds.liquidEndCents).toBe(statuteFunds.liquidCents);
+    expect(stocks.liquidEndCents).toBe(statuteStocks.liquidCents);
+    expect(stocksYear.taxes).toBe(0);
+
+    // Fund pays; stock does not. Plan-wide "all liquid is fund" would over-tax.
+    expect(statuteMixed.taxCents).toBeGreaterThan(0);
+    expect(statuteMixed.taxCents).toBeLessThan(statuteFunds.taxCents);
+    expect(mixedYear.taxes).toBeLessThan(fundsYear.taxes);
+    expect(mixed.liquidEndCents).toBeGreaterThan(funds.liquidEndCents);
   });
 });
 

@@ -39,6 +39,12 @@ export interface EnginePlan {
   applyTaxes: boolean;
   taxRegime: TaxRegime;
   comeCotasRate: number;
+  /**
+   * Share of liquid wealth in open non-equity funds (IN 1.585 come-cotas).
+   * 0 = no fund slice; 1 = whole liquid bucket. Mixed portfolios use a
+   * fraction so stocks are not come-cota'd and funds are not skipped.
+   */
+  comeCotasFraction: number;
   seed: number;
   parameterSet: ParameterSet;
 }
@@ -80,6 +86,7 @@ export function defaultPlan(overrides: Partial<EnginePlan> = {}): EnginePlan {
     applyTaxes: false,
     taxRegime: "taxable",
     comeCotasRate: 0.15,
+    comeCotasFraction: 0,
     seed: 1,
     parameterSet: DEFAULT_PARAMETER_SET,
     ...overrides,
