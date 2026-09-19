@@ -181,8 +181,8 @@ export function EditableNumber({
           {prefix}
         </span>
       )}
-      {format === "currency" && !isEditing && (
-        <span className="text-inherit shrink-0">{currencySymbol}</span>
+          {format === "currency" && !isEditing && (
+        <span className="text-inherit shrink-0">{`${currencySymbol} `}</span>
       )}
 
       {isEditing ? (
