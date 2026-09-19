@@ -10,6 +10,7 @@ import {
   Loader2,
   PanelLeft,
   Settings,
+  Shield,
   Sparkles,
   SunMoon,
   User,
@@ -25,6 +26,7 @@ import { CURRENCIES, type Currency } from "@/types";
 import { HouseholdCard } from "@/components/settings/HouseholdCard";
 import { B3ConsentCard } from "@/components/settings/B3ConsentCard";
 import { ImportFilesCard } from "@/components/settings/ImportFilesCard";
+import { PRIVACY_PATH } from "@/lib/privacy/local";
 
 const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
   { code: "en", labelKey: "locale.en" },
@@ -176,6 +178,19 @@ export function SettingsPageContent() {
         <HouseholdCard />
         <ImportFilesCard />
         <B3ConsentCard />
+
+        <section className="settings-page-card">
+          <div className="settings-page-card-head">
+            <Shield className="w-4 h-4 text-accent" size={16} />
+            <h2>{t("settings.privacy.title")}</h2>
+          </div>
+          <p className="settings-page-card-body">
+            {t("settings.privacy.body")}
+          </p>
+          <Link href={PRIVACY_PATH} className="btn-secondary mt-4 inline-flex">
+            {t("settings.privacy.link")}
+          </Link>
+        </section>
 
         <section className="settings-page-card">
           <div className="settings-page-card-head">

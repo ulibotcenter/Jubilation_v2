@@ -23,6 +23,11 @@ const ACTIONS = [
     href: "/upgrade",
   },
   {
+    id: "privacy",
+    labelKey: "command.openPrivacy" as MessageKey,
+    href: "/privacy",
+  },
+  {
     id: "presentation",
     labelKey: "command.togglePresentation" as MessageKey,
     action: "presentation" as const,

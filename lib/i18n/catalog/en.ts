@@ -22,6 +22,7 @@ export const EN = {
   "nav.cashflow": "Cash Flow",
   "nav.settings": "Settings",
   "nav.help": "Help",
+  "nav.privacy": "Privacy",
   "nav.upgrade": "Plans",
   "nav.collapse": "Collapse",
   "nav.mobile.home": "Home",
@@ -121,9 +122,13 @@ export const EN = {
   "portfolio.section.title": "Real Portfolio",
   "portfolio.page.title": "Real Portfolio",
   "portfolio.page.description": "Your tracked holdings with live prices, allocation, and performance.",
-  "footer.disclaimer": "Jubilation is for educational purposes only and does not provide financial, investment, tax, or legal advice.",
+  "disclaimer.persistent":
+    "Educational simulation. This is not consulting or an investment recommendation. The numbers depend on assumptions you can edit.",
+  "footer.disclaimer":
+    "Educational simulation. This is not consulting or an investment recommendation. The numbers depend on assumptions you can edit. We do not name a ticker or a fund.",
   "footer.link.cashflow": "View cash flow breakdown →",
   "footer.link.simulation": "Run simulations in the playground →",
+  "footer.link.privacy": "What we store",
   "fi.milestones.title": "Retirement checkpoints",
   "fi.milestones.subtitle": "When your portfolio could hit three meaningful goals",
   "fi.milestones.age": "Around age {n}",
@@ -195,6 +200,10 @@ export const EN = {
   "feature.premium": "Available on Premium",
   "feature.horizon": "Available on Horizon",
   "settings.description": "Currency, language, plans, and data preferences for your retirement plan.",
+  "settings.privacy.title": "Privacy",
+  "settings.privacy.body":
+    "What this app stores on this device, what never enters, and how to delete it — including a spouse you typed.",
+  "settings.privacy.link": "Open the privacy page",
   "settings.currency.title": "Display currency",
   "settings.currency.body": "Switching currency fetches live exchange rates and converts your KPIs, portfolio values, and income goals automatically.",
   "settings.currency.ratesAsOf": "Rates as of",
@@ -234,6 +243,8 @@ export const EN = {
   "settings.household.contributor.normal_20": "Autônomo 20%",
   "settings.household.contributor.facultative_5": "Low-income facultative 5%",
   "settings.household.noSpouse": "No spouse on this plan yet.",
+  "settings.household.privacyNotice":
+    "You are typing someone else's data. The spouse does not get an account, and there is no CNIS, Receita, or B3 integration for them. You can delete those fields anytime with Remove spouse.",
   "household.scope.trigger": "Who",
   "household.scope.ariaLabel": "Household projection scope",
   "household.scope.holder": "Me",
@@ -270,6 +281,7 @@ export const EN = {
   "command.plansUpgrade": "Plans & Upgrade",
   "command.togglePresentation": "Toggle presentation mode",
   "command.openCoach": "Open retirement coach",
+  "command.openPrivacy": "Open privacy page",
   "simulation.playground.title": "Simulation Playground",
   "simulation.playground.description": "Pre-filled from your real portfolio. Your sandbox persists between sessions until you reset.",
   "simulation.playground.badge": "Sandbox mode",
@@ -598,7 +610,7 @@ export const EN = {
     "Four numbers produce a projection from what you type — not a demo Lamborghini. You can add PGBL, FGTS, cash and property next.",
   "onboarding.step2.title": "One last step — please read carefully",
   "onboarding.step2.desc":
-    "Jubilation is a planning tool, not a financial advisor. Your agreement below is required to continue.",
+    "Jubilation is an educational planning simulation, not an adviser. You need to agree to continue.",
   "onboarding.field.age": "Your age",
   "onboarding.field.income": "Monthly income (R$)",
   "onboarding.field.contribution": "Monthly saving (R$)",
@@ -613,15 +625,15 @@ export const EN = {
   "onboarding.invalidHorizon": "Planning age must be between 55 and 120.",
   "onboarding.currencyNote":
     "Amounts are in Brazilian reais. You can switch display currency anytime from the header.",
-  "onboarding.warning.title": "Not financial advice",
+  "onboarding.warning.title": "Not consulting",
   "onboarding.warning.desc":
-    "Jubilation is for educational and planning purposes only.",
+    "This is an educational simulation. We do not recommend investments or name a ticker or a fund.",
   "onboarding.disclaimer":
-    "Jubilation is an educational retirement planning tool. It does not provide financial, investment, tax, or legal advice. All projections, simulations, and Monte Carlo results are hypothetical estimates based on assumptions you provide — they are not guarantees of future performance.\n\nPast performance does not predict future results. Markets are volatile. Inflation, taxes, fees, and personal circumstances can materially change outcomes. You should consult a qualified financial advisor before making investment or retirement decisions.\n\nBy continuing, you acknowledge that you understand these limitations and agree to use Jubilation for informational purposes only.",
+    "Jubilation is an educational retirement-planning simulation.\n\nIt is not consulting, an investment recommendation, or a product offer. Planning by asset class (for example, inflation-linked fixed income) is allowed; naming a ticker or a fund is not.\n\nThe numbers on screen depend on the assumptions you type and can edit — planning age, contributions, inflation, real return. Change a premise and the plan changes. This is not a guarantee of what will happen.\n\nCNIS and IRPF files are read on this device. We never ask for a gov.br password. IRPF record 26 (doctors and clinics) is not stored.\n\nBy continuing, you agree to use the app as a planning tool, not as consulting.",
   "onboarding.checkbox":
-    "I have read and understand the disclaimer. I acknowledge that Jubilation does not provide financial advice and that all projections are estimates only.",
+    "I have read this. I understand this is an educational simulation, not consulting or an investment recommendation, and that the numbers change if I edit the assumptions.",
   "onboarding.privacy":
-    "Your preferences are saved locally in your browser. No account required for this beta.",
+    "Your plan stays in this browser. See what is stored, what never enters, and how to delete it.",
   "onboarding.backAria": "Go back to your numbers",
   "onboarding.continueAria": "Continue to disclaimer",
   "onboarding.getStartedAria": "Accept and start using Jubilation",
@@ -738,6 +750,32 @@ export const EN = {
   "toast.files.error": "Could not read the file",
   "toast.files.consentRequired": "Authorize before importing",
   "toast.files.revoked": "File import consent revoked",
+  "privacy.title": "Privacy",
+  "privacy.pageDescription":
+    "Plain language: what stays on this device, what never enters, why we use it, and how to delete it.",
+  "privacy.collected.title": "What we store",
+  "privacy.collected.body":
+    "On this device we keep: the plan you build (ages, contributions, assumptions), the holdings you enter, CNIS and IRPF files parsed on this device, and a B3 demo position (fixture) if you authorize it.",
+  "privacy.notCollected.title": "What never enters",
+  "privacy.notCollected.body":
+    "IRPF record 26 (doctors, clinics, health plans) is dropped before anything is saved. We never ask for, and never store, your gov.br password.",
+  "privacy.basis.title": "Why we use this",
+  "privacy.basis.body":
+    "We use the data to build the plan you asked for — performing the contract. Income, wealth and contribution history are not health data; for that kind of non-sensitive financial data, legitimate interest also applies. Health data does not enter: record 26 and CNIS disability flags are discarded on ingest.",
+  "privacy.spouse.title": "Spouse",
+  "privacy.spouse.body":
+    "If you add a spouse, those fields belong to another person and were typed by you. The spouse has no login here, and there is no integration with their INSS, Receita, or B3. To delete only those fields, use Remove spouse in Settings.",
+  "privacy.erase.title": "How to delete",
+  "privacy.erase.body":
+    "In this version the plan lives in this browser. There is no server copy to request by email. The button below clears local storage and reloads the app. To delete only the spouse, use Remove spouse on the household card in Settings.",
+  "privacy.erase.button": "Delete data on this device",
+  "privacy.erase.confirm":
+    "This erases the plan, holdings, imported files, and consent log stored in this browser. Continue?",
+  "privacy.export.title": "Consent log",
+  "privacy.export.body":
+    "When you authorize B3, CNIS, or IRPF, the app keeps the text you saw and the date. You can download that log now.",
+  "privacy.export.button": "Download consent log",
+  "toast.privacy.exported": "Consent log downloaded",
 } as const;
 
 export type MessageKey = keyof typeof EN;

@@ -10,8 +10,10 @@ import {
   Shield,
   Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { ASSUMPTIONS } from "@/lib/engine/assumptions";
+import { PRIVACY_PATH } from "@/lib/privacy/local";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -307,9 +309,14 @@ export function OnboardingModal() {
                     {t("onboarding.checkbox")}
                   </span>
                 </label>
-                <p className="text-[11px] text-muted-foreground mt-3 flex items-center gap-1.5">
-                  <Shield className="w-3 h-3" size={12} />
-                  {t("onboarding.privacy")}
+                <p className="text-[11px] text-muted-foreground mt-3 flex items-start gap-1.5">
+                  <Shield className="w-3 h-3 mt-0.5 shrink-0" size={12} />
+                  <span>
+                    {t("onboarding.privacy")}{" "}
+                    <Link href={PRIVACY_PATH} className="text-accent hover:underline">
+                      {t("nav.privacy")}
+                    </Link>
+                  </span>
                 </p>
               </motion.div>
             )}
