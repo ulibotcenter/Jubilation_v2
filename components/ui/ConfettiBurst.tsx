@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { mulberry32 } from "@/lib/engine/rng";
 
 const COLORS = ["#ff7040", "#ff9a6c", "#22c55e", "#fbbf24", "#f8fafc"];
 
@@ -12,16 +13,19 @@ interface Particle {
   color: string;
   size: number;
   rotation: number;
+  duration: number;
 }
 
-function generateParticles(count: number): Particle[] {
+function generateParticles(count: number, seed: number): Particle[] {
+  const rng = mulberry32(seed || 1);
   return Array.from({ length: count }, (_, i) => ({
     id: i,
-    x: (Math.random() - 0.5) * 280,
-    y: (Math.random() - 0.5) * 120 - 40,
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    size: Math.random() * 6 + 4,
-    rotation: Math.random() * 360,
+    x: (rng() - 0.5) * 280,
+    y: (rng() - 0.5) * 120 - 40,
+    color: COLORS[Math.floor(rng() * COLORS.length)],
+    size: rng() * 6 + 4,
+    rotation: rng() * 360,
+    duration: 1.6 + rng() * 0.6,
   }));
 }
 
@@ -34,19 +38,16 @@ export function ConfettiBurst({
   trigger,
   origin = "center",
 }: ConfettiBurstProps) {
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (trigger === 0) return;
-    setParticles(generateParticles(28));
-    setVisible(true);
-    const t = setTimeout(() => setVisible(false), 2200);
-    return () => clearTimeout(t);
-  }, [trigger]);
+  const [burst, setBurst] = useState<{ trigger: number; particles: Particle[] }>(
+    { trigger: 0, particles: [] }
+  );
+  if (trigger !== 0 && trigger !== burst.trigger) {
+    setBurst({ trigger, particles: generateParticles(28, trigger) });
+  }
 
   const originClass =
     origin === "left" ? "left-16 top-1/2" : "left-1/2 top-1/3";
+  const visible = burst.trigger !== 0 && burst.trigger === trigger;
 
   return (
     <div
@@ -55,7 +56,7 @@ export function ConfettiBurst({
     >
       <AnimatePresence>
         {visible &&
-          particles.map((p) => (
+          burst.particles.map((p) => (
             <motion.span
               key={`${trigger}-${p.id}`}
               className="absolute rounded-sm"
@@ -74,7 +75,7 @@ export function ConfettiBurst({
               }}
               exit={{ opacity: 0 }}
               transition={{
-                duration: 1.6 + Math.random() * 0.6,
+                duration: p.duration,
                 ease: [0.2, 0.8, 0.2, 1],
               }}
             />

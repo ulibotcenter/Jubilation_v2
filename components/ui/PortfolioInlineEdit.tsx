@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface PortfolioInlineEditProps {
   value: number;
@@ -25,10 +25,9 @@ export function PortfolioInlineEdit({
 }: PortfolioInlineEditProps) {
   const [draft, setDraft] = useState(String(value));
   const [focused, setFocused] = useState(false);
-
-  useEffect(() => {
-    if (!focused) setDraft(String(value));
-  }, [value, focused]);
+  if (!focused && draft !== String(value)) {
+    setDraft(String(value));
+  }
 
   const commit = () => {
     const parsed = parseFloat(draft);

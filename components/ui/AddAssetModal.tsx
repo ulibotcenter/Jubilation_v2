@@ -33,6 +33,7 @@ import {
   PHYSICAL_ASSET_PRESETS,
   type PhysicalAssetPreset,
 } from "@/lib/physicalAssetPresets";
+import { createId } from "@/lib/engine/ids";
 import { defaultCagrForAssetClass } from "@/lib/portfolioCagr";
 import { useAppStore } from "@/store/useAppStore";
 import {
@@ -122,10 +123,7 @@ export function AddAssetModal({
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
-    if (q.length < 1) {
-      setResults([]);
-      return;
-    }
+    if (q.length < 1) return;
 
     const timer = setTimeout(async () => {
       setIsSearching(true);
@@ -152,7 +150,7 @@ export function AddAssetModal({
     priceSource: PriceSource;
   }) => {
     const asset: PortfolioAsset = {
-      id: mode === "playground" ? `sim-asset-${Date.now()}` : `asset-${Date.now()}`,
+      id: createId(mode === "playground" ? "sim" : "asset"),
       ticker: payload.ticker.toUpperCase(),
       name: payload.name,
       assetClass: payload.assetClass,
@@ -160,6 +158,10 @@ export function AddAssetModal({
       currentPrice: payload.currentPrice,
       costBasis: payload.costBasis,
       currency,
+      nativeCurrency: currency,
+      source: "MANUAL",
+      asOf: new Date().toISOString().slice(0, 10),
+      confidence: "high",
       allocation: 0,
       expectedCAGR: defaultCagrForAssetClass(payload.assetClass),
       priceSource: payload.priceSource,

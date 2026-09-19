@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchMarket } from "@/lib/market/providers";
+import { allowRequest, rateLimitKey } from "@/lib/api/rateLimit";
 
 export async function GET(request: NextRequest) {
+  if (!allowRequest(rateLimitKey(request))) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (q.length < 1) {

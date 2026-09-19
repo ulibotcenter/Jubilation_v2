@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, LineChart as LineChartIcon, Loader2, Play } from "lucide-react";
 import { toast } from "sonner";
@@ -82,23 +82,17 @@ export function ProjectionChartCard({
   );
   const runRealMc = useAppStore((s) => s.runMonteCarlo);
   const runSimMc = useAppStore((s) => s.runSimMonteCarlo);
-  const [isRecalculating, setIsRecalculating] = useState(false);
-  const [lineVisibility, setLineVisibility] = useState<ChartLineVisibility>({
-    base: true,
-    pessimistic: false,
-    optimistic: false,
-  });
+  const [lineOverrides, setLineOverrides] = useState<Partial<ChartLineVisibility>>(
+    {}
+  );
   const [showCashFlow, setShowCashFlow] = useState(!compact);
 
   const toggleLine = (line: ChartLineId) =>
-    setLineVisibility((prev) => ({ ...prev, [line]: !prev[line] }));
-
-  useEffect(() => {
-    if (projectionRevision === 0) return;
-    setIsRecalculating(true);
-    const t = setTimeout(() => setIsRecalculating(false), 650);
-    return () => clearTimeout(t);
-  }, [projectionRevision]);
+    setLineOverrides((prev) => {
+      const current =
+        line === "base" ? (prev.base ?? true) : (prev[line] ?? true);
+      return { ...prev, [line]: !current };
+    });
 
   const sym = CURRENCY_SYMBOLS[currency];
   const pc = PROJECTION_COLORS;
@@ -138,13 +132,11 @@ export function ProjectionChartCard({
     );
   }, [displayChartData, mcReady, monteCarlo.results]);
 
-  useEffect(() => {
-    if (hasMcBands) {
-      setLineVisibility({ base: true, pessimistic: true, optimistic: true });
-      return;
-    }
-    setLineVisibility({ base: true, pessimistic: false, optimistic: false });
-  }, [hasMcBands]);
+  const lineVisibility: ChartLineVisibility = {
+    base: lineOverrides.base ?? true,
+    pessimistic: hasMcBands ? (lineOverrides.pessimistic ?? true) : false,
+    optimistic: hasMcBands ? (lineOverrides.optimistic ?? true) : false,
+  };
 
   const effectiveVisibility = useMemo(
     (): ChartLineVisibility => ({
@@ -152,7 +144,7 @@ export function ProjectionChartCard({
       pessimistic: hasMcBands && lineVisibility.pessimistic,
       optimistic: hasMcBands && lineVisibility.optimistic,
     }),
-    [hasMcBands, lineVisibility]
+    [hasMcBands, lineVisibility.base, lineVisibility.pessimistic, lineVisibility.optimistic]
   );
 
   const peakValue = useMemo(() => {
@@ -295,7 +287,10 @@ export function ProjectionChartCard({
       <div
         className={`chart-container relative ${compact ? "chart-container--compact" : ""}`}
       >
-        <ChartSkeleton visible={isRecalculating} />
+        <ChartSkeleton
+          visible={projectionRevision > 0}
+          revision={projectionRevision}
+        />
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             key={`chart-${mode}-${projectionRevision}`}

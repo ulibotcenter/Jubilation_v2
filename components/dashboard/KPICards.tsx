@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -19,6 +19,7 @@ import { getKpiLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
+import { fisherReal } from "@/lib/engine/rates";
 import {
   CURRENCY_SYMBOLS,
   KPI_CONFIGS,
@@ -72,7 +73,9 @@ function getKPISubtitle(
 ): string {
   const yearsLeft = kpis.retirementAge - kpis.currentAge;
   const annualContrib = kpis.monthlyContribution * 12;
-  const realReturn = kpis.expectedCAGR - kpis.annualInflation;
+  const realReturn = (
+    fisherReal(kpis.expectedCAGR / 100, kpis.annualInflation / 100) * 100
+  ).toFixed(1);
 
   switch (field) {
     case "currentAge":
@@ -85,9 +88,10 @@ function getKPISubtitle(
         : translate("kpi.subtitle.yearsToGo", { n: yearsLeft });
     case "lifeExpectancy": {
       const drawdownYears = kpis.lifeExpectancy - kpis.retirementAge;
-      return drawdownYears === 1
-        ? translate("kpi.subtitle.lifeExpectancyOne")
-        : translate("kpi.subtitle.lifeExpectancy", { n: drawdownYears });
+      return translate("kpi.subtitle.lifeExpectancy", {
+        n: drawdownYears,
+        defaultAge: 90,
+      });
     }
     case "currentNetWorth":
       return translate("kpi.subtitle.totalAssets");
@@ -110,8 +114,8 @@ function getKPISubtitle(
     case "expectedCAGR":
       return portfolioLength > 0
         ? translate("kpi.subtitle.cagrFromPortfolio")
-        : realReturn > 0
-          ? translate("kpi.subtitle.realReturn", { n: realReturn.toFixed(1) })
+        : Number(realReturn) > 0
+          ? translate("kpi.subtitle.realReturn", { n: realReturn })
           : translate("kpi.subtitle.nominalGrowth");
     case "annualInflation":
       return translate("kpi.subtitle.inflation");
@@ -126,8 +130,8 @@ function KPICard({
   index,
   value,
   currencySymbol,
-  currency,
   subtitle,
+  impactHint,
   onChange,
   readOnly = false,
 }: {
@@ -138,6 +142,7 @@ function KPICard({
   currencySymbol: string;
   currency: keyof typeof CURRENCY_SYMBOLS;
   subtitle: string;
+  impactHint?: string;
   onChange: (value: number) => void;
   readOnly?: boolean;
 }) {
@@ -146,6 +151,8 @@ function KPICard({
   return (
     <motion.article
       className="kpi-card group"
+      data-impact={config.impact}
+      title={impactHint}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.07, duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
@@ -190,6 +197,9 @@ function KPICard({
       <p className="text-[10px] text-muted-foreground mt-2 sm:hidden">
         {subtitle}
       </p>
+      {config.impact === "high" && impactHint ? (
+        <p className="kpi-impact">{impactHint}</p>
+      ) : null}
     </motion.article>
   );
 }
@@ -207,8 +217,6 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
   const setKPI = useAppStore((s) => s.setKPI);
   const setSimKPI = useAppStore((s) => s.setSimKPI);
   const setKpiFn = mode === "playground" ? setSimKPI : setKPI;
-  const setKpiFnRef = useRef(setKpiFn);
-  setKpiFnRef.current = setKpiFn;
   const realPortfolio = useAppStore((s) => s.portfolio);
   const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
   const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
@@ -217,9 +225,9 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
   const debouncedSetKpi = useMemo(
     () =>
       debounce((field: KPIField, value: number) => {
-        setKpiFnRef.current(field, value);
+        setKpiFn(field, value);
       }, 300),
-    []
+    [setKpiFn]
   );
 
   useEffect(() => () => debouncedSetKpi.cancel(), [debouncedSetKpi]);
@@ -299,6 +307,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
       currencySymbol={currencySymbol}
       currency={currency}
       subtitle={subtitles[config.field]}
+      impactHint={config.impact === "high" ? t("kpi.impact.high") : undefined}
       readOnly={config.field === "expectedCAGR" && portfolio.length > 0}
       onChange={(v) => handleChange(config.field, v)}
     />

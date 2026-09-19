@@ -4,7 +4,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { normalizeB3Ticker } from "@/lib/market/b3";
 import type { QuoteResult } from "@/lib/market/types";
-import { convertAmount, convertKpis, convertPortfolio } from "@/lib/fx/convert";
+import { convertAmount, convertKpis } from "@/lib/fx/convert";
+import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import { fetchFxRates } from "@/lib/fx/client";
 import type { FxSnapshot } from "@/lib/fx/types";
 import { fetchPortfolioQuotes } from "@/lib/marketClient";
@@ -14,10 +15,15 @@ import {
   syncNetWorthWithPortfolio,
 } from "@/lib/netWorthSync";
 import {
-  applyIncludedPortfolioCagr,
   applyPortfolioCagrToKpis,
   normalizePortfolioCagr,
 } from "@/lib/portfolioCagr";
+import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
+import { ENGINE_VERSION } from "@/lib/engine/version";
+import { createId } from "@/lib/engine/ids";
+import { DEFAULT_TENANT, type Tenant } from "@/lib/engine/canonical";
+import { migratePersistedState, CURRENT_PERSIST_VERSION } from "@/lib/persist/migrate";
+import { percentile } from "@/lib/engine/monteCarlo";
 import type { CoachMessage } from "@/lib/ai/retirementCoach";
 import type { AppLocale } from "@/lib/i18n/messages";
 import type { PlanTier } from "@/lib/plans";
@@ -25,10 +31,8 @@ import {
   buildProjectionEngineConfig,
   runMonteCarloFromConfig,
 } from "@/lib/projectionEngine";
-import {
-  chartDataWithMcBands,
-  generateExtendedProjections,
-} from "@/lib/projectionsExtended";
+import { chartDataWithMcBands } from "@/lib/projectionsExtended";
+import { projectPlan } from "@/lib/engine/project";
 import {
   buildPlaygroundProjections,
   initialPlaygroundFromMock,
@@ -41,7 +45,6 @@ import {
   resolveSimulationKpis,
 } from "@/lib/simulationScope";
 import {
-  DEFAULT_KPI_VALUES,
   DEFAULT_LOCALE,
   DEFAULT_USER,
   LOCAL_STORAGE_KEY,
@@ -67,6 +70,23 @@ import {
   normalizeKpiValues,
   runStressTest,
 } from "@/types";
+import { runStressTestFromConfig } from "@/lib/stressTest";
+import type { Institution, FinancialAccount, Entitlement } from "@/lib/engine/canonical";
+
+function compactPaths(
+  paths: Map<number, number[]>
+): Record<number, { p10: number; p50: number; p90: number }> {
+  const out: Record<number, { p10: number; p50: number; p90: number }> = {};
+  for (const [age, values] of paths) {
+    const sorted = [...values].sort((a, b) => a - b);
+    out[age] = {
+      p10: Math.round(percentile(sorted, 0.1)),
+      p50: Math.round(percentile(sorted, 0.5)),
+      p90: Math.round(percentile(sorted, 0.9)),
+    };
+  }
+  return out;
+}
 
 function monteCarloOutputFromEngine(
   engineConfig: ReturnType<typeof buildProjectionEngineConfig>,
@@ -88,11 +108,13 @@ function monteCarloOutputFromEngine(
     })),
     distributions,
     target: output.target,
+    pathsByAge: compactPaths(output.pathsByAge),
   };
 }
 
-/** Bump when default demo portfolio / KPIs change — migrates persisted local data */
-const DEMO_SEED_VERSION = 5;
+const SEED_PORTFOLIO = normalizePortfolioAssets(
+  normalizePortfolioCagr(MOCK_PORTFOLIO)
+);
 
 export interface NetWorthSnapshot {
   id: string;
@@ -140,58 +162,73 @@ function buildProjectionsFromState(state: {
   monteCarlo?: {
     hasRun?: boolean;
     results: MonteCarloResult[];
+    pathsByAge?: MonteCarloState["pathsByAge"];
   };
+  currency?: Currency;
+  fxSnapshot?: FxSnapshot | null;
 }) {
-  const portfolio = normalizePortfolioCagr(state.portfolio);
+  const quote = {
+    currency: state.currency ?? "USD",
+    rates: state.fxSnapshot?.rates ?? FALLBACK_FX_RATES,
+  };
+  const portfolio = normalizePortfolioAssets(
+    normalizePortfolioCagr(state.portfolio)
+  );
   const syncedKpis = applyPortfolioCagrToKpis(
     syncNetWorthWithPortfolio(
       normalizeKpiValues(state.kpis),
       portfolio,
-      state.kpiOutsidePortfolio
+      state.kpiOutsidePortfolio,
+      quote
     ),
     portfolio
   );
-  const effectiveKpis = applyIncludedPortfolioCagr(
-    resolveSimulationKpis(
-      applySensitivity(
-        syncedKpis,
-        state.sensitivity ?? { cagr: null, inflation: null }
-      ),
-      portfolio,
-      state.simulationIncludedAssetIds,
-      state.kpiOutsidePortfolio
-    ),
+  const sensitive = applySensitivity(
+    syncedKpis,
+    state.sensitivity ?? { cagr: null, inflation: null }
+  );
+  const effectiveKpis = resolveSimulationKpis(
+    sensitive,
     portfolio,
-    state.simulationIncludedAssetIds
+    state.simulationIncludedAssetIds,
+    state.kpiOutsidePortfolio,
+    quote
   );
   const engineConfig = buildProjectionEngineConfig(
     effectiveKpis,
     portfolio,
     state.simulationIncludedAssetIds,
-    state.kpiOutsidePortfolio
+    state.kpiOutsidePortfolio,
+    quote
   );
-  const projections = generateExtendedProjections(effectiveKpis, {
-    portfolio,
-    includedAssetIds: state.simulationIncludedAssetIds,
-    outsidePortfolio: state.kpiOutsidePortfolio,
-  });
+  if (state.sensitivity?.cagr != null) {
+    const inflation = effectiveKpis.annualInflation / 100;
+    engineConfig.plan = {
+      ...engineConfig.plan,
+      liquidRealReturn:
+        (1 + state.sensitivity.cagr / 100) / (1 + inflation) - 1,
+    };
+    engineConfig.investableRealReturn = engineConfig.plan.liquidRealReturn;
+  }
+  const projected = projectPlan(engineConfig.plan).years;
   const mcBase =
     state.monteCarlo?.hasRun && (state.monteCarlo.results?.length ?? 0) > 0
       ? state.monteCarlo.results.find((r) => r.scenario === "base")
       : undefined;
   const chartData = chartDataWithMcBands(
-    projections,
+    projected,
     mcBase?.percentile10,
     mcBase?.percentile90,
-    effectiveKpis.retirementAge,
+    effectiveKpis.lifeExpectancy,
     mcBase?.medianValue,
-    engineConfig
+    engineConfig,
+    state.monteCarlo?.pathsByAge
   );
   return {
     kpis: syncedKpis,
     effectiveKpis,
     engineConfig,
-    projections,
+    projections: projected,
     chartData,
   };
 }
@@ -218,17 +255,6 @@ function findQuoteForAsset(
 function markMonteCarloStale(state: AppStore["monteCarlo"]) {
   if (!state.hasRun) return state;
   return { ...state, stale: true };
-}
-
-function invalidateMonteCarlo(state: AppStore["monteCarlo"]) {
-  return {
-    ...state,
-    hasRun: false,
-    stale: false,
-    results: [],
-    distributions: null,
-    target: null,
-  };
 }
 
 function mcBandsInput(monteCarlo: AppStore["monteCarlo"]) {
@@ -266,7 +292,11 @@ export interface AppStore {
   projectionRevision: number;
   fxSnapshot: FxSnapshot | null;
   isChangingCurrency: boolean;
-  demoSeedVersion: number;
+  persistVersion: number;
+  tenant: Tenant;
+  institutions: Institution[];
+  accounts: FinancialAccount[];
+  entitlements: Entitlement[];
   planTier: PlanTier;
   explainSimple: boolean;
   theme: "dark" | "light";
@@ -401,7 +431,6 @@ function rebuildSimPlayground(
   };
 }
 
-const SEED_PORTFOLIO = normalizePortfolioCagr(MOCK_PORTFOLIO);
 /** Investable assets drive growth; real estate & personal stay in static bucket */
 const defaultIncludedIds = applyScopePreset(SEED_PORTFOLIO, "investmentsOnly");
 const seedPortfolioTotal = calculatePortfolioValue(SEED_PORTFOLIO);
@@ -450,6 +479,9 @@ export const useAppStore = create<AppStore>()(
         distributions: null,
         target: null,
         iterations: 1000,
+        seed: 1,
+        engineVersion: ENGINE_VERSION,
+        pathsByAge: null,
       },
       activeStressTest: null,
       stressTestResults: [],
@@ -457,7 +489,11 @@ export const useAppStore = create<AppStore>()(
       projectionRevision: 0,
       fxSnapshot: null,
       isChangingCurrency: false,
-      demoSeedVersion: DEMO_SEED_VERSION,
+      persistVersion: CURRENT_PERSIST_VERSION,
+      tenant: DEFAULT_TENANT,
+      institutions: [],
+      accounts: [],
+      entitlements: [],
       planTier: "free",
       explainSimple: false,
       theme: "light",
@@ -484,7 +520,7 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      setPlanTier: (tier) => set({ planTier: tier }),
+      setPlanTier: () => set({ planTier: "free" }),
 
       setExplainSimple: (value) => set({ explainSimple: value }),
 
@@ -550,7 +586,7 @@ export const useAppStore = create<AppStore>()(
           netWorthSnapshots: [
             ...s.netWorthSnapshots,
             {
-              id: `snap-${Date.now()}`,
+              id: createId("snap"),
               capturedAt: new Date().toISOString(),
               value: Math.round(value),
             },
@@ -567,7 +603,7 @@ export const useAppStore = create<AppStore>()(
       saveNamedScenario: (name) => {
         const state = get();
         const entry: SavedScenario = {
-          id: `sc-${Date.now()}`,
+          id: createId("sc"),
           name,
           savedAt: new Date().toISOString(),
           snapshot: JSON.parse(
@@ -617,17 +653,13 @@ export const useAppStore = create<AppStore>()(
           const convertedOutside = Math.round(
             convertAmount(state.kpiOutsidePortfolio, from, next, snapshot.rates)
           );
-          const convertedPortfolio = convertPortfolio(
-            state.portfolio,
-            next,
-            snapshot.rates
-          );
 
           const built = buildProjectionsFromState({
             ...state,
             kpis: convertedKpis,
             kpiOutsidePortfolio: convertedOutside,
-            portfolio: convertedPortfolio,
+            currency: next,
+            fxSnapshot: snapshot,
           });
 
           let simPlayground = state.simPlayground;
@@ -646,16 +678,11 @@ export const useAppStore = create<AppStore>()(
                 snapshot.rates
               )
             );
-            const convertedSimPortfolio = convertPortfolio(
-              simPlayground.portfolio,
-              next,
-              snapshot.rates
-            );
             simPlayground = rebuildSimPlayground({
               ...simPlayground,
               kpis: convertedSimKpis,
               kpiOutsidePortfolio: convertedSimOutside,
-              portfolio: convertedSimPortfolio,
+              portfolio: simPlayground.portfolio,
             });
           }
 
@@ -663,7 +690,6 @@ export const useAppStore = create<AppStore>()(
             currency: next,
             kpis: built.kpis,
             kpiOutsidePortfolio: convertedOutside,
-            portfolio: convertedPortfolio,
             projections: built.projections,
             chartData: built.chartData,
             fxSnapshot: snapshot,
@@ -706,7 +732,7 @@ export const useAppStore = create<AppStore>()(
         const state = get();
         let kpiOutsidePortfolio = state.kpiOutsidePortfolio;
         const before = state.kpis[field];
-        let kpis = normalizeKpiValues({ ...state.kpis, [field]: value });
+        const kpis = normalizeKpiValues({ ...state.kpis, [field]: value });
 
         if (field === "currentNetWorth") {
           kpiOutsidePortfolio = deriveOutsideFromManualNetWorth(
@@ -846,13 +872,17 @@ export const useAppStore = create<AppStore>()(
             if (!quote) return asset;
 
             updated += 1;
+            const native = asset.nativeCurrency ?? asset.currency;
+            if (quote.currency !== native) return asset;
             return {
               ...asset,
               previousPrice: asset.currentPrice,
               currentPrice: quote.price,
-              currency: quote.currency,
+              nativeCurrency: native,
+              currency: native,
               priceSource: quote.priceSource,
               lastPriceAt: fetchedAt,
+              asOf: fetchedAt.slice(0, 10),
             };
           });
 
@@ -972,7 +1002,11 @@ export const useAppStore = create<AppStore>()(
         const output = monteCarloOutputFromEngine(builtState.engineConfig);
         const built = buildProjectionsFromState({
           ...state,
-          monteCarlo: { hasRun: true, results: output.results },
+          monteCarlo: {
+            hasRun: true,
+            results: output.results,
+            pathsByAge: output.pathsByAge,
+          },
         });
         set({
           chartData: built.chartData,
@@ -987,17 +1021,19 @@ export const useAppStore = create<AppStore>()(
             distributions: output.distributions,
             target: output.target,
             iterations: 1000,
+            seed: 1,
+            engineVersion: ENGINE_VERSION,
+            pathsByAge: output.pathsByAge,
           },
         });
       },
 
       runStressTestById: (testId) => {
         const state = get();
-        const { effectiveKpis } = buildProjectionsFromState(state);
-        const result = runStressTest(
+        const builtState = buildProjectionsFromState(state);
+        const result = runStressTestFromConfig(
           testId,
-          effectiveKpis,
-          state.projections
+          builtState.engineConfig
         );
         set((s) => ({
           activeStressTest: testId,
@@ -1150,13 +1186,17 @@ export const useAppStore = create<AppStore>()(
           if (!quote) return asset;
 
           updated += 1;
+          const native = asset.nativeCurrency ?? asset.currency;
+          if (quote.currency !== native) return asset;
           return {
             ...asset,
             previousPrice: asset.currentPrice,
             currentPrice: quote.price,
-            currency: quote.currency,
+            nativeCurrency: native,
+            currency: native,
             priceSource: quote.priceSource,
             lastPriceAt: fetchedAt,
+            asOf: fetchedAt.slice(0, 10),
           };
         });
 
@@ -1227,7 +1267,11 @@ export const useAppStore = create<AppStore>()(
         const output = monteCarloOutputFromEngine(builtPg.engineConfig);
         const built = buildPlaygroundProjections({
           ...current.simPlayground,
-          monteCarlo: { hasRun: true, results: output.results },
+          monteCarlo: {
+            hasRun: true,
+            results: output.results,
+            pathsByAge: output.pathsByAge,
+          },
         });
         set({
           simPlayground: {
@@ -1244,6 +1288,7 @@ export const useAppStore = create<AppStore>()(
               distributions: output.distributions,
               target: output.target,
               iterations: 1000,
+              pathsByAge: output.pathsByAge,
             },
           },
         });
@@ -1275,45 +1320,49 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: LOCAL_STORAGE_KEY,
+      version: CURRENT_PERSIST_VERSION,
+      migrate: (persisted, fromVersion) =>
+        migratePersistedState(persisted, fromVersion) as never,
       merge: (persisted, current) => {
-        const p = persisted as Partial<AppStore> | undefined;
-        const needsDemoMigration = (p?.demoSeedVersion ?? 0) < DEMO_SEED_VERSION;
-
-        const portfolio = normalizePortfolioCagr(
-          needsDemoMigration ? SEED_PORTFOLIO : (p?.portfolio ?? SEED_PORTFOLIO)
+        const migrated = migratePersistedState(
+          persisted,
+          CURRENT_PERSIST_VERSION
+        ) as Partial<AppStore>;
+        const portfolio = normalizePortfolioAssets(
+          normalizePortfolioCagr(migrated.portfolio ?? current.portfolio)
         );
-        const simulationIncludedAssetIds = needsDemoMigration
-          ? defaultIncludedIds
-          : (p?.simulationIncludedAssetIds ?? defaultIncludedIds);
-        const kpiOutsidePortfolio = needsDemoMigration
-          ? 0
-          : (p?.kpiOutsidePortfolio ?? 0);
-        const kpis = needsDemoMigration
-          ? seedKpis
-          : normalizeKpiValues(p?.kpis);
+        const simulationIncludedAssetIds =
+          migrated.simulationIncludedAssetIds ??
+          current.simulationIncludedAssetIds;
+        const kpiOutsidePortfolio =
+          migrated.kpiOutsidePortfolio ?? current.kpiOutsidePortfolio;
+        const kpis = normalizeKpiValues(migrated.kpis ?? current.kpis);
 
-        const persistedMc = p?.monteCarlo;
+        const persistedMc = migrated.monteCarlo;
         const built = buildProjectionsFromState({
           kpis,
           portfolio,
           simulationIncludedAssetIds,
           kpiOutsidePortfolio,
-          sensitivity: p?.sensitivity ?? { cagr: null, inflation: null },
+          sensitivity: migrated.sensitivity ?? { cagr: null, inflation: null },
           monteCarlo:
             persistedMc?.hasRun && persistedMc.results?.length
-              ? { hasRun: true, results: persistedMc.results }
+              ? {
+                  hasRun: true,
+                  results: persistedMc.results,
+                  pathsByAge: persistedMc.pathsByAge,
+                }
               : undefined,
+          currency: migrated.currency ?? current.currency,
+          fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
         });
 
-        const simPlayground = normalizeSimPlayground(
-          needsDemoMigration ? undefined : p?.simPlayground,
-          {
-            kpis: built.kpis,
-            kpiOutsidePortfolio,
-            portfolio,
-            simulationIncludedAssetIds,
-          }
-        );
+        const simPlayground = normalizeSimPlayground(migrated.simPlayground, {
+          kpis: built.kpis,
+          kpiOutsidePortfolio,
+          portfolio,
+          simulationIncludedAssetIds,
+        });
 
         const monteCarlo = persistedMc
           ? { ...persistedMc, stale: persistedMc.stale ?? false }
@@ -1321,8 +1370,13 @@ export const useAppStore = create<AppStore>()(
 
         return {
           ...current,
-          ...p,
-          demoSeedVersion: DEMO_SEED_VERSION,
+          ...migrated,
+          persistVersion: CURRENT_PERSIST_VERSION,
+          planTier: "free",
+          tenant: migrated.tenant ?? DEFAULT_TENANT,
+          institutions: migrated.institutions ?? [],
+          accounts: migrated.accounts ?? [],
+          entitlements: migrated.entitlements ?? [],
           portfolio,
           simulationIncludedAssetIds,
           kpiOutsidePortfolio,
@@ -1339,8 +1393,12 @@ export const useAppStore = create<AppStore>()(
         fxSnapshot: state.fxSnapshot,
         onboarding: state.onboarding,
         sidebarCollapsed: state.sidebarCollapsed,
-        demoSeedVersion: state.demoSeedVersion,
-        planTier: state.planTier,
+        persistVersion: state.persistVersion,
+        tenant: state.tenant,
+        institutions: state.institutions,
+        accounts: state.accounts,
+        entitlements: state.entitlements,
+        planTier: "free" as const,
         explainSimple: state.explainSimple,
         theme: state.theme,
         coachMarksDismissed: state.coachMarksDismissed,

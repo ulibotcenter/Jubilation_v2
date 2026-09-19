@@ -11,6 +11,7 @@ import {
   type ScopePresetId,
 } from "@/lib/simulationScope";
 import { useAppStore } from "@/store/useAppStore";
+import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import {
   calculatePortfolioValue,
   formatCurrencyValue,
@@ -55,6 +56,7 @@ export function SimulationAssetFilter({
   const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
   const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
   const currency = useAppStore((s) => s.currency);
+  const rates = useAppStore((s) => s.fxSnapshot?.rates) ?? FALLBACK_FX_RATES;
   const realIncluded = useAppStore((s) => s.simulationIncludedAssetIds);
   const simIncluded = useAppStore((s) => s.simPlayground.simulationIncludedAssetIds);
   const includedIds = mode === "playground" ? simIncluded : realIncluded;
@@ -78,9 +80,10 @@ export function SimulationAssetFilter({
     [portfolio, locale]
   );
 
-  const totalValue = calculatePortfolioValue(portfolio);
+  const totalValue = calculatePortfolioValue(portfolio, { currency, rates });
   const filteredValue = calculatePortfolioValue(
-    portfolio.filter((a) => includedSet.has(a.id))
+    portfolio.filter((a) => includedSet.has(a.id)),
+    { currency, rates }
   );
   const excludedCount = portfolio.length - includedIds.length;
   const isFiltered = excludedCount > 0;

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { canAccess } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
+import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import { calculatePortfolioValue, formatCurrencyValue } from "@/types";
 
 export function NetWorthHistoryCard() {
@@ -14,6 +15,7 @@ export function NetWorthHistoryCard() {
   const addSnapshot = useAppStore((s) => s.addNetWorthSnapshot);
   const plan = useAppStore((s) => s.planTier);
   const currency = useAppStore((s) => s.currency);
+  const rates = useAppStore((s) => s.fxSnapshot?.rates) ?? FALLBACK_FX_RATES;
 
   if (!canAccess(plan, "net_worth_history") && snapshots.length === 0) {
     return (
@@ -24,7 +26,7 @@ export function NetWorthHistoryCard() {
   }
 
   const capture = () => {
-    const value = calculatePortfolioValue(portfolio);
+    const value = calculatePortfolioValue(portfolio, { currency, rates });
     addSnapshot(value);
     toast.success(t("toast.netWorth.saved"));
   };
