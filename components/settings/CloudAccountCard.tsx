@@ -12,9 +12,10 @@ import {
   encryptBackup,
   parseBackupEnvelope,
 } from "@/lib/backup";
-import type { PublicCloudStatus } from "@/lib/cloud/config";
+import { publicCloudStatus, type PublicCloudStatus } from "@/lib/cloud/config";
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { tenantMayPersistOnHost } from "@/lib/region";
 import { useAppStore } from "@/store/useAppStore";
 
 interface Me {
@@ -53,12 +54,7 @@ export function CloudAccountCard() {
         }
       } catch {
         if (!cancelled) {
-          setStatus({
-            enabled: false,
-            magicLink: false,
-            password: false,
-            dataRegion: "eu",
-          });
+          setStatus(publicCloudStatus({}));
         }
       }
     })();
@@ -139,6 +135,11 @@ export function CloudAccountCard() {
       );
       return;
     }
+    const localTenant = useAppStore.getState().tenant;
+    if (!tenantMayPersistOnHost(localTenant).ok) {
+      toast.error(t("toast.cloud.regionBlocked"));
+      return;
+    }
     setBusy("up");
     try {
       const slice = partializePersistedState(useAppStore.getState());
@@ -150,7 +151,12 @@ export function CloudAccountCard() {
         body: JSON.stringify(envelope),
       });
       if (!res.ok) {
-        toast.error(t("toast.cloud.error"));
+        const fail = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(
+          fail.error === "region_not_live" || fail.error === "region_host_mismatch"
+            ? t("toast.cloud.regionBlocked")
+            : t("toast.cloud.error")
+        );
         return;
       }
       const body = (await res.json()) as { updatedAt?: string };
@@ -227,6 +233,12 @@ export function CloudAccountCard() {
           <p className="settings-page-card-body mt-2">
             {t("settings.cloud.bodySoon")}
           </p>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            {t("settings.cloud.region", { region: status?.dataRegion ?? "eu" })}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {t("settings.cloud.regionNote")}
+          </p>
         </>
       )}
 
@@ -235,6 +247,9 @@ export function CloudAccountCard() {
           <p className="settings-page-card-body">{t("settings.cloud.bodyReady")}</p>
           <p className="text-[11px] text-muted-foreground mt-2">
             {t("settings.cloud.region", { region: status?.dataRegion ?? "eu" })}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {t("settings.cloud.regionNote")}
           </p>
           <label className="household-field mt-4">
             <span>{t("settings.cloud.email")}</span>
@@ -301,6 +316,9 @@ export function CloudAccountCard() {
             {updatedAt
               ? ` · ${t("settings.cloud.updatedAt", { date: updatedAt.slice(0, 10) })}`
               : ""}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {t("settings.cloud.regionNote")}
           </p>
           <p className="settings-page-card-body mt-3">
             {t("settings.cloud.backupPasswordHint")}

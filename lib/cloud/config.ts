@@ -1,9 +1,18 @@
 /**
  * Optional cloud account. Off unless DATABASE_URL and AUTH_SECRET exist.
- * Host the Postgres in the EU (Neon eu-central, Supabase EU, RDS eu-west, etc.).
- * No US-only vendor without an EU region.
+ * Host the Postgres in the EU (Neon eu-central-1 / Frankfurt, Supabase EU, RDS
+ * eu-central-1). No US-only vendor without an EU region.
  */
-export type DataRegion = "eu" | "br";
+import {
+  DEFAULT_DATA_REGION,
+  HOST_DATA_REGION,
+  LIVE_DATA_REGIONS,
+  RESERVED_DATA_REGIONS,
+  VERCEL_FUNCTION_REGION,
+  type DataRegion,
+} from "@/lib/region";
+
+export type { DataRegion };
 
 export interface CloudAuthConfig {
   enabled: boolean;
@@ -18,8 +27,8 @@ export interface CloudAuthConfig {
   smtpPass: string;
   emailFrom: string;
   smtpSecure: boolean;
-  databaseSsl: boolean;
   defaultDataRegion: DataRegion;
+  hostDataRegion: DataRegion;
 }
 
 export interface PublicCloudStatus {
@@ -27,6 +36,11 @@ export interface PublicCloudStatus {
   magicLink: boolean;
   password: boolean;
   dataRegion: DataRegion;
+  hostRegion: DataRegion;
+  functionRegion: typeof VERCEL_FUNCTION_REGION;
+  liveRegions: readonly DataRegion[];
+  reservedRegions: readonly DataRegion[];
+  brResidencyLive: false;
 }
 
 function flagOn(value: string | undefined): boolean {
@@ -74,7 +88,8 @@ export function cloudAuthConfig(
     emailFrom,
     smtpSecure: flagOn(env.SMTP_SECURE) || smtpPort === 465,
     databaseSsl,
-    defaultDataRegion: "eu",
+    defaultDataRegion: DEFAULT_DATA_REGION,
+    hostDataRegion: HOST_DATA_REGION,
   };
 }
 
@@ -87,5 +102,10 @@ export function publicCloudStatus(
     magicLink: cfg.magicLink,
     password: cfg.password,
     dataRegion: cfg.defaultDataRegion,
+    hostRegion: cfg.hostDataRegion,
+    functionRegion: VERCEL_FUNCTION_REGION,
+    liveRegions: LIVE_DATA_REGIONS,
+    reservedRegions: RESERVED_DATA_REGIONS,
+    brResidencyLive: false,
   };
 }

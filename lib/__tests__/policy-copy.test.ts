@@ -22,7 +22,9 @@ const POLICY_KEYS = [
   "privacy.collected.body",
   "privacy.notCollected.body",
   "privacy.basis.body",
+  "privacy.hosting.body",
   "privacy.spouse.body",
+  "settings.cloud.regionNote",
   "privacy.erase.body",
   "privacy.export.body",
 ] as const satisfies readonly MessageKey[];
@@ -76,6 +78,18 @@ describe("policy copy", () => {
     expect(collected).toMatch(/fixture/i);
     expect(notCollected).toMatch(/26/);
     expect(notCollected).toMatch(/gov\.br/i);
+  });
+
+  it("says EU is the default host and BR bank residency is later, not this deploy", () => {
+    const hosting = t("pt", "privacy.hosting.body");
+    const note = t("pt", "settings.cloud.regionNote");
+    for (const text of [hosting, note]) {
+      expect(text.toLowerCase()).toMatch(/união europeia|europa/);
+      expect(text.toLowerCase()).toMatch(/frankfurt|fra1/);
+      expect(text.toLowerCase()).toMatch(/banco brasileiro|residência/);
+      expect(text.toLowerCase()).toMatch(/não.*este deploy|não está ligad/);
+      expect(text).toMatch(/4\.893/);
+    }
   });
 
   it("names contract performance and legitimate interest in plain language", () => {

@@ -134,11 +134,14 @@ describe("vault envelope guard", () => {
 
 describe("cloud config", () => {
   it("stays off without vendor env so the UI must not pretend to sync", () => {
-    expect(publicCloudStatus({})).toEqual({
+    expect(publicCloudStatus({})).toMatchObject({
       enabled: false,
       magicLink: false,
       password: false,
       dataRegion: "eu",
+      hostRegion: "eu",
+      functionRegion: "fra1",
+      brResidencyLive: false,
     });
     expect(
       publicCloudStatus({

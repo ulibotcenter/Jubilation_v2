@@ -2,14 +2,30 @@ import { createHash, randomBytes } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
 import { cloudAuthConfig } from "@/lib/cloud/config";
 import type { PlanTier } from "@/lib/plans";
+import {
+  DEFAULT_DATA_REGION,
+  DEFAULT_TENANT_ID,
+  assertTenantMayPersistOnHost,
+  parseDataRegion,
+} from "@/lib/region";
 
 const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS tenants (
+  id TEXT PRIMARY KEY,
+  data_region TEXT NOT NULL DEFAULT 'eu',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+INSERT INTO tenants (id, data_region)
+  VALUES ('${DEFAULT_TENANT_ID}', '${DEFAULT_DATA_REGION}')
+  ON CONFLICT (id) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS auth_users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   data_region TEXT NOT NULL DEFAULT 'eu',
+  tenant_id TEXT NOT NULL DEFAULT '${DEFAULT_TENANT_ID}',
   plan_tier TEXT NOT NULL DEFAULT 'free',
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
@@ -20,6 +36,7 @@ ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS plan_tier TEXT NOT NULL DEFAULT 
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'none';
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT '${DEFAULT_TENANT_ID}';
 CREATE UNIQUE INDEX IF NOT EXISTS auth_users_stripe_customer_uidx
   ON auth_users (stripe_customer_id);
 
@@ -195,15 +212,27 @@ export async function createUser(input: {
   email: string;
   passwordHash?: string | null;
   dataRegion?: string;
+  tenantId?: string;
 }): Promise<AuthUser> {
   const id = globalThis.crypto.randomUUID();
   const email = normalizeEmail(input.email);
-  const dataRegion = input.dataRegion ?? "eu";
+  const dataRegion = parseDataRegion(input.dataRegion ?? DEFAULT_DATA_REGION);
+  const tenantId =
+    typeof input.tenantId === "string" && input.tenantId.trim()
+      ? input.tenantId.trim()
+      : DEFAULT_TENANT_ID;
+  assertTenantMayPersistOnHost({ dataRegion });
   return withDb(async (client) => {
     await client.query(
-      `INSERT INTO auth_users (id, email, password_hash, data_region, plan_tier, subscription_status)
-       VALUES ($1, $2, $3, $4, 'free', 'none')`,
-      [id, email, input.passwordHash ?? null, dataRegion]
+      `INSERT INTO tenants (id, data_region)
+       VALUES ($1, $2)
+       ON CONFLICT (id) DO NOTHING`,
+      [tenantId, dataRegion]
+    );
+    await client.query(
+      `INSERT INTO auth_users (id, email, password_hash, data_region, tenant_id, plan_tier, subscription_status)
+       VALUES ($1, $2, $3, $4, $5, 'free', 'none')`,
+      [id, email, input.passwordHash ?? null, dataRegion, tenantId]
     );
     return {
       id,
@@ -293,6 +322,8 @@ export async function upsertVaultEnvelope(input: {
   schemaVersion: number;
   dataRegion: string;
 }): Promise<{ updatedAt: string }> {
+  const dataRegion = parseDataRegion(input.dataRegion);
+  assertTenantMayPersistOnHost({ dataRegion });
   return withDb(async (client) => {
     const res = await client.query(
       `INSERT INTO vault_blobs (user_id, envelope, schema_version, data_region, updated_at)
@@ -307,7 +338,7 @@ export async function upsertVaultEnvelope(input: {
         input.userId,
         JSON.stringify(input.envelope),
         input.schemaVersion,
-        input.dataRegion,
+        dataRegion,
       ]
     );
     return { updatedAt: (res.rows[0].updated_at as Date).toISOString() };
@@ -335,10 +366,12 @@ export async function getVaultEnvelope(userId: string): Promise<{
         }
       | undefined;
     if (!row) return null;
+    const dataRegion = parseDataRegion(row.data_region);
+    assertTenantMayPersistOnHost({ dataRegion });
     return {
       envelope: row.envelope,
       schemaVersion: row.schema_version,
-      dataRegion: row.data_region,
+      dataRegion,
       updatedAt: row.updated_at.toISOString(),
     };
   });

@@ -279,6 +279,10 @@ export const ES: Record<MessageKey, string> = {
   "settings.cloud.syncing": "Trabajando…",
   "settings.cloud.signedIn": "Conectado como {email}",
   "settings.cloud.region": "Región de datos: {region}",
+  "settings.cloud.regionNote":
+    "La Unión Europea es la región por defecto (Fráncfort, fra1). Un tenant de banco brasileño es una residencia posterior — no está activa en este deploy. La Resolución CMN 4.893 no se resuelve alojando en la UE.",
+  "toast.cloud.regionBlocked":
+    "Este tenant pide residencia en Brasil. Este deploy solo aloja en la UE. No vamos a guardar esos datos aquí.",
   "settings.cloud.updatedAt": "Último envío {date}",
   "settings.cloud.blobPassword": "Contraseña de la copia (cifra el blob)",
   "settings.cloud.backupPasswordHint":
@@ -863,7 +867,7 @@ export const ES: Record<MessageKey, string> = {
   "toast.files.revoked": "Consentimiento de importación revocado",
   "privacy.title": "Privacidad",
   "privacy.pageDescription":
-    "En lenguaje claro: qué se queda en este aparato, qué no entra, por qué lo usamos, y cómo borrar.",
+    "En lenguaje claro: qué se queda en este aparato, qué no entra, por qué lo usamos, dónde se aloja, y cómo borrar.",
   "privacy.collected.title": "Qué se guarda",
   "privacy.collected.body":
     "En este aparato quedan: el plan que armas (edades, aportes, premisas), las inversiones (holdings) que indicas, el CNIS y el IRPF leídos aquí en el aparato, y la posición B3 de demostración (fixture) si autorizas.",
@@ -873,6 +877,9 @@ export const ES: Record<MessageKey, string> = {
   "privacy.basis.title": "Por qué lo usamos",
   "privacy.basis.body":
     "Usamos estos datos para armar el plan que pediste — ejecución de contrato. Renta, patrimonio y contribución no son dato de salud; para ese dato financiero no sensible también cabe interés legítimo. El dato de salud no entra: el registro 26 y los indicadores de incapacidad del CNIS se descartan al ingresar.",
+  "privacy.hosting.title": "Dónde viven los datos",
+  "privacy.hosting.body":
+    "La región por defecto es la Unión Europea. Las funciones de la app están fijadas en Fráncfort (Vercel fra1). La copia opcional en la nube, cuando la actives, va a Postgres en la UE. Un tenant de banco brasileño (residencia en Brasil) es una elección posterior — no es este deploy, y alojar en la UE no resuelve la Resolución CMN 4.893.",
   "privacy.spouse.title": "Cónyuge",
   "privacy.spouse.body":
     "Si añades un cónyuge, esos campos son de otra persona y los escribiste tú. El cónyuge no tiene cuenta aquí y no hay integración con su INSS, Receita o B3. Para borrar solo esos campos, usa Quitar cónyuge en Ajustes.",

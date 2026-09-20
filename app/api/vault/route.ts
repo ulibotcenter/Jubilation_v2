@@ -2,22 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseBackupEnvelope } from "@/lib/backup";
 import { getVaultEnvelope, upsertVaultEnvelope } from "@/lib/cloud/db";
 import { isAuthUser, requireUser } from "@/lib/cloud/http";
+import {
+  DataRegionError,
+  assertTenantMayPersistOnHost,
+  parseDataRegion,
+  preferredRegion,
+  regionPersistResponse,
+} from "@/lib/region";
 
 export const dynamic = "force-dynamic";
+export { preferredRegion };
+
+function regionBlocked(err: unknown) {
+  if (err instanceof DataRegionError) {
+    return NextResponse.json(regionPersistResponse(err), { status: 409 });
+  }
+  throw err;
+}
 
 export async function GET(request: NextRequest) {
   const user = await requireUser(request);
   if (!isAuthUser(user)) return user;
-  const row = await getVaultEnvelope(user.id);
-  if (!row) {
-    return NextResponse.json({ envelope: null, updatedAt: null });
+  try {
+    assertTenantMayPersistOnHost({
+      dataRegion: parseDataRegion(user.dataRegion),
+    });
+    const row = await getVaultEnvelope(user.id);
+    if (!row) {
+      return NextResponse.json({ envelope: null, updatedAt: null });
+    }
+    return NextResponse.json({
+      envelope: row.envelope,
+      schemaVersion: row.schemaVersion,
+      dataRegion: row.dataRegion,
+      updatedAt: row.updatedAt,
+    });
+  } catch (err) {
+    return regionBlocked(err);
   }
-  return NextResponse.json({
-    envelope: row.envelope,
-    schemaVersion: row.schemaVersion,
-    dataRegion: row.dataRegion,
-    updatedAt: row.updatedAt,
-  });
 }
 
 export async function PUT(request: NextRequest) {
@@ -38,14 +60,20 @@ export async function PUT(request: NextRequest) {
       { status: 400 }
     );
   }
-  const saved = await upsertVaultEnvelope({
-    userId: user.id,
-    envelope,
-    schemaVersion: envelope.persistVersion,
-    dataRegion: user.dataRegion || "eu",
-  });
-  return NextResponse.json({
-    updatedAt: saved.updatedAt,
-    dataRegion: user.dataRegion || "eu",
-  });
+  try {
+    const dataRegion = parseDataRegion(user.dataRegion);
+    assertTenantMayPersistOnHost({ dataRegion });
+    const saved = await upsertVaultEnvelope({
+      userId: user.id,
+      envelope,
+      schemaVersion: envelope.persistVersion,
+      dataRegion,
+    });
+    return NextResponse.json({
+      updatedAt: saved.updatedAt,
+      dataRegion,
+    });
+  } catch (err) {
+    return regionBlocked(err);
+  }
 }

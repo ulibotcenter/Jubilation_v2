@@ -1,7 +1,7 @@
 import type { PlanTier } from "@/lib/plans";
 import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
 import { normalizePortfolioCagr } from "@/lib/portfolioCagr";
-import { DEFAULT_TENANT, type Tenant } from "@/lib/engine/canonical";
+import { normalizeTenant, type Tenant } from "@/lib/region";
 import { isHousehold } from "@/lib/engine/household";
 import { PERSIST_VERSION, normalizeKpiValues, type PortfolioAsset } from "@/types";
 
@@ -56,7 +56,7 @@ export function migratePersistedState(
     user: raw.user ? { ...raw.user, plan: planTier } : raw.user,
     portfolio,
     kpis,
-    tenant: raw.tenant ?? DEFAULT_TENANT,
+    tenant: normalizeTenant(raw.tenant),
     institutions: Array.isArray(raw.institutions) ? raw.institutions : [],
     accounts: Array.isArray(raw.accounts) ? raw.accounts : [],
     entitlements: Array.isArray(raw.entitlements) ? raw.entitlements : [],

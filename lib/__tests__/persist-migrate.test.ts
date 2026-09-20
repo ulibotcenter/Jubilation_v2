@@ -30,8 +30,21 @@ describe("persist migrate", () => {
     expect((next.portfolio as typeof userPortfolio)[0]?.ticker).toBe("PETR4");
     expect((next.kpis as { currentAge: number }).currentAge).toBe(51);
     expect(next.planTier).toBe("premium");
+    expect((next.tenant as { id: string; dataRegion: string }).id).toBe(
+      "b2c-default"
+    );
     expect((next.tenant as { dataRegion: string }).dataRegion).toBe("eu");
     expect(next.household).toBeUndefined();
+  });
+
+  it("keeps an explicit br tenant region without rewriting it to eu", () => {
+    const next = migratePersistedState(
+      { tenant: { dataRegion: "br" }, kpis: { currentAge: 40 } },
+      0
+    );
+    const tenant = next.tenant as { id: string; dataRegion: string };
+    expect(tenant.id).toBe("b2c-default");
+    expect(tenant.dataRegion).toBe("br");
   });
 
   it("maps yearly → horizon and keeps free as free", () => {
