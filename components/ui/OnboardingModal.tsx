@@ -322,54 +322,59 @@ export function OnboardingModal() {
                   </div>
                 </div>
                 <div className="relative mt-4">
-                  <div className="max-h-48 overflow-y-auto rounded-xl border border-border bg-surface p-4 sm:max-h-52">
+                  <div className="max-h-32 overflow-y-auto rounded-xl border border-border bg-surface p-4 sm:max-h-52">
                     <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
                       {t("onboarding.disclaimer")}
                     </p>
                   </div>
                 </div>
-                <label className="flex items-start gap-3 cursor-pointer group p-3 rounded-xl border border-border hover:border-accent/30 transition-colors duration-200 min-h-[var(--touch-target)] mt-3 focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-muted)]">
-                  <div className="relative shrink-0 mt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={disclaimerAccepted}
-                      onChange={(e) =>
-                        setDisclaimerAccepted(e.target.checked)
-                      }
-                      className="sr-only"
-                      aria-describedby="disclaimer-checkbox-label"
-                    />
-                    <div
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                        disclaimerAccepted
-                          ? "bg-accent border-accent"
-                          : "border-border group-hover:border-accent/50"
-                      }`}
-                    >
-                      {disclaimerAccepted && (
-                        <Check className="w-3 h-3 text-white" size={12} />
-                      )}
-                    </div>
-                  </div>
-                  <span id="disclaimer-checkbox-label" className="text-xs leading-relaxed">
-                    {t("onboarding.checkbox")}
-                  </span>
-                </label>
-                <p className="text-[11px] text-muted-foreground mt-3 flex items-start gap-1.5">
-                  <Shield className="w-3 h-3 mt-0.5 shrink-0" size={12} />
-                  <span>
-                    {t("onboarding.privacy")}{" "}
-                    <Link href={PRIVACY_PATH} className="text-accent hover:underline">
-                      {t("nav.privacy")}
-                    </Link>
-                  </span>
-                </p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        <div className="modal-footer px-5 pb-5 sm:px-6 sm:pb-6 flex items-center justify-between gap-3">
+        <div className="modal-footer px-5 pb-5 sm:px-6 sm:pb-6 space-y-3">
+          {currentStep === 2 ? (
+            <>
+              <label className="flex items-start gap-3 cursor-pointer group p-3 rounded-xl border border-border hover:border-accent/30 transition-colors duration-200 min-h-[var(--touch-target)] focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-muted)]">
+                <div className="relative shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={disclaimerAccepted}
+                    onChange={(e) =>
+                      setDisclaimerAccepted(e.target.checked)
+                    }
+                    className="sr-only"
+                    aria-describedby="disclaimer-checkbox-label"
+                  />
+                  <div
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                      disclaimerAccepted
+                        ? "bg-accent border-accent"
+                        : "border-border group-hover:border-accent/50"
+                    }`}
+                  >
+                    {disclaimerAccepted && (
+                      <Check className="w-3 h-3 text-white" size={12} />
+                    )}
+                  </div>
+                </div>
+                <span id="disclaimer-checkbox-label" className="text-xs leading-relaxed">
+                  {t("onboarding.checkbox")}
+                </span>
+              </label>
+              <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                <Shield className="w-3 h-3 mt-0.5 shrink-0" size={12} />
+                <span>
+                  {t("onboarding.privacy")}{" "}
+                  <Link href={PRIVACY_PATH} className="text-accent hover:underline">
+                    {t("nav.privacy")}
+                  </Link>
+                </span>
+              </p>
+            </>
+          ) : null}
+          <div className="flex items-center justify-between gap-3">
           {currentStep === 2 ? (
             <button
               type="button"
@@ -402,6 +407,7 @@ export function OnboardingModal() {
             </span>
             <ArrowRight className="w-4 h-4" size={16} />
           </button>
+          </div>
         </div>
       </motion.div>
     </div>
