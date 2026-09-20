@@ -1,19 +1,12 @@
 import type { DataSource, Confidence } from "@/lib/engine/provenance";
+export {
+  DEFAULT_TENANT,
+  normalizeTenant,
+  type DataRegion,
+  type Tenant,
+} from "@/lib/region";
 
 type Currency = "BRL" | "USD" | "EUR";
-
-export type DataRegion = "eu" | "br";
-
-export interface Tenant {
-  id: string;
-  /** Where this tenant's data must live. B2C default is eu. */
-  dataRegion: DataRegion;
-}
-
-export const DEFAULT_TENANT: Tenant = {
-  id: "b2c-default",
-  dataRegion: "eu",
-};
 
 export type AccountKind =
   | "BROKERAGE"

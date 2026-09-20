@@ -12,8 +12,10 @@ import {
   cloudDisabledResponse,
   requireCloudConfig,
 } from "@/lib/cloud/http";
+import { DataRegionError } from "@/lib/region";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 export async function GET(request: NextRequest) {
   if (!allowRequest(rateLimitKey(request), 8)) {
@@ -37,10 +39,17 @@ export async function GET(request: NextRequest) {
   }
   let user = await findUserByEmail(email);
   if (!user) {
-    user = await createUser({
-      email,
-      dataRegion: cfg.defaultDataRegion,
-    });
+    try {
+      user = await createUser({
+        email,
+        dataRegion: cfg.defaultDataRegion,
+      });
+    } catch (err) {
+      if (err instanceof DataRegionError) {
+        return NextResponse.redirect(`${settings.href}?auth=region`);
+      }
+      throw err;
+    }
   }
   const session = await createSession(user.id);
   const res = NextResponse.redirect(`${settings.href}?auth=ok`);

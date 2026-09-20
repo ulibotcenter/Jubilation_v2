@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
+export const preferredRegion = "fra1";
+
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "https://jubilation-v2.vercel.app";
 

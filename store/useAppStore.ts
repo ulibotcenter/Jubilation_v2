@@ -20,7 +20,7 @@ import {
 import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
 import { ENGINE_VERSION } from "@/lib/engine/version";
 import { createId } from "@/lib/engine/ids";
-import { DEFAULT_TENANT, type Tenant } from "@/lib/engine/canonical";
+import { DEFAULT_TENANT, normalizeTenant, type Tenant } from "@/lib/engine/canonical";
 import { todayIsoDate } from "@/lib/engine/provenance";
 import {
   appendAudit,
@@ -675,7 +675,7 @@ function mergePersistedAppState(
         subscriptionStatus: "none" as const,
       };
     })(),
-    tenant: migrated.tenant ?? DEFAULT_TENANT,
+    tenant: normalizeTenant(migrated.tenant ?? DEFAULT_TENANT),
     institutions: migrated.institutions ?? [],
     accounts: migrated.accounts ?? [],
     entitlements: migrated.entitlements ?? [],

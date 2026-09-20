@@ -278,6 +278,10 @@ export const EN = {
   "settings.cloud.syncing": "Working…",
   "settings.cloud.signedIn": "Signed in as {email}",
   "settings.cloud.region": "Data region: {region}",
+  "settings.cloud.regionNote":
+    "European Union is the default (Frankfurt, fra1). A Brazilian-bank tenant is a later residency choice — not live on this deploy. CMN 4.893 is not solved by hosting in the EU.",
+  "toast.cloud.regionBlocked":
+    "This tenant asks for Brazilian residency. This deploy only hosts the EU. We will not write that data here.",
   "settings.cloud.updatedAt": "Last upload {date}",
   "settings.cloud.backupPasswordHint":
     "The account password is not the backup password. Use the same password as the local .json file.",
@@ -861,7 +865,7 @@ export const EN = {
   "toast.files.revoked": "File import consent revoked",
   "privacy.title": "Privacy",
   "privacy.pageDescription":
-    "Plain language: what stays on this device, what never enters, why we use it, and how to delete it.",
+    "Plain language: what stays on this device, what never enters, why we use it, where it is hosted, and how to delete it.",
   "privacy.collected.title": "What we store",
   "privacy.collected.body":
     "On this device we keep: the plan you build (ages, contributions, assumptions), the holdings you enter, CNIS and IRPF files parsed on this device, and a B3 demo position (fixture) if you authorize it.",
@@ -871,6 +875,9 @@ export const EN = {
   "privacy.basis.title": "Why we use this",
   "privacy.basis.body":
     "We use the data to build the plan you asked for — performing the contract. Income, wealth and contribution history are not health data; for that kind of non-sensitive financial data, legitimate interest also applies. Health data does not enter: record 26 and CNIS disability flags are discarded on ingest.",
+  "privacy.hosting.title": "Where the data lives",
+  "privacy.hosting.body":
+    "The default region is the European Union. App functions are pinned to Frankfurt (Vercel fra1). Optional cloud copies, when you turn them on, go to Postgres in the EU. A Brazilian-bank tenant (data residency in Brazil) is a later choice — it is not this deploy, and we do not treat EU hosting as solving CMN Resolution 4.893.",
   "privacy.spouse.title": "Spouse",
   "privacy.spouse.body":
     "If you add a spouse, those fields belong to another person and were typed by you. The spouse has no login here, and there is no integration with their INSS, Receita, or B3. To delete only those fields, use Remove spouse in Settings.",

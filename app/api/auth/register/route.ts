@@ -8,8 +8,13 @@ import {
   requireCloudConfig,
 } from "@/lib/cloud/http";
 import { hashPassword } from "@/lib/cloud/passwords";
+import {
+  DataRegionError,
+  regionPersistResponse,
+} from "@/lib/region";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 export async function POST(request: NextRequest) {
   if (!allowRequest(rateLimitKey(request), 8)) {
@@ -37,12 +42,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "email_taken" }, { status: 409 });
   }
   const passwordHash = await hashPassword(password);
-  const user = await createUser({
-    email,
-    passwordHash,
-    dataRegion: cfg.defaultDataRegion,
-  });
-  const token = await createSession(user.id);
-  const res = NextResponse.json(publicAuthUser(user));
-  return attachSession(res, token);
+  try {
+    const user = await createUser({
+      email,
+      passwordHash,
+      dataRegion: cfg.defaultDataRegion,
+    });
+    const token = await createSession(user.id);
+    const res = NextResponse.json(publicAuthUser(user));
+    return attachSession(res, token);
+  } catch (err) {
+    if (err instanceof DataRegionError) {
+      return NextResponse.json(regionPersistResponse(err), { status: 409 });
+    }
+    throw err;
+  }
 }

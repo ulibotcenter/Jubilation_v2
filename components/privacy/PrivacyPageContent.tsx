@@ -12,6 +12,7 @@ const SECTIONS = [
   { title: "privacy.collected.title", body: "privacy.collected.body" },
   { title: "privacy.notCollected.title", body: "privacy.notCollected.body" },
   { title: "privacy.basis.title", body: "privacy.basis.body" },
+  { title: "privacy.hosting.title", body: "privacy.hosting.body" },
   { title: "privacy.spouse.title", body: "privacy.spouse.body" },
 ] as const;
 
