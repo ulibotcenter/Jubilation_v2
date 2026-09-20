@@ -9,12 +9,13 @@ import { useAppStore } from "@/store/useAppStore";
 export function ScenarioManager() {
   const { t } = useTranslation();
   const plan = useAppStore((s) => s.planTier);
+  const billingLive = useAppStore((s) => s.billingLive);
   const scenarios = useAppStore((s) => s.savedScenarios);
   const saveScenario = useAppStore((s) => s.saveNamedScenario);
   const loadScenario = useAppStore((s) => s.loadNamedScenario);
   const undoSim = useAppStore((s) => s.undoSimPlayground);
 
-  if (!canAccess(plan, "named_scenarios")) {
+  if (!canAccess(plan, "named_scenarios", billingLive)) {
     return (
       <p className="text-xs text-muted-foreground">
         {t("simulation.scenarios.locked")}

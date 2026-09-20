@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
 import { cloudAuthConfig } from "@/lib/cloud/config";
+import type { PlanTier } from "@/lib/plans";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS auth_users (
@@ -8,8 +9,19 @@ CREATE TABLE IF NOT EXISTS auth_users (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  data_region TEXT NOT NULL DEFAULT 'eu'
+  data_region TEXT NOT NULL DEFAULT 'eu',
+  plan_tier TEXT NOT NULL DEFAULT 'free',
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  subscription_status TEXT NOT NULL DEFAULT 'none'
 );
+
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS plan_tier TEXT NOT NULL DEFAULT 'free';
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'none';
+CREATE UNIQUE INDEX IF NOT EXISTS auth_users_stripe_customer_uidx
+  ON auth_users (stripe_customer_id);
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
   token_hash TEXT PRIMARY KEY,
@@ -35,13 +47,70 @@ CREATE TABLE IF NOT EXISTS vault_blobs (
   data_region TEXT NOT NULL DEFAULT 'eu',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS billing_events (
+  event_id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  user_id TEXT REFERENCES auth_users(id) ON DELETE SET NULL,
+  processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
+
+export type SubscriptionStatus = "active" | "canceled" | "trialing" | "none";
 
 export interface AuthUser {
   id: string;
   email: string;
   passwordHash: string | null;
   dataRegion: string;
+  planTier: PlanTier;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  subscriptionStatus: SubscriptionStatus;
+}
+
+const USER_COLUMNS =
+  "id, email, password_hash, data_region, plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status";
+
+interface AuthUserRow {
+  id: string;
+  email: string;
+  password_hash: string | null;
+  data_region: string;
+  plan_tier?: string | null;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  subscription_status?: string | null;
+}
+
+function asPlanTier(value: unknown): PlanTier {
+  if (value === "premium" || value === "horizon" || value === "free") return value;
+  return "free";
+}
+
+function asSubscriptionStatus(value: unknown): SubscriptionStatus {
+  if (
+    value === "active" ||
+    value === "canceled" ||
+    value === "trialing" ||
+    value === "none"
+  ) {
+    return value;
+  }
+  return "none";
+}
+
+function mapAuthUser(row: AuthUserRow): AuthUser {
+  return {
+    id: row.id,
+    email: row.email,
+    passwordHash: row.password_hash,
+    dataRegion: row.data_region,
+    planTier: asPlanTier(row.plan_tier),
+    stripeCustomerId: row.stripe_customer_id ?? null,
+    stripeSubscriptionId: row.stripe_subscription_id ?? null,
+    subscriptionStatus: asSubscriptionStatus(row.subscription_status),
+  };
 }
 
 let pool: Pool | null = null;
@@ -103,48 +172,22 @@ export async function withDb<T>(fn: (client: PoolClient) => Promise<T>): Promise
 export async function findUserByEmail(email: string): Promise<AuthUser | null> {
   return withDb(async (client) => {
     const res = await client.query(
-      `SELECT id, email, password_hash, data_region FROM auth_users WHERE email = $1`,
+      `SELECT ${USER_COLUMNS} FROM auth_users WHERE email = $1`,
       [normalizeEmail(email)]
     );
-    const row = res.rows[0] as
-      | {
-          id: string;
-          email: string;
-          password_hash: string | null;
-          data_region: string;
-        }
-      | undefined;
-    if (!row) return null;
-    return {
-      id: row.id,
-      email: row.email,
-      passwordHash: row.password_hash,
-      dataRegion: row.data_region,
-    };
+    const row = res.rows[0] as AuthUserRow | undefined;
+    return row ? mapAuthUser(row) : null;
   });
 }
 
 export async function findUserById(id: string): Promise<AuthUser | null> {
   return withDb(async (client) => {
     const res = await client.query(
-      `SELECT id, email, password_hash, data_region FROM auth_users WHERE id = $1`,
+      `SELECT ${USER_COLUMNS} FROM auth_users WHERE id = $1`,
       [id]
     );
-    const row = res.rows[0] as
-      | {
-          id: string;
-          email: string;
-          password_hash: string | null;
-          data_region: string;
-        }
-      | undefined;
-    if (!row) return null;
-    return {
-      id: row.id,
-      email: row.email,
-      passwordHash: row.password_hash,
-      dataRegion: row.data_region,
-    };
+    const row = res.rows[0] as AuthUserRow | undefined;
+    return row ? mapAuthUser(row) : null;
   });
 }
 
@@ -158,8 +201,8 @@ export async function createUser(input: {
   const dataRegion = input.dataRegion ?? "eu";
   return withDb(async (client) => {
     await client.query(
-      `INSERT INTO auth_users (id, email, password_hash, data_region)
-       VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO auth_users (id, email, password_hash, data_region, plan_tier, subscription_status)
+       VALUES ($1, $2, $3, $4, 'free', 'none')`,
       [id, email, input.passwordHash ?? null, dataRegion]
     );
     return {
@@ -167,6 +210,10 @@ export async function createUser(input: {
       email,
       passwordHash: input.passwordHash ?? null,
       dataRegion,
+      planTier: "free",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionStatus: "none",
     };
   });
 }
@@ -190,27 +237,15 @@ export async function userFromSessionToken(
   if (!token) return null;
   return withDb(async (client) => {
     const res = await client.query(
-      `SELECT u.id, u.email, u.password_hash, u.data_region
+      `SELECT u.id, u.email, u.password_hash, u.data_region,
+              u.plan_tier, u.stripe_customer_id, u.stripe_subscription_id, u.subscription_status
        FROM auth_sessions s
        JOIN auth_users u ON u.id = s.user_id
        WHERE s.token_hash = $1 AND s.expires_at > now()`,
       [hashToken(token)]
     );
-    const row = res.rows[0] as
-      | {
-          id: string;
-          email: string;
-          password_hash: string | null;
-          data_region: string;
-        }
-      | undefined;
-    if (!row) return null;
-    return {
-      id: row.id,
-      email: row.email,
-      passwordHash: row.password_hash,
-      dataRegion: row.data_region,
-    };
+    const row = res.rows[0] as AuthUserRow | undefined;
+    return row ? mapAuthUser(row) : null;
   });
 }
 
@@ -306,5 +341,79 @@ export async function getVaultEnvelope(userId: string): Promise<{
       dataRegion: row.data_region,
       updatedAt: row.updated_at.toISOString(),
     };
+  });
+}
+
+export async function findUserByStripeCustomerId(
+  customerId: string
+): Promise<AuthUser | null> {
+  return withDb(async (client) => {
+    const res = await client.query(
+      `SELECT ${USER_COLUMNS} FROM auth_users WHERE stripe_customer_id = $1`,
+      [customerId]
+    );
+    const row = res.rows[0] as AuthUserRow | undefined;
+    return row ? mapAuthUser(row) : null;
+  });
+}
+
+export async function findUserByStripeSubscriptionId(
+  subscriptionId: string
+): Promise<AuthUser | null> {
+  return withDb(async (client) => {
+    const res = await client.query(
+      `SELECT ${USER_COLUMNS} FROM auth_users WHERE stripe_subscription_id = $1`,
+      [subscriptionId]
+    );
+    const row = res.rows[0] as AuthUserRow | undefined;
+    return row ? mapAuthUser(row) : null;
+  });
+}
+
+export async function updateUserBilling(
+  userId: string,
+  input: {
+    planTier: PlanTier;
+    subscriptionStatus: SubscriptionStatus;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
+  }
+): Promise<AuthUser | null> {
+  return withDb(async (client) => {
+    const res = await client.query(
+      `UPDATE auth_users SET
+         plan_tier = $2,
+         subscription_status = $3,
+         stripe_customer_id = COALESCE($4, stripe_customer_id),
+         stripe_subscription_id = $5
+       WHERE id = $1
+       RETURNING ${USER_COLUMNS}`,
+      [
+        userId,
+        input.planTier,
+        input.subscriptionStatus,
+        input.stripeCustomerId ?? null,
+        input.stripeSubscriptionId ?? null,
+      ]
+    );
+    const row = res.rows[0] as AuthUserRow | undefined;
+    return row ? mapAuthUser(row) : null;
+  });
+}
+
+export async function recordBillingEvent(input: {
+  eventId: string;
+  type: string;
+  userId: string | null;
+}): Promise<boolean> {
+  return withDb(async (client) => {
+    const res = await client.query(
+      `INSERT INTO billing_events (event_id, type, user_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (event_id) DO NOTHING
+       RETURNING event_id`,
+      [input.eventId, input.type, input.userId]
+    );
+    return Boolean(res.rows[0]);
   });
 }

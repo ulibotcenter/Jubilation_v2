@@ -59,3 +59,12 @@ export async function requireUser(
 export function isAuthUser(value: AuthUser | NextResponse): value is AuthUser {
   return !(value instanceof NextResponse);
 }
+
+export function publicAuthUser(user: AuthUser) {
+  return {
+    email: user.email,
+    dataRegion: user.dataRegion,
+    planTier: user.planTier,
+    subscriptionStatus: user.subscriptionStatus,
+  };
+}

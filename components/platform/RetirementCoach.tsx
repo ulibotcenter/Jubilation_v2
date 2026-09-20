@@ -13,6 +13,7 @@ export function RetirementCoach() {
   const open = useAppStore((s) => s.coachOpen);
   const setCoachOpen = useAppStore((s) => s.setCoachOpen);
   const plan = useAppStore((s) => s.planTier);
+  const billingLive = useAppStore((s) => s.billingLive);
   const kpis = useAppStore((s) => s.kpis);
   const projections = useAppStore((s) => s.projections);
   const history = useAppStore((s) => s.aiChatHistory);
@@ -23,7 +24,7 @@ export function RetirementCoach() {
   const projected =
     projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
       ?.portfolioValue ?? 0;
-  const unlimited = canAccess(plan, "ai_coach_unlimited");
+  const unlimited = canAccess(plan, "ai_coach_unlimited", billingLive);
   const messageCount = history.filter((m) => m.role === "user").length;
 
   const send = () => {

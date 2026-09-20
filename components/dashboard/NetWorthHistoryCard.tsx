@@ -14,10 +14,11 @@ export function NetWorthHistoryCard() {
   const snapshots = useAppStore((s) => s.netWorthSnapshots);
   const addSnapshot = useAppStore((s) => s.addNetWorthSnapshot);
   const plan = useAppStore((s) => s.planTier);
+  const billingLive = useAppStore((s) => s.billingLive);
   const currency = useAppStore((s) => s.currency);
   const rates = useAppStore((s) => s.fxSnapshot?.rates) ?? FALLBACK_FX_RATES;
 
-  if (!canAccess(plan, "net_worth_history") && snapshots.length === 0) {
+  if (!canAccess(plan, "net_worth_history", billingLive) && snapshots.length === 0) {
     return (
       <div className="dashboard-insight-card card-surface p-4 text-xs text-muted-foreground">
         {t("netWorth.locked")}
