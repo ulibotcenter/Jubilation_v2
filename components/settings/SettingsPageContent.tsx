@@ -22,7 +22,8 @@ import { getCrossRate } from "@/lib/fx/convert";
 import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
-import { CURRENCIES, type Currency } from "@/types";
+import { COUNTRIES } from "@/lib/onboarding/country";
+import { CURRENCIES, type Country, type Currency } from "@/types";
 import { HouseholdCard } from "@/components/settings/HouseholdCard";
 import { B3ConsentCard } from "@/components/settings/B3ConsentCard";
 import { ImportFilesCard } from "@/components/settings/ImportFilesCard";
@@ -46,6 +47,8 @@ export function SettingsPageContent() {
   const setTheme = useAppStore((s) => s.setTheme);
   const planTier = useAppStore((s) => s.planTier);
   const currency = useAppStore((s) => s.currency);
+  const country = useAppStore((s) => s.country);
+  const setCountry = useAppStore((s) => s.setCountry);
   const changeCurrency = useAppStore((s) => s.changeCurrency);
   const isChangingCurrency = useAppStore((s) => s.isChangingCurrency);
   const fxSnapshot = useAppStore((s) => s.fxSnapshot);
@@ -195,6 +198,29 @@ export function SettingsPageContent() {
           <Link href={PRIVACY_PATH} className="btn-secondary mt-4 inline-flex">
             {t("settings.privacy.link")}
           </Link>
+        </section>
+
+        <section className="settings-page-card">
+          <div className="settings-page-card-head">
+            <Globe className="w-4 h-4 text-accent" size={16} />
+            <h2>{t("settings.country.title")}</h2>
+          </div>
+          <p className="settings-page-card-body">
+            {t("settings.country.body")}
+          </p>
+          <div className="settings-locale-options">
+            {COUNTRIES.map((c) => (
+              <button
+                key={c.code}
+                type="button"
+                className="settings-locale-option"
+                data-active={country === c.code ? "true" : "false"}
+                onClick={() => setCountry(c.code as Country)}
+              >
+                {t(`country.${c.code}` as MessageKey)}
+              </button>
+            ))}
+          </div>
         </section>
 
         <section className="settings-page-card">

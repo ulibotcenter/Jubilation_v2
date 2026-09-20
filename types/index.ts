@@ -16,6 +16,13 @@ export type Currency = "BRL" | "USD" | "EUR";
 
 export const DEFAULT_CURRENCY: Currency = "BRL";
 
+/** First-screen country. Tax rules follow this, not the display currency. */
+export type Country = "BR" | "US" | "PT" | "ES" | "DE" | "FR" | "IT" | "NL" | "IE" | "OTHER";
+
+export const DEFAULT_COUNTRY: Country = "BR";
+
+export type ListingStatus = "listed" | "unlisted";
+
 export interface CurrencyOption {
   code: Currency;
   symbol: string;
@@ -289,14 +296,13 @@ export const DEFAULT_KPI_VALUES: KPIValues = {
 export function normalizeKpiValues(partial?: Partial<KPIValues>): KPIValues {
   const merged = { ...DEFAULT_KPI_VALUES, ...partial };
   const currentAge = Math.max(18, Math.min(80, merged.currentAge));
+  const horizon = Math.max(55, Math.min(120, merged.lifeExpectancy));
+  /** Target retirement may equal the planning horizon (default 90 / 90). */
   const retirementAge = Math.max(
     currentAge + 1,
-    Math.min(Math.max(55, Math.min(120, merged.lifeExpectancy)) - 1, merged.retirementAge)
+    Math.min(horizon, merged.retirementAge)
   );
-  const lifeExpectancy = Math.max(
-    retirementAge + 1,
-    Math.max(55, Math.min(120, merged.lifeExpectancy))
-  );
+  const lifeExpectancy = Math.max(retirementAge, horizon);
   return { ...merged, currentAge, retirementAge, lifeExpectancy };
 }
 
@@ -385,6 +391,8 @@ export interface PortfolioAsset {
   realReturn?: number;
   /** Append-only (as_of, value) series. Latest point is currentPrice × quantity. */
   valueHistory?: DatedValuePoint[];
+  /** SpaceX-style private holdings are not listed tickers. */
+  listing?: ListingStatus;
 }
 
 export interface TickerSearchResult {

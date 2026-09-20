@@ -3,29 +3,36 @@ import {
   syncHolderWithKpis,
   type Household,
 } from "@/lib/engine/household";
+import type { AppLocale } from "@/lib/i18n/messages";
 import {
+  DEFAULT_LIFE_EXPECTANCY,
   normalizeKpiValues,
+  type Country,
+  type Currency,
   type KPIValues,
-  type PortfolioAsset,
 } from "@/types";
+import { emptyHoldings } from "@/lib/onboarding/seed";
 
-/** Four fields that produce a real first number. Renda fills today's spend and the retirement income goal until the user edits them. Retirement age stays 65 unless age already passed it. */
+/** First-screen micro-assessment. Salary, COL and savings stay for a later refine. */
 export interface OnboardingAnswers {
+  country: Country;
+  locale: AppLocale;
+  currency: Currency;
   age: number;
-  income: number;
-  contribution: number;
-  lifeExpectancy: number;
+  retirementAge: number;
 }
+
+export const DEFAULT_ONBOARDING_RETIREMENT_AGE = 90;
 
 export function kpisFromOnboarding(answers: OnboardingAnswers): KPIValues {
   return normalizeKpiValues({
     currentAge: answers.age,
-    monthlyExpenses: answers.income,
-    desiredMonthlyIncome: answers.income,
-    monthlyContribution: answers.contribution,
-    lifeExpectancy: answers.lifeExpectancy,
-    retirementAge: 65,
+    retirementAge: answers.retirementAge,
+    lifeExpectancy: Math.max(DEFAULT_LIFE_EXPECTANCY, answers.retirementAge),
     currentNetWorth: 0,
+    monthlyContribution: 0,
+    monthlyExpenses: 0,
+    desiredMonthlyIncome: 0,
   });
 }
 
@@ -50,6 +57,4 @@ export function householdFromOnboarding(
   };
 }
 
-export function emptyHoldings(): PortfolioAsset[] {
-  return [];
-}
+export { emptyHoldings };

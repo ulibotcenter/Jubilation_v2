@@ -200,10 +200,13 @@ export function generatePhysicalTicker(
   return `${base}-${n}`;
 }
 
-export function isNonMarketAsset(asset: Pick<PortfolioAsset, "assetClass" | "priceSource" | "manualKind">): boolean {
+export function isNonMarketAsset(
+  asset: Pick<PortfolioAsset, "assetClass" | "priceSource" | "manualKind" | "listing">
+): boolean {
   return (
     asset.assetClass === "real_estate" ||
     asset.assetClass === "personal" ||
+    asset.listing === "unlisted" ||
     asset.priceSource === "manual" ||
     Boolean(asset.manualKind)
   );

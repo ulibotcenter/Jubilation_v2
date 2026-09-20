@@ -1,7 +1,19 @@
-import type { KPIValues } from "@/types";
+import type { Currency, KPIValues } from "@/types";
 import { calculateAnnualIrpf } from "@/lib/engine/tax";
+import { convertAmount } from "@/lib/fx/convert";
+import { FALLBACK_FX_RATES, type FxRates } from "@/lib/fx/types";
 
 export type TaxRegion = "usa" | "eu" | "br";
+
+const TAX_HOME_CURRENCY: Record<TaxRegion, Currency> = {
+  usa: "USD",
+  eu: "EUR",
+  br: "BRL",
+};
+
+export function taxHomeCurrency(region: TaxRegion): Currency {
+  return TAX_HOME_CURRENCY[region];
+}
 
 export interface TaxEstimate {
   region: TaxRegion;
@@ -33,22 +45,34 @@ function usaFederalPreview(income: number): { tax: number; rate: number } {
   return { tax: Math.round(tax), rate: income > 0 ? tax / income : 0 };
 }
 
-/** Educational preview. Brazil uses the real 2026 IRPF engine (no cliff). */
+export interface TaxEstimateFx {
+  displayCurrency: Currency;
+  rates?: FxRates;
+}
+
+/** Educational preview. Brackets run in the tax-home currency, then convert back. */
 export function estimateRetirementTax(
   region: TaxRegion,
   kpis: KPIValues,
-  annualIncome: number
+  annualIncome: number,
+  fx?: TaxEstimateFx
 ): TaxEstimate {
-  const income = Math.max(0, annualIncome);
+  const display = fx?.displayCurrency ?? "BRL";
+  const rates = fx?.rates ?? FALLBACK_FX_RATES;
+  const home = TAX_HOME_CURRENCY[region];
+  const incomeHome = Math.max(
+    0,
+    convertAmount(annualIncome, display, home, rates)
+  );
 
   switch (region) {
     case "usa": {
-      const { tax, rate } = usaFederalPreview(income);
+      const { tax, rate } = usaFederalPreview(incomeHome);
       return {
         region,
         label: "United States (simplified)",
         effectiveRatePct: Math.round(rate * 1000) / 10,
-        estimatedAnnualTax: tax,
+        estimatedAnnualTax: convertAmount(tax, home, display, rates),
         notes: "Rough federal-style bracket preview. State/local not included.",
       };
     }
@@ -57,11 +81,16 @@ export function estimateRetirementTax(
         region,
         label: "European Union (blended)",
         effectiveRatePct: 28,
-        estimatedAnnualTax: Math.round(income * 0.28),
+        estimatedAnnualTax: convertAmount(
+          Math.round(incomeHome * 0.28),
+          home,
+          display,
+          rates
+        ),
         notes: "Illustrative blended rate for planning conversations.",
       };
     case "br": {
-      const result = calculateAnnualIrpf(Math.round(income * 100), {
+      const result = calculateAnnualIrpf(Math.round(incomeHome * 100), {
         age: Math.max(kpis.currentAge, kpis.retirementAge),
         retirementIncome: true,
         year: 2026,
@@ -70,7 +99,12 @@ export function estimateRetirementTax(
         region,
         label: "Brazil (IRPF 2026)",
         effectiveRatePct: Math.round(result.effectiveRate * 1000) / 10,
-        estimatedAnnualTax: Math.round(result.taxCents / 100),
+        estimatedAnnualTax: convertAmount(
+          result.taxCents / 100,
+          home,
+          display,
+          rates
+        ),
         notes:
           "Tabela progressiva 2026 + desconto simplificado + parcela 65 anos. Come-cotas e ganho de capital por veículo entram na Fase 1.",
       };

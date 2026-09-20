@@ -5,7 +5,10 @@ import { PortfolioInlineEdit } from "@/components/ui/PortfolioInlineEdit";
 import { getAssetClassLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { resolveAssetExpectedCagr } from "@/lib/portfolioCagr";
-import { computeHoldingMetrics } from "@/lib/portfolioMetrics";
+import {
+  computeHoldingMetrics,
+  type HoldingQuote,
+} from "@/lib/portfolioMetrics";
 import { CLASS_BG } from "@/lib/portfolioColors";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrencyValue, type PortfolioAsset } from "@/types";
@@ -13,6 +16,7 @@ import { formatCurrencyValue, type PortfolioAsset } from "@/types";
 interface PortfolioHoldingsTableProps {
   assets: PortfolioAsset[];
   totalValue: number;
+  quote: HoldingQuote;
   onRemove: (asset: PortfolioAsset) => void;
   mode?: "real" | "playground";
 }
@@ -20,6 +24,7 @@ interface PortfolioHoldingsTableProps {
 export function PortfolioHoldingsTable({
   assets,
   totalValue,
+  quote,
   onRemove,
   mode = "real",
 }: PortfolioHoldingsTableProps) {
@@ -31,7 +36,7 @@ export function PortfolioHoldingsTable({
     mode === "playground" ? updateSimPortfolioAsset : updatePortfolioAsset;
 
   return (
-    <div className="portfolio-table-wrapper">
+    <div className="portfolio-table-wrapper" id="portfolio-holdings">
       <table className="portfolio-table">
         <thead>
           <tr>
@@ -70,7 +75,7 @@ export function PortfolioHoldingsTable({
         </thead>
         <tbody>
           {assets.map((asset) => {
-            const m = computeHoldingMetrics(asset, totalValue);
+            const m = computeHoldingMetrics(asset, totalValue, quote);
             const isPositive = m.gain >= 0;
             const expectedCagr = resolveAssetExpectedCagr(asset);
 
@@ -105,8 +110,13 @@ export function PortfolioHoldingsTable({
                       ) : null}
                       <span className="portfolio-asset-class-badge mt-0.5 inline-block">
                         {getAssetClassLabel(locale, asset.assetClass)}
-                        {asset.currency === "BRL" && (
+                        {asset.source === "B3_API" && (
                           <span className="ml-1 opacity-70">· B3</span>
+                        )}
+                        {asset.listing === "unlisted" && (
+                          <span className="ml-1 opacity-70">
+                            · {t("portfolio.unlisted")}
+                          </span>
                         )}
                       </span>
                     </div>
@@ -181,7 +191,7 @@ export function PortfolioHoldingsTable({
 
                 <td className="portfolio-col-value text-right hidden sm:table-cell">
                   <span className="portfolio-cell-value">
-                    {formatCurrencyValue(m.marketValue, asset.currency)}
+                    {formatCurrencyValue(m.marketValue, quote.currency)}
                   </span>
                 </td>
 
@@ -191,7 +201,7 @@ export function PortfolioHoldingsTable({
                   }`}
                 >
                   {isPositive ? "+" : ""}
-                  {formatCurrencyValue(m.gain, asset.currency)}
+                  {formatCurrencyValue(m.gain, quote.currency)}
                 </td>
 
                 <td className="portfolio-col-pct text-right">

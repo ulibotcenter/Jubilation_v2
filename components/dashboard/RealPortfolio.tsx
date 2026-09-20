@@ -6,7 +6,9 @@ import {
   ArrowDownAZ,
   Briefcase,
   Clock,
+  Eraser,
   Link2,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -23,6 +25,7 @@ import { getAssetClassLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { computeWeightedPortfolioCagr } from "@/lib/portfolioCagr";
 import { useAppStore } from "@/store/useAppStore";
+import { convertHoldingMajor } from "@/lib/fx/convert";
 import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import {
   calculatePortfolioValue,
@@ -73,6 +76,8 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
   const removeSimPortfolioAsset = useAppStore((s) => s.removeSimPortfolioAsset);
   const removeAsset =
     mode === "playground" ? removeSimPortfolioAsset : removePortfolioAsset;
+  const clearPortfolio = useAppStore((s) => s.clearPortfolio);
+  const modelSeedActive = useAppStore((s) => s.modelSeedActive);
 
   const refreshPortfolioPrices = useAppStore((s) => s.refreshPortfolioPrices);
   const refreshSimPortfolioPrices = useAppStore(
@@ -104,8 +109,18 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
   );
 
   const totalCost = useMemo(
-    () => portfolio.reduce((sum, a) => sum + a.quantity * a.costBasis, 0),
-    [portfolio]
+    () =>
+      portfolio.reduce(
+        (sum, a) =>
+          sum +
+          convertHoldingMajor(
+            a.quantity * a.costBasis,
+            a.nativeCurrency ?? a.currency,
+            valueQuote
+          ),
+        0
+      ),
+    [portfolio, valueQuote]
   );
 
   const totalGain = totalValue - totalCost;
@@ -119,7 +134,11 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     if (totalValue === 0) return [];
     const map = new Map<AssetClass, number>();
     for (const asset of portfolio) {
-      const val = asset.quantity * asset.currentPrice;
+      const val = convertHoldingMajor(
+        asset.quantity * asset.currentPrice,
+        asset.nativeCurrency ?? asset.currency,
+        valueQuote
+      );
       map.set(asset.assetClass, (map.get(asset.assetClass) ?? 0) + val);
     }
     return Array.from(map.entries())
@@ -130,7 +149,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
         pct: (value / totalValue) * 100,
       }))
       .sort((a, b) => b.pct - a.pct);
-  }, [portfolio, totalValue, locale]);
+  }, [portfolio, totalValue, locale, valueQuote]);
 
   const classChips = useMemo(() => {
     const classes = new Set(portfolio.map((a) => a.assetClass));
@@ -153,14 +172,34 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     }
     return [...list].sort((a, b) => {
       if (sortBy === "ticker") return a.ticker.localeCompare(b.ticker);
-      const mvA = a.quantity * a.currentPrice;
-      const mvB = b.quantity * b.currentPrice;
-      const gainA = mvA - a.quantity * a.costBasis;
-      const gainB = mvB - b.quantity * b.costBasis;
+      const mvA = convertHoldingMajor(
+        a.quantity * a.currentPrice,
+        a.nativeCurrency ?? a.currency,
+        valueQuote
+      );
+      const mvB = convertHoldingMajor(
+        b.quantity * b.currentPrice,
+        b.nativeCurrency ?? b.currency,
+        valueQuote
+      );
+      const gainA =
+        mvA -
+        convertHoldingMajor(
+          a.quantity * a.costBasis,
+          a.nativeCurrency ?? a.currency,
+          valueQuote
+        );
+      const gainB =
+        mvB -
+        convertHoldingMajor(
+          b.quantity * b.costBasis,
+          b.nativeCurrency ?? b.currency,
+          valueQuote
+        );
       if (sortBy === "gain") return gainB - gainA;
       return mvB - mvA;
     });
-  }, [portfolio, searchQuery, classFilter, sortBy, locale]);
+  }, [portfolio, searchQuery, classFilter, sortBy, locale, valueQuote]);
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
@@ -203,12 +242,48 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     });
   };
 
+  const handleClearAll = () => {
+    if (mode !== "real") return;
+    if (!window.confirm(t("portfolio.clearConfirm"))) return;
+    clearPortfolio();
+    toast.info(t("toast.portfolio.cleared"), {
+      description: t("toast.portfolio.clearedDesc"),
+    });
+  };
+
   return (
     <div className="space-y-5">
+      {mode === "real" && modelSeedActive && portfolio.length > 0 ? (
+        <div className="portfolio-model-banner" role="status">
+          <p>{t("portfolio.model.banner")}</p>
+        </div>
+      ) : null}
       <div className="portfolio-toolbar">
         <button
           type="button"
           className="btn-primary"
+          onClick={() => {
+            document
+              .getElementById("portfolio-holdings")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        >
+          <Pencil className="w-4 h-4" size={16} />
+          {t("portfolio.editAssets")}
+        </button>
+        {mode === "real" && portfolio.length > 0 ? (
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleClearAll}
+          >
+            <Eraser className="w-4 h-4" size={16} />
+            {t("portfolio.clearAll")}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="btn-secondary"
           onClick={() => setAddOpen(true)}
         >
           <Plus className="w-4 h-4" size={16} />
@@ -436,6 +511,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           <PortfolioHoldingsTable
             assets={filteredAssets}
             totalValue={totalValue}
+            quote={valueQuote}
             onRemove={handleRemove}
             mode={mode}
           />
