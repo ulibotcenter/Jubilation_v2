@@ -96,6 +96,6 @@ describe("Vercel / Next EU pin", () => {
       resolve(process.cwd(), "app/layout.tsx"),
       "utf8"
     );
-    expect(layout).toMatch(/export \{ preferredRegion \} from "@\/lib\/region"/);
+    expect(layout).toMatch(/export const preferredRegion = "fra1"/);
   });
 });

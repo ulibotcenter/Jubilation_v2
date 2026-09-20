@@ -6,12 +6,11 @@ import {
   DataRegionError,
   assertTenantMayPersistOnHost,
   parseDataRegion,
-  preferredRegion,
   regionPersistResponse,
 } from "@/lib/region";
 
 export const dynamic = "force-dynamic";
-export { preferredRegion };
+export const preferredRegion = "fra1";
 
 function regionBlocked(err: unknown) {
   if (err instanceof DataRegionError) {

@@ -27,6 +27,7 @@ export interface CloudAuthConfig {
   smtpPass: string;
   emailFrom: string;
   smtpSecure: boolean;
+  databaseSsl: boolean;
   defaultDataRegion: DataRegion;
   hostDataRegion: DataRegion;
 }

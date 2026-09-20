@@ -10,12 +10,11 @@ import {
 import { hashPassword } from "@/lib/cloud/passwords";
 import {
   DataRegionError,
-  preferredRegion,
   regionPersistResponse,
 } from "@/lib/region";
 
 export const dynamic = "force-dynamic";
-export { preferredRegion };
+export const preferredRegion = "fra1";
 
 export async function POST(request: NextRequest) {
   if (!allowRequest(rateLimitKey(request), 8)) {

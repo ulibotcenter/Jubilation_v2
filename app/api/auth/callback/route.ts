@@ -12,10 +12,10 @@ import {
   cloudDisabledResponse,
   requireCloudConfig,
 } from "@/lib/cloud/http";
-import { DataRegionError, preferredRegion } from "@/lib/region";
+import { DataRegionError } from "@/lib/region";
 
 export const dynamic = "force-dynamic";
-export { preferredRegion };
+export const preferredRegion = "fra1";
 
 export async function GET(request: NextRequest) {
   if (!allowRequest(rateLimitKey(request), 8)) {
