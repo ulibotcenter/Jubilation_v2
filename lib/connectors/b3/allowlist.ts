@@ -12,6 +12,10 @@ export const EQUITIES_POSITION_FIELDS = [
   "participantDocumentNumber",
   "participantName",
   "accountNumber",
+  "issuerDocumentNumber",
+  "lockedQuantity",
+  "gravameQuantity",
+  "gravameValue",
 ] as const;
 
 export const TREASURY_POSITION_FIELDS = [
@@ -100,6 +104,7 @@ export interface AllowlistedB3Payload {
   equitiesPositions: Record<string, unknown>[];
   treasuryPositions: Record<string, unknown>[];
   fixedIncomePositions: Record<string, unknown>[];
+  derivativesPositions: Record<string, unknown>[];
   movements: Record<string, unknown>[];
   events: Record<string, unknown>[];
 }
@@ -127,6 +132,9 @@ export function allowlistB3Payload(raw: unknown, fallbackAsOf: string): Allowlis
     fixedIncomePositions: asRows(
       obj.fixedIncomePositions ?? obj.FixedIncomePositions
     ).map((row) => pick(row, FIXED_INCOME_POSITION_FIELDS)),
+    derivativesPositions: asRows(
+      obj.derivativesPositions ?? obj.DerivativesPositions
+    ).map((row) => pick(row, EQUITIES_POSITION_FIELDS)),
     movements: asRows(obj.movements).map((row) => pick(row, MOVEMENT_FIELDS)),
     events: asRows(obj.events ?? obj.provisionedEvents).map((row) =>
       pick(row, EVENT_FIELDS)

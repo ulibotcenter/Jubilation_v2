@@ -13,6 +13,7 @@ export const CLASS_BG: Record<AssetClass, string> = {
   personal: "bg-rose-500",
   crypto: "bg-yellow-500",
   cash: "bg-slate-400",
+  derivatives: "bg-orange-600",
   other: "bg-zinc-500",
 };
 
@@ -29,5 +30,6 @@ export const CLASS_HEX: Record<AssetClass, string> = {
   personal: "#f43f5e",
   crypto: "#eab308",
   cash: "#94a3b8",
+  derivatives: "#ea580c",
   other: "#71717a",
 };

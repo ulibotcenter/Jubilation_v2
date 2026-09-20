@@ -253,6 +253,8 @@ export function buildAssetFromPreset(input: {
     allowSale: input.allowSale ?? input.preset.allowSale,
     scheduledSaleOn: null,
     source: "MANUAL",
+    origin: "manual",
+    valueType: "user_estimate",
     asOf: input.asOf,
     confidence: "high",
     ownership: input.ownership,

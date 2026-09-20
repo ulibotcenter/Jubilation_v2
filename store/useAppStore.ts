@@ -70,9 +70,15 @@ import {
 } from "@/lib/tax/manual";
 import {
   createModelSeed,
+  dropSeedIfUserHoldings,
   emptyHoldings,
   isModelSeedPortfolio,
 } from "@/lib/onboarding/seed";
+import {
+  mergeCashFlows,
+  migrateHolding,
+  reconcileIncludedIds,
+} from "@/lib/holdings/origin";
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { migratePersistedState, CURRENT_PERSIST_VERSION } from "@/lib/persist/migrate";
 import {
@@ -128,7 +134,7 @@ import {
   runStressTest,
 } from "@/types";
 import { runStressTestFromConfig } from "@/lib/stressTest";
-import type { Institution, FinancialAccount, Entitlement } from "@/lib/engine/canonical";
+import type { Institution, FinancialAccount, Entitlement, CashFlow } from "@/lib/engine/canonical";
 
 function emptyB3Sync(): ConnectorSyncState {
   return {
@@ -390,6 +396,7 @@ export interface AppStore {
   tenant: Tenant;
   institutions: Institution[];
   accounts: FinancialAccount[];
+  cashFlows: CashFlow[];
   entitlements: Entitlement[];
   consents: Consent[];
   consentAuditLog: ConsentAuditEntry[];
@@ -647,12 +654,16 @@ export function mergePersistedAppState(
     persisted,
     CURRENT_PERSIST_VERSION
   ) as Partial<AppStore>;
-  const portfolio = normalizePortfolioAssets(
-    normalizePortfolioCagr(migrated.portfolio ?? current.portfolio)
+  const portfolio = dropSeedIfUserHoldings(
+    normalizePortfolioAssets(
+      normalizePortfolioCagr(migrated.portfolio ?? current.portfolio)
+    )
   );
-  const simulationIncludedAssetIds =
+  const simulationIncludedAssetIds = reconcileIncludedIds(
+    portfolio,
     migrated.simulationIncludedAssetIds ??
-    current.simulationIncludedAssetIds;
+      current.simulationIncludedAssetIds
+  );
   const kpiOutsidePortfolio =
     migrated.kpiOutsidePortfolio ?? current.kpiOutsidePortfolio;
   const kpis = normalizeKpiValues(migrated.kpis ?? current.kpis);
@@ -717,6 +728,7 @@ export function mergePersistedAppState(
     tenant: normalizeTenant(migrated.tenant ?? DEFAULT_TENANT),
     institutions: migrated.institutions ?? [],
     accounts: migrated.accounts ?? [],
+    cashFlows: Array.isArray(migrated.cashFlows) ? migrated.cashFlows : [],
     entitlements: migrated.entitlements ?? [],
     consents: Array.isArray(migrated.consents) ? migrated.consents : [],
     consentAuditLog: Array.isArray(migrated.consentAuditLog)
@@ -725,11 +737,7 @@ export function mergePersistedAppState(
     connectorSync: migrated.connectorSync ?? { b3: emptyB3Sync() },
     household,
     country: migrated.country ?? current.country,
-    modelSeedActive:
-      migrated.modelSeedActive ??
-      (Array.isArray(migrated.portfolio)
-        ? isModelSeedPortfolio(portfolio)
-        : current.modelSeedActive),
+    modelSeedActive: isModelSeedPortfolio(portfolio),
     portfolio,
     simulationIncludedAssetIds,
     kpiOutsidePortfolio,
@@ -791,6 +799,7 @@ export const useAppStore = create<AppStore>()(
       tenant: DEFAULT_TENANT,
       institutions: [],
       accounts: [],
+      cashFlows: [],
       entitlements: [],
       consents: [],
       consentAuditLog: [],
@@ -1122,16 +1131,19 @@ export const useAppStore = create<AppStore>()(
         );
         const keepSeed =
           state.modelSeedActive &&
-          (state.portfolio.length === 0 || isModelSeedPortfolio(state.portfolio));
-        const portfolio = keepSeed
-          ? state.portfolio.length > 0
-            ? state.portfolio
-            : createModelSeed()
-          : state.portfolio;
-        const simulationIncludedAssetIds =
-          portfolio.length > 0
-            ? portfolio.map((a) => a.id)
-            : [];
+          (state.portfolio.length === 0 || isModelSeedPortfolio(state.portfolio)) &&
+          !state.portfolio.some((row) => row.origin === "manual" || row.origin === "b3" || row.origin === "irpf");
+        const portfolio = dropSeedIfUserHoldings(
+          keepSeed
+            ? state.portfolio.length > 0
+              ? state.portfolio
+              : createModelSeed()
+            : state.portfolio
+        );
+        const simulationIncludedAssetIds = reconcileIncludedIds(
+          portfolio,
+          portfolio.map((a) => a.id)
+        );
         const manualEffectiveTaxRatePct = isCoveredTaxHome(answers.country)
           ? state.manualEffectiveTaxRatePct
           : (answers.manualEffectiveTaxRatePct ??
@@ -1157,7 +1169,7 @@ export const useAppStore = create<AppStore>()(
           portfolio,
           simulationIncludedAssetIds,
           kpiOutsidePortfolio: 0,
-          modelSeedActive: keepSeed,
+          modelSeedActive: isModelSeedPortfolio(portfolio),
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
@@ -1244,11 +1256,15 @@ export const useAppStore = create<AppStore>()(
 
       addPortfolioAsset: (asset) => {
         const state = get();
-        const portfolio = [...state.portfolio, asset];
-        const simulationIncludedAssetIds = [
-          ...state.simulationIncludedAssetIds,
-          asset.id,
-        ];
+        const incoming = migrateHolding(asset);
+        const portfolio = dropSeedIfUserHoldings([
+          ...state.portfolio,
+          incoming,
+        ]);
+        const simulationIncludedAssetIds = reconcileIncludedIds(
+          portfolio,
+          [...state.simulationIncludedAssetIds, incoming.id]
+        );
         const built = buildProjectionsFromState({
           ...state,
           portfolio,
@@ -1257,6 +1273,7 @@ export const useAppStore = create<AppStore>()(
         set({
           portfolio,
           simulationIncludedAssetIds,
+          modelSeedActive: isModelSeedPortfolio(portfolio),
           kpis: built.kpis,
           projections: built.projections,
           chartData: built.chartData,
@@ -1475,6 +1492,7 @@ export const useAppStore = create<AppStore>()(
             institutions: Institution[];
             accounts: FinancialAccount[];
             holdings: PortfolioAsset[];
+            cashFlows?: CashFlow[];
           };
           const latest = get();
           if (latest.b3SyncGeneration !== gen) {
@@ -1523,15 +1541,19 @@ export const useAppStore = create<AppStore>()(
             throw new Error(committed.sync.lastError ?? "B3 unavailable");
           }
           const reconciled = committed.reconcile;
-          const simulationIncludedAssetIds = [
-            ...new Set([
+          const incomingFlows = body.cashFlows ?? [];
+          const cashFlows = mergeCashFlows(latest.cashFlows, incomingFlows);
+          const portfolio = dropSeedIfUserHoldings(reconciled.portfolio);
+          const simulationIncludedAssetIds = reconcileIncludedIds(
+            portfolio,
+            [
               ...latest.simulationIncludedAssetIds,
-              ...reconciled.portfolio.map((a) => a.id),
-            ]),
-          ];
+              ...portfolio.map((a) => a.id),
+            ]
+          );
           const built = buildProjectionsFromState({
             ...latest,
-            portfolio: reconciled.portfolio,
+            portfolio,
             simulationIncludedAssetIds,
           });
           const sync = committed.sync;
@@ -1543,9 +1565,11 @@ export const useAppStore = create<AppStore>()(
             detail: `mode=${sync.mode};asOf=${sync.asOf};holdings=${body.holdings?.length ?? 0}`,
           });
           set({
-            portfolio: reconciled.portfolio,
+            portfolio,
             institutions: reconciled.institutions,
             accounts: reconciled.accounts,
+            cashFlows,
+            modelSeedActive: isModelSeedPortfolio(portfolio),
             simulationIncludedAssetIds,
             kpis: built.kpis,
             projections: built.projections,
@@ -1708,16 +1732,19 @@ export const useAppStore = create<AppStore>()(
             state.portfolio,
             asOf
           );
-          const portfolio = applyIrpfHoldings({
-            existing: state.portfolio,
-            incoming,
-          });
-          const simulationIncludedAssetIds = [
-            ...new Set([
+          const portfolio = dropSeedIfUserHoldings(
+            applyIrpfHoldings({
+              existing: state.portfolio,
+              incoming,
+            })
+          );
+          const simulationIncludedAssetIds = reconcileIncludedIds(
+            portfolio,
+            [
               ...state.simulationIncludedAssetIds,
               ...portfolio.map((a) => a.id),
-            ]),
-          ];
+            ]
+          );
           const built = buildProjectionsFromState({
             ...state,
             portfolio,
@@ -1743,6 +1770,7 @@ export const useAppStore = create<AppStore>()(
           set({
             portfolio,
             simulationIncludedAssetIds,
+            modelSeedActive: isModelSeedPortfolio(portfolio),
             kpis: built.kpis,
             projections: built.projections,
             chartData: built.chartData,

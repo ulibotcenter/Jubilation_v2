@@ -102,6 +102,7 @@ describe("onboarding plan", () => {
       tenant: { dataRegion: "eu" },
       institutions: [],
       accounts: [],
+      cashFlows: [],
       entitlements: [],
       consents: [],
       consentAuditLog: [],

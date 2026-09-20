@@ -8,6 +8,7 @@ import { ProjectionChartCard } from "@/components/dashboard/ProjectionChartCard"
 import { RebalanceCard } from "@/components/dashboard/RebalanceCard";
 import { RetirementHero } from "@/components/dashboard/RetirementHero";
 import { KPICards } from "@/components/dashboard/KPICards";
+import { OriginTotalsStrip } from "@/components/dashboard/OriginTotalsStrip";
 import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
 import { AppShell } from "@/components/layout/AppShell";
 import { NeedleDeltaCard } from "@/components/platform/NeedleDeltaCard";
@@ -55,6 +56,8 @@ export default function DashboardPage() {
   return (
     <AppShell enableHashSync>
       <RetirementHero />
+
+      <OriginTotalsStrip />
 
       <section className="mb-5 sm:mb-6" id="dashboard">
         <KPICards mode="real" />

@@ -15,6 +15,7 @@ export const DEFAULT_ASSET_CLASS_REAL_RETURN: Record<AssetClass, number> = {
   personal: 0,
   crypto: 2,
   cash: 2,
+  derivatives: 0,
   other: 3.5,
 };
 

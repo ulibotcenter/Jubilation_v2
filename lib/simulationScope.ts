@@ -1,11 +1,11 @@
 import {
-  calculatePortfolioValue,
-  type KPIValues,
-  type PortfolioAsset,
-  type PortfolioValueQuote,
-} from "@/types";
+  defaultEngineIncludedIds,
+  isEngineIncludedByDefault,
+  projectablePortfolioValue,
+} from "@/lib/holdings/origin";
+import type { KPIValues, PortfolioAsset, PortfolioValueQuote } from "@/types";
 
-/** KPIs with net worth adjusted for included portfolio assets only */
+/** KPIs with net worth adjusted for included, projectable holdings only */
 export function resolveSimulationKpis(
   kpis: KPIValues,
   portfolio: PortfolioAsset[],
@@ -13,7 +13,8 @@ export function resolveSimulationKpis(
   outsidePortfolio?: number,
   quote?: PortfolioValueQuote
 ): KPIValues {
-  const totalPortfolio = calculatePortfolioValue(portfolio, quote);
+  void includedAssetIds;
+  const totalPortfolio = projectablePortfolioValue(portfolio, quote);
   const outside =
     outsidePortfolio ??
     Math.max(0, Math.round(kpis.currentNetWorth - totalPortfolio));
@@ -27,7 +28,7 @@ export function resolveSimulationKpis(
 export function getDefaultIncludedAssetIds(
   portfolio: PortfolioAsset[]
 ): string[] {
-  return portfolio.map((a) => a.id);
+  return defaultEngineIncludedIds(portfolio);
 }
 
 export const SCOPE_PRESETS = {
@@ -60,7 +61,9 @@ export function applyScopePreset(
   }
   const excluded = new Set<string>(preset.excludeClasses);
   return portfolio
-    .filter((a) => !excluded.has(a.assetClass))
+    .filter(
+      (a) => !excluded.has(a.assetClass) && isEngineIncludedByDefault(a)
+    )
     .map((a) => a.id);
 }
 
