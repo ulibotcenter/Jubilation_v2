@@ -5040,6 +5040,124 @@ html.light .add-asset-modal {
   color: var(--loss);
 }
 
+.origin-totals {
+  margin-bottom: 1.25rem;
+}
+
+.origin-totals-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-inline: 0.125rem;
+}
+
+.origin-totals-refresh {
+  font-size: 0.75rem;
+  padding-inline: 0.65rem;
+}
+
+.origin-totals-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .origin-totals-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.origin-total-card {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.95rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 100%;
+}
+
+.origin-total-card[data-origin="b3"] {
+  border-color: color-mix(in srgb, #3b82f6 28%, var(--border));
+}
+
+.origin-total-card[data-origin="irpf"] {
+  border-color: color-mix(in srgb, #a855f7 28%, var(--border));
+}
+
+.origin-total-card[data-origin="manual"] {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.origin-total-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.origin-total-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.origin-total-meta,
+.origin-total-hint {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
+.origin-total-cta {
+  margin-top: 0.55rem;
+}
+
+.origin-total-cta > div {
+  width: 100%;
+  align-items: stretch;
+}
+
+.origin-total-cta .btn-secondary,
+.origin-total-cta .btn-primary {
+  width: 100%;
+  justify-content: center;
+}
+
+.origin-badge {
+  font-size: 0.5625rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.origin-badge--b3 {
+  background: color-mix(in srgb, #3b82f6 18%, var(--surface-elevated));
+  color: #93c5fd;
+}
+
+.origin-badge--irpf {
+  background: color-mix(in srgb, #a855f7 18%, var(--surface-elevated));
+  color: #d8b4fe;
+}
+
+.origin-badge--manual {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-elevated));
+  color: var(--accent);
+}
+
+.origin-badge--gravame {
+  background: color-mix(in srgb, #f59e0b 16%, var(--surface-elevated));
+  color: #fbbf24;
+}
+
 .portfolio-stat-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

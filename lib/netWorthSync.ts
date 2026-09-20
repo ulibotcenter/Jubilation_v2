@@ -1,9 +1,5 @@
-import {
-  calculatePortfolioValue,
-  type KPIValues,
-  type PortfolioAsset,
-  type PortfolioValueQuote,
-} from "@/types";
+import { projectablePortfolioValue } from "@/lib/holdings/origin";
+import type { KPIValues, PortfolioAsset, PortfolioValueQuote } from "@/types";
 
 /** Wealth held outside tracked portfolio holdings (property, pensions, etc.) */
 export function computeOutsidePortfolio(
@@ -11,7 +7,7 @@ export function computeOutsidePortfolio(
   portfolio: PortfolioAsset[],
   quote?: PortfolioValueQuote
 ): number {
-  const total = calculatePortfolioValue(portfolio, quote);
+  const total = projectablePortfolioValue(portfolio, quote);
   return Math.round(kpis.currentNetWorth - total);
 }
 
@@ -21,7 +17,7 @@ export function syncNetWorthWithPortfolio(
   outsidePortfolio: number,
   quote?: PortfolioValueQuote
 ): KPIValues {
-  const total = calculatePortfolioValue(portfolio, quote);
+  const total = projectablePortfolioValue(portfolio, quote);
   return {
     ...kpis,
     currentNetWorth: Math.round(total + outsidePortfolio),
@@ -33,5 +29,5 @@ export function deriveOutsideFromManualNetWorth(
   portfolio: PortfolioAsset[],
   quote?: PortfolioValueQuote
 ): number {
-  return Math.round(netWorth - calculatePortfolioValue(portfolio, quote));
+  return Math.round(netWorth - projectablePortfolioValue(portfolio, quote));
 }

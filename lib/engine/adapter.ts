@@ -10,6 +10,11 @@ import {
 import { fisherReal } from "@/lib/engine/rates";
 import { defaultPlan, type BenefitSlice, type EnginePlan } from "@/lib/engine/plan";
 import { defaultTaxRegime, resolveLiquidity } from "@/lib/engine/liquidity";
+import {
+  holdingProjectableMajor,
+  isProjectable,
+  withProjectableValue,
+} from "@/lib/holdings/origin";
 import { resolveAssetExpectedCagr } from "@/lib/portfolioCagr";
 import { DEFAULT_PARAMETER_SET, paramsForYear } from "@/lib/engine/parameters";
 import { todayIsoDate } from "@/lib/engine/provenance";
@@ -76,8 +81,11 @@ export function assertQuoteForPortfolio(
 }
 
 function assetValueInQuote(asset: PortfolioAsset, quote: FxQuote): number {
+  const major = isProjectable(asset)
+    ? holdingProjectableMajor(asset)
+    : asset.quantity * asset.currentPrice;
   const native = fromMajor(
-    asset.quantity * asset.currentPrice,
+    major,
     asset.nativeCurrency ?? asset.currency,
     "real",
     asset.asOf ?? todayIsoDate()
@@ -108,11 +116,13 @@ export function aggregatePortfolioMajor(
   assertQuoteForPortfolio(assets, quote);
   let cents = 0;
   for (const asset of assets) {
+    const haircut = withProjectableValue(asset);
+    if (!haircut) continue;
     const native = fromMajor(
-      asset.quantity * asset.currentPrice,
-      asset.nativeCurrency ?? asset.currency,
+      haircut.quantity * haircut.currentPrice,
+      haircut.nativeCurrency ?? haircut.currency,
       "real",
-      asset.asOf ?? todayIsoDate()
+      haircut.asOf ?? todayIsoDate()
     );
     cents += convertMoney(native, quote.currency, quote.rates).cents;
   }
@@ -128,12 +138,16 @@ export function buildEnginePlan(input: EngineBuildInput): EnginePlan {
   );
   const included = new Set(input.includedAssetIds);
   const liquidAssets = scoped.filter(
-    (a) => included.has(a.id) && resolveLiquidity(a) === "liquid"
+    (a) =>
+      included.has(a.id) &&
+      resolveLiquidity(a) === "liquid" &&
+      isProjectable(a)
   );
   // Illiquid holdings stay in the static bucket even when the scope
   // filter is "investments only". They are never sold (M8).
+  // IRPF 31/12 cost and opted-out derivatives stay out of both buckets.
   const illiquidAssets = scoped.filter(
-    (a) => resolveLiquidity(a) === "illiquid"
+    (a) => resolveLiquidity(a) === "illiquid" && isProjectable(a)
   );
 
   const liquidMajor =

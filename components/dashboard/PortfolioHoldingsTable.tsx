@@ -11,6 +11,8 @@ import {
 } from "@/lib/portfolioMetrics";
 import { CLASS_BG } from "@/lib/portfolioColors";
 import { useAppStore } from "@/store/useAppStore";
+import { OriginBadge } from "@/components/portfolio/OriginBadge";
+import { originOf } from "@/lib/holdings/origin";
 import { formatCurrencyValue, type PortfolioAsset } from "@/types";
 
 interface PortfolioHoldingsTableProps {
@@ -95,7 +97,7 @@ export function PortfolioHoldingsTable({
                       <p className="text-[11px] text-muted-foreground truncate">
                         {asset.name}
                       </p>
-                      {asset.source === "B3_API" && asset.asOf ? (
+                      {originOf(asset) === "b3" && asset.asOf ? (
                         <p className="text-[10px] text-muted tabular-nums">
                           {b3Mode === "live"
                             ? t("portfolio.b3.sourceAsOf", { date: asset.asOf })
@@ -107,18 +109,27 @@ export function PortfolioHoldingsTable({
                                   date: asset.asOf,
                                 })}
                         </p>
+                      ) : asset.asOf && originOf(asset) ? (
+                        <p className="text-[10px] text-muted tabular-nums">
+                          {t("dashboard.origins.asOf", { date: asset.asOf })}
+                        </p>
                       ) : null}
-                      <span className="portfolio-asset-class-badge mt-0.5 inline-block">
-                        {getAssetClassLabel(locale, asset.assetClass)}
-                        {asset.source === "B3_API" && (
-                          <span className="ml-1 opacity-70">· B3</span>
-                        )}
-                        {asset.listing === "unlisted" && (
-                          <span className="ml-1 opacity-70">
-                            · {t("portfolio.unlisted")}
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                        <OriginBadge asset={asset} />
+                        <span className="portfolio-asset-class-badge inline-block">
+                          {getAssetClassLabel(locale, asset.assetClass)}
+                          {asset.listing === "unlisted" && (
+                            <span className="ml-1 opacity-70">
+                              · {t("portfolio.unlisted")}
+                            </span>
+                          )}
+                        </span>
+                        {(asset.gravameValue ?? 0) > 0 ? (
+                          <span className="origin-badge origin-badge--gravame">
+                            {t("portfolio.gravame")}
                           </span>
-                        )}
-                      </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </td>

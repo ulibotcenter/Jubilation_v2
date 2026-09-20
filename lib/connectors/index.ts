@@ -16,7 +16,11 @@ export {
   type Consent,
   type ConsentAuditEntry,
 } from "@/lib/connectors/consent";
-export { reconcileHoldings, matchImported } from "@/lib/connectors/reconcile";
+export {
+  reconcileHoldings,
+  matchImported,
+  applyOriginIncoming,
+} from "@/lib/connectors/reconcile";
 export { isOutsideB3Coverage } from "@/lib/connectors/coverage";
 export {
   isConnectorEnabled,

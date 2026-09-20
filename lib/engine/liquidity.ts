@@ -1,5 +1,6 @@
 import type { AssetClass, PortfolioAsset } from "@/types";
 import type { Liquidity, TaxRegime } from "@/lib/engine/plan";
+import { migrateHolding } from "@/lib/holdings/origin";
 
 const ILLIQUID_CLASSES: ReadonlySet<AssetClass> = new Set([
   "real_estate",
@@ -28,31 +29,34 @@ export function defaultTaxRegime(assetClass: AssetClass): TaxRegime {
 
 export function normalizePortfolioAsset(asset: PortfolioAsset): PortfolioAsset {
   const asOf = asset.asOf ?? asset.lastPriceAt ?? new Date().toISOString().slice(0, 10);
+  const migrated = migrateHolding({ ...asset, asOf });
   return {
-    ...asset,
-    nativeCurrency: asset.nativeCurrency ?? asset.currency,
-    liquidity: resolveLiquidity(asset),
+    ...migrated,
+    nativeCurrency: migrated.nativeCurrency ?? migrated.currency,
+    liquidity: resolveLiquidity(migrated),
     transactionCostRate:
-      asset.transactionCostRate ?? defaultTransactionCostRate(asset.assetClass),
-    allowSale: asset.allowSale ?? false,
-    scheduledSaleOn: asset.scheduledSaleOn ?? null,
-    source: asset.source ?? (asset.priceSource === "manual" ? "MANUAL" : "ESTIMATED"),
+      migrated.transactionCostRate ?? defaultTransactionCostRate(migrated.assetClass),
+    allowSale: migrated.allowSale ?? false,
+    scheduledSaleOn: migrated.scheduledSaleOn ?? null,
+    source:
+      migrated.source ??
+      (migrated.priceSource === "manual" ? "MANUAL" : "ESTIMATED"),
     asOf,
-    confidence: asset.confidence ?? "medium",
-    externalRef: asset.externalRef ?? null,
-    institutionId: asset.institutionId ?? null,
-    accountId: asset.accountId ?? null,
-    ownership: asset.ownership ?? "holder",
+    confidence: migrated.confidence ?? "medium",
+    externalRef: migrated.externalRef ?? null,
+    institutionId: migrated.institutionId ?? null,
+    accountId: migrated.accountId ?? null,
+    ownership: migrated.ownership ?? "holder",
     valueHistory:
-      asset.valueHistory && asset.valueHistory.length > 0
-        ? asset.valueHistory
+      migrated.valueHistory && migrated.valueHistory.length > 0
+        ? migrated.valueHistory
         : [
             {
               asOf,
-              value: asset.quantity * asset.currentPrice,
+              value: migrated.quantity * migrated.currentPrice,
               source:
-                asset.source ??
-                (asset.priceSource === "manual" ? "MANUAL" : "ESTIMATED"),
+                migrated.source ??
+                (migrated.priceSource === "manual" ? "MANUAL" : "ESTIMATED"),
             },
           ],
   };

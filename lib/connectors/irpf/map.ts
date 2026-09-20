@@ -2,6 +2,8 @@ import type { PortfolioAsset } from "@/types";
 import { buildAssetFromPreset, presetById } from "@/lib/physicalAssetPresets";
 import { stableEntityId } from "@/lib/engine/ids";
 import type { IrpfAllowlisted } from "@/lib/connectors/irpf/allowlist";
+import { matchImported } from "@/lib/connectors/reconcile";
+import { originOf, originRank, stampOrigin } from "@/lib/holdings/origin";
 
 const SUGGEST_CODES: Record<string, string> = {
   "01": "primary-home",
@@ -55,15 +57,24 @@ export function suggestIrpfHoldings(
       portfolio: [...used, ...out],
     });
     const ref = `irpf:${allowlisted.anoBase ?? "na"}:${asset.code}:${asset.description.slice(0, 40)}`;
-    out.push({
-      ...built,
-      id: stableEntityId("irpf", ref),
-      source: "FILE_IRPF",
-      asOf,
-      confidence: "high",
-      externalRef: ref,
-      valueHistory: [{ asOf, value, source: "FILE_IRPF" }],
-    });
+    out.push(
+      stampOrigin(
+        {
+          ...built,
+          id: stableEntityId("irpf", ref),
+          source: "FILE_IRPF",
+          asOf,
+          confidence: "high",
+          externalRef: ref,
+          code: asset.code,
+          valueType: "cost",
+          origin: "irpf",
+          valueHistory: [{ asOf, value, source: "FILE_IRPF" }],
+        },
+        "irpf",
+        "cost"
+      )
+    );
   }
   return out;
 }
@@ -73,46 +84,55 @@ export function applyIrpfHoldings(input: {
   incoming: PortfolioAsset[];
 }): PortfolioAsset[] {
   const next = [...input.existing];
-  for (const incoming of input.incoming) {
-    const b3Clash = input.existing.find(
-      (row) =>
-        row.source === "B3_API" &&
-        (Boolean(incoming.externalRef && row.externalRef === incoming.externalRef) ||
-          row.ticker.toUpperCase() === incoming.ticker.toUpperCase())
+  for (const raw of input.incoming) {
+    const incoming = stampOrigin(
+      { ...raw, valueType: raw.valueType ?? "cost" },
+      "irpf",
+      "cost"
     );
-    if (b3Clash) continue;
-    const sameRef = next.find(
-      (row) =>
-        incoming.externalRef &&
-        row.externalRef === incoming.externalRef &&
-        row.source === "FILE_IRPF"
-    );
-    if (sameRef) {
-      const idx = next.indexOf(sameRef);
-      next[idx] = {
-        ...sameRef,
-        currentPrice: incoming.currentPrice,
-        asOf: incoming.asOf,
-        lastPriceAt: incoming.lastPriceAt,
-        source: "FILE_IRPF",
-      };
+    const identity = matchImported(next, incoming);
+    if (identity && originRank(originOf(identity)) > originRank("irpf")) {
+      continue;
+    }
+    if (identity) {
+      const idx = next.indexOf(identity);
+      next[idx] = stampOrigin(
+        {
+          ...identity,
+          currentPrice: incoming.currentPrice,
+          asOf: incoming.asOf,
+          lastPriceAt: incoming.lastPriceAt,
+          source: "FILE_IRPF",
+          code: incoming.code ?? identity.code,
+          valueType: "cost",
+        },
+        "irpf",
+        "cost"
+      );
       continue;
     }
     const sameKind = next.find(
       (row) =>
         row.manualKind &&
         row.manualKind === incoming.manualKind &&
+        originOf(row) !== "b3" &&
         row.source !== "B3_API" &&
         row.name === incoming.name
     );
     if (sameKind) {
       const idx = next.indexOf(sameKind);
-      next[idx] = {
-        ...sameKind,
-        currentPrice: incoming.currentPrice,
-        asOf: incoming.asOf,
-        source: sameKind.source === "B3_API" ? sameKind.source : "FILE_IRPF",
-      };
+      next[idx] = stampOrigin(
+        {
+          ...sameKind,
+          currentPrice: incoming.currentPrice,
+          asOf: incoming.asOf,
+          source: "FILE_IRPF",
+          code: incoming.code ?? sameKind.code,
+          valueType: "cost",
+        },
+        "irpf",
+        "cost"
+      );
       continue;
     }
     next.push(incoming);

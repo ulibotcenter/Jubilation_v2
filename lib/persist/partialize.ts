@@ -18,6 +18,7 @@ export function partializePersistedState<
     tenant: unknown;
     institutions: unknown;
     accounts: unknown;
+    cashFlows: unknown;
     entitlements: unknown;
     consents: unknown;
     consentAuditLog: unknown;
@@ -53,6 +54,7 @@ export function partializePersistedState<
     tenant: state.tenant,
     institutions: state.institutions,
     accounts: state.accounts,
+    cashFlows: state.cashFlows,
     entitlements: state.entitlements,
     consents: state.consents,
     consentAuditLog: state.consentAuditLog,

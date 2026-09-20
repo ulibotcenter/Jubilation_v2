@@ -76,7 +76,7 @@ export function ImportFilesCard() {
   const evidence = pending === "cnis" ? CNIS_CONSENT_EVIDENCE_PT : IRPF_CONSENT_EVIDENCE_PT;
 
   return (
-    <section className="settings-page-card">
+    <section className="settings-page-card" id="import-files">
       <div className="settings-page-card-head">
         <FileUp className="w-4 h-4 text-accent" size={16} />
         <h2>{t("settings.files.title")}</h2>
@@ -133,7 +133,7 @@ export function ImportFilesCard() {
             : ""}
         </p>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" id="import-irpf">
           <input
             id="irpf-file-input"
             ref={irpfInput}

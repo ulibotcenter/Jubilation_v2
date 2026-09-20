@@ -179,6 +179,8 @@ export function AddAssetModal({
       currency,
       nativeCurrency: currency,
       source: "MANUAL",
+      origin: "manual",
+      valueType: "user_estimate",
       asOf: new Date().toISOString().slice(0, 10),
       confidence: "high",
       allocation: 0,

@@ -1,4 +1,5 @@
 import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
+import { hasUserHoldings } from "@/lib/holdings/origin";
 import type { PortfolioAsset } from "@/types";
 
 /**
@@ -62,7 +63,7 @@ const RAW_MODEL_SEED: PortfolioAsset[] = [
     allocation: 0,
     priceSource: "manual",
     listing: "listed",
-    source: "MANUAL",
+    source: "ESTIMATED",
     liquidity: "liquid",
     expectedCAGR: 6.5,
     realReturn: 3.5,
@@ -113,7 +114,7 @@ const RAW_MODEL_SEED: PortfolioAsset[] = [
     allocation: 0,
     priceSource: "manual",
     listing: "unlisted",
-    source: "MANUAL",
+    source: "ESTIMATED",
     liquidity: "illiquid",
     allowSale: false,
     manualKind: "home",
@@ -137,4 +138,15 @@ export function isModelSeedPortfolio(portfolio: PortfolioAsset[]): boolean {
 
 export function emptyHoldings(): PortfolioAsset[] {
   return [];
+}
+
+/**
+ * Seed stays on first visit. The first real holding (manual | b3 | irpf)
+ * removes every seed row. An explicitly empty book stays empty.
+ */
+export function dropSeedIfUserHoldings(
+  portfolio: PortfolioAsset[]
+): PortfolioAsset[] {
+  if (!hasUserHoldings(portfolio)) return portfolio;
+  return portfolio.filter((asset) => !isModelSeedId(asset.id));
 }

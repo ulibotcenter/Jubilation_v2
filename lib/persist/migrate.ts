@@ -1,10 +1,12 @@
 import type { PlanTier } from "@/lib/plans";
 import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
+import { dropSeedIfUserHoldings } from "@/lib/onboarding/seed";
 import { normalizePortfolioCagr } from "@/lib/portfolioCagr";
 import { normalizeTenant, type Tenant } from "@/lib/region";
 import { isHousehold } from "@/lib/engine/household";
 import { PERSIST_VERSION, normalizeKpiValues, type PortfolioAsset } from "@/types";
 import { parseManualTaxRatePct } from "@/lib/tax/manual";
+import type { CashFlow } from "@/lib/engine/canonical";
 
 export const CURRENT_PERSIST_VERSION = PERSIST_VERSION;
 
@@ -17,6 +19,7 @@ interface LooseState {
   tenant?: Tenant;
   institutions?: unknown;
   accounts?: unknown;
+  cashFlows?: unknown;
   entitlements?: unknown;
   consents?: unknown;
   consentAuditLog?: unknown;
@@ -46,7 +49,9 @@ export function migratePersistedState(
   const planTier = unifyPlanTier(raw.planTier ?? raw.user?.plan);
 
   const portfolio = Array.isArray(raw.portfolio)
-    ? normalizePortfolioCagr(normalizePortfolioAssets(raw.portfolio))
+    ? dropSeedIfUserHoldings(
+        normalizePortfolioCagr(normalizePortfolioAssets(raw.portfolio))
+      )
     : undefined;
 
   const kpis = raw.kpis ? normalizeKpiValues(raw.kpis as never) : undefined;
@@ -60,6 +65,9 @@ export function migratePersistedState(
     tenant: normalizeTenant(raw.tenant),
     institutions: Array.isArray(raw.institutions) ? raw.institutions : [],
     accounts: Array.isArray(raw.accounts) ? raw.accounts : [],
+    cashFlows: Array.isArray(raw.cashFlows)
+      ? (raw.cashFlows as CashFlow[])
+      : [],
     entitlements: Array.isArray(raw.entitlements) ? raw.entitlements : [],
     consents: Array.isArray(raw.consents) ? raw.consents : [],
     consentAuditLog: Array.isArray(raw.consentAuditLog)

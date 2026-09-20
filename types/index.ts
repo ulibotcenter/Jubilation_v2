@@ -320,7 +320,14 @@ export type AssetClass =
   | "personal"
   | "crypto"
   | "cash"
+  | "derivatives"
   | "other";
+
+/** Custody / declaration origin. Never mix two origins in one field. */
+export type HoldingOrigin = "manual" | "b3" | "irpf";
+
+/** How the stored amount should be read. IRPF 31/12 is `cost` until confirmed. */
+export type ValueType = "market" | "cost" | "user_estimate";
 
 export type PriceSource = "yahoo" | "coingecko" | "manual";
 export type Liquidity = "liquid" | "illiquid";
@@ -393,6 +400,21 @@ export interface PortfolioAsset {
   valueHistory?: DatedValuePoint[];
   /** SpaceX-style private holdings are not listed tickers. */
   listing?: ListingStatus;
+  /**
+   * Three origins only. `imported_file` is accepted as an alias of `irpf`
+   * when reading legacy rows; it is never stored mixed with another origin.
+   */
+  origin?: HoldingOrigin;
+  /** Market (B3), 31/12 cost (IRPF), or a typed/confirmed figure. */
+  valueType?: ValueType;
+  /** Issuer / fund CNPJ digits when known — merge key with ticker/code. */
+  cnpj?: string | null;
+  /** IRPF asset code (e.g. "12") — merge key with ticker/CNPJ. */
+  code?: string | null;
+  /** Pledged / gravame amount in native currency. Shown; not projectable. */
+  gravameValue?: number;
+  /** Derivatives stay out of the engine unless the user opts in. */
+  includeInEngine?: boolean;
 }
 
 export interface TickerSearchResult {
@@ -416,6 +438,7 @@ export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
   personal: "Personal Property",
   crypto: "Crypto",
   cash: "Cash",
+  derivatives: "Derivatives",
   other: "Other",
 };
 
@@ -908,7 +931,7 @@ export const MOCK_TICKER_SEARCH: TickerSearchResult[] = [
 // ─── Helpers ───────────────────────────────────────────────
 
 export const LOCAL_STORAGE_KEY = "jubilation-v2-state";
-export const PERSIST_VERSION = 1;
+export const PERSIST_VERSION = 2;
 
 export {
   DEFAULT_TENANT,

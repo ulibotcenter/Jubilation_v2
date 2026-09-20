@@ -24,6 +24,17 @@ function cnpjDigits(value: unknown): string {
 
 function assetClassOf(instrumentType: string, ticker: string): AssetClass {
   const kind = instrumentType.toUpperCase();
+  if (
+    kind === "OPTION" ||
+    kind === "FUTURE" ||
+    kind === "FUT" ||
+    kind === "OPT" ||
+    kind === "TERM" ||
+    kind === "SWAP" ||
+    kind === "DERIVATIVE"
+  ) {
+    return "derivatives";
+  }
   if (kind === "ETF") return "etf";
   if (kind === "FII") return "reit";
   if (kind === "BDR") return "bdr";
@@ -50,6 +61,19 @@ function holdingName(row: Record<string, unknown>, ticker: string): string {
     str(row.issuerName) ||
     ticker
   );
+}
+
+function gravameValueOf(
+  row: Record<string, unknown>,
+  quantity: number,
+  price: number
+): number {
+  const locked = num(row.lockedQuantity) || num(row.gravameQuantity);
+  if (locked > 0) return locked * price;
+  const pledged = num(row.gravameValue);
+  if (pledged > 0) return pledged;
+  if (quantity <= 0) return 0;
+  return 0;
 }
 
 function unitPrice(row: Record<string, unknown>, quantity: number): number {
@@ -85,6 +109,7 @@ function toHolding(
   const assetClass = assetClassOf(instrumentType, ticker);
   const ref = externalRef(product, row);
   const marketValue = quantity * price;
+  const isDerivative = assetClass === "derivatives";
   return {
     id: stableEntityId("b3", ref),
     ticker,
@@ -105,12 +130,17 @@ function toHolding(
     allowSale: false,
     scheduledSaleOn: null,
     source: "B3_API",
+    origin: "b3",
+    valueType: "market",
     asOf,
     confidence: "high",
     externalRef: ref,
     institutionId,
     accountId,
     ownership: "holder",
+    cnpj: cnpjDigits(row.issuerDocumentNumber) || null,
+    gravameValue: gravameValueOf(row, quantity, price),
+    includeInEngine: isDerivative ? false : undefined,
     valueHistory: [
       {
         asOf,
@@ -223,6 +253,18 @@ export function mapAllowlistedB3(payload: AllowlistedB3Payload): MappedB3 {
   for (const row of payload.fixedIncomePositions) {
     const acct = ensureAccount(row);
     holdings.push(toHolding("fixed_income", row, asOf, acct.id, acct.institutionId ?? ""));
+  }
+  for (const row of payload.derivativesPositions ?? []) {
+    const acct = ensureAccount(row);
+    holdings.push(
+      toHolding(
+        "derivatives",
+        { ...row, instrumentType: str(row.instrumentType) || "DERIVATIVE" },
+        asOf,
+        acct.id,
+        acct.institutionId ?? ""
+      )
+    );
   }
   for (const row of payload.movements) {
     const acct = ensureAccount(row);

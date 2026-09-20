@@ -1,14 +1,21 @@
 import { appendDatedValue } from "@/lib/datedValue";
 import { isOutsideB3Coverage } from "@/lib/connectors/coverage";
 import type { FinancialAccount, Institution } from "@/lib/engine/canonical";
-import type { PortfolioAsset } from "@/types";
+import {
+  originOf,
+  originRank,
+  sameHoldingIdentity,
+  stampOrigin,
+} from "@/lib/holdings/origin";
+import type { HoldingOrigin, PortfolioAsset } from "@/types";
 
 export interface MergeRecord {
   existingId: string;
   incomingId: string;
   ticker: string;
-  policy: "imported-market-value";
+  policy: "imported-market-value" | "origin-precedence";
   kept: ("expectedCAGR" | "realReturn" | "ownership" | "allowSale" | "liquidity" | "costBasis")[];
+  winner: HoldingOrigin | null;
 }
 
 export interface ReconcileInput {
@@ -31,6 +38,10 @@ function tickerKey(asset: PortfolioAsset): string {
   return asset.ticker.trim().toUpperCase();
 }
 
+function skipB3Match(asset: PortfolioAsset, incoming: PortfolioAsset): boolean {
+  return originOf(incoming) === "b3" && isOutsideB3Coverage(asset);
+}
+
 export function matchImported(
   existing: PortfolioAsset[],
   incoming: PortfolioAsset
@@ -39,14 +50,19 @@ export function matchImported(
   const incomingTicker = tickerKey(incoming);
 
   for (const asset of existing) {
-    if (isOutsideB3Coverage(asset)) continue;
+    if (skipB3Match(asset, incoming)) continue;
     if (incomingRef && asset.externalRef?.toUpperCase() === incomingRef) {
       return asset;
     }
   }
 
   for (const asset of existing) {
-    if (isOutsideB3Coverage(asset)) continue;
+    if (skipB3Match(asset, incoming)) continue;
+    if (sameHoldingIdentity(asset, incoming)) return asset;
+  }
+
+  for (const asset of existing) {
+    if (skipB3Match(asset, incoming)) continue;
     if (tickerKey(asset) !== incomingTicker) continue;
     if (
       asset.institutionId &&
@@ -55,14 +71,19 @@ export function matchImported(
     ) {
       return asset;
     }
-    if (!asset.institutionId || asset.source === "MANUAL") {
+    if (!asset.institutionId || originOf(asset) === "manual" || asset.source === "MANUAL") {
       return asset;
     }
   }
   return undefined;
 }
 
+function incomingWins(existing: PortfolioAsset, incoming: PortfolioAsset): boolean {
+  return originRank(originOf(incoming)) >= originRank(originOf(existing));
+}
+
 function mergeHolding(existing: PortfolioAsset, incoming: PortfolioAsset): PortfolioAsset {
+  const winnerOrigin = originOf(incoming) ?? "b3";
   const marketValue = incoming.quantity * incoming.currentPrice;
   const dated = appendDatedValue(
     {
@@ -71,13 +92,16 @@ function mergeHolding(existing: PortfolioAsset, incoming: PortfolioAsset): Portf
     },
     marketValue,
     incoming.asOf ?? existing.asOf ?? "",
-    "B3_API"
+    incoming.source ?? existing.source ?? "B3_API"
   );
-  return {
+  const merged: PortfolioAsset = {
     ...dated,
     id: existing.id,
     ticker: incoming.ticker,
-    name: existing.source === "MANUAL" ? existing.name : incoming.name,
+    name:
+      originOf(existing) === "manual" || existing.source === "MANUAL"
+        ? existing.name
+        : incoming.name,
     assetClass: incoming.assetClass,
     quantity: incoming.quantity,
     currentPrice: incoming.currentPrice,
@@ -85,18 +109,24 @@ function mergeHolding(existing: PortfolioAsset, incoming: PortfolioAsset): Portf
     costBasis: existing.costBasis > 0 ? existing.costBasis : incoming.costBasis,
     asOf: incoming.asOf,
     lastPriceAt: incoming.lastPriceAt,
-    source: "B3_API",
-    confidence: "high",
-    externalRef: incoming.externalRef,
-    institutionId: incoming.institutionId,
-    accountId: incoming.accountId,
+    source: incoming.source ?? existing.source,
+    confidence: incoming.confidence ?? existing.confidence ?? "high",
+    externalRef: incoming.externalRef ?? existing.externalRef,
+    institutionId: incoming.institutionId ?? existing.institutionId,
+    accountId: incoming.accountId ?? existing.accountId,
     expectedCAGR: existing.expectedCAGR,
     realReturn: existing.realReturn,
     ownership: existing.ownership,
     allowSale: existing.allowSale,
     liquidity: existing.liquidity,
-    priceSource: "manual",
+    priceSource: incoming.priceSource ?? existing.priceSource ?? "manual",
+    cnpj: incoming.cnpj ?? existing.cnpj,
+    code: incoming.code ?? existing.code,
+    gravameValue: incoming.gravameValue ?? existing.gravameValue,
+    includeInEngine: existing.includeInEngine ?? incoming.includeInEngine,
+    valueType: incoming.valueType ?? existing.valueType,
   };
+  return stampOrigin(merged, winnerOrigin, incoming.valueType ?? merged.valueType);
 }
 
 function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
@@ -108,8 +138,8 @@ function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
 }
 
 /**
- * Imported B3 market value wins. Manual PGBL/FGTS/imóvel stay.
- * Reimporting the same line is idempotent (stable externalRef).
+ * Same asset (ticker / CNPJ / code): b3 > irpf > manual.
+ * B3 never overwrites PGBL / FGTS / imóvel. Reimport is idempotent.
  */
 export function reconcileHoldings(input: ReconcileInput): ReconcileResult {
   const used = new Set<string>();
@@ -120,6 +150,25 @@ export function reconcileHoldings(input: ReconcileInput): ReconcileResult {
     const existing = matchImported(input.existing, incoming);
     if (existing) {
       used.add(existing.id);
+      if (!incomingWins(existing, incoming)) {
+        next.push(existing);
+        merges.push({
+          existingId: existing.id,
+          incomingId: incoming.id,
+          ticker: incoming.ticker,
+          policy: "origin-precedence",
+          kept: [
+            "expectedCAGR",
+            "realReturn",
+            "ownership",
+            "allowSale",
+            "liquidity",
+            "costBasis",
+          ],
+          winner: originOf(existing),
+        });
+        continue;
+      }
       next.push(mergeHolding(existing, incoming));
       merges.push({
         existingId: existing.id,
@@ -134,6 +183,7 @@ export function reconcileHoldings(input: ReconcileInput): ReconcileResult {
           "liquidity",
           "costBasis",
         ],
+        winner: originOf(incoming),
       });
     } else {
       used.add(incoming.id);
@@ -155,4 +205,17 @@ export function reconcileHoldings(input: ReconcileInput): ReconcileResult {
     accounts: mergeById(input.existingAccounts ?? [], input.accounts),
     merges,
   };
+}
+
+/** IRPF fills what B3 did not bring. Same identity: b3 > irpf > manual. */
+export function applyOriginIncoming(input: {
+  existing: PortfolioAsset[];
+  incoming: PortfolioAsset[];
+}): PortfolioAsset[] {
+  return reconcileHoldings({
+    existing: input.existing,
+    incoming: input.incoming,
+    institutions: [],
+    accounts: [],
+  }).portfolio;
 }
