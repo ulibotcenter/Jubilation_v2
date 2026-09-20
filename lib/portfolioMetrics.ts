@@ -1,4 +1,11 @@
-import type { PortfolioAsset } from "@/types";
+import { convertHoldingMajor } from "@/lib/fx/convert";
+import type { FxRates } from "@/lib/fx/types";
+import type { Currency, PortfolioAsset } from "@/types";
+
+export interface HoldingQuote {
+  currency: Currency;
+  rates: FxRates;
+}
 
 export interface HoldingMetrics {
   marketValue: number;
@@ -11,10 +18,20 @@ export interface HoldingMetrics {
 
 export function computeHoldingMetrics(
   asset: PortfolioAsset,
-  totalPortfolioValue: number
+  totalPortfolioValue: number,
+  quote: HoldingQuote
 ): HoldingMetrics {
-  const marketValue = asset.quantity * asset.currentPrice;
-  const costValue = asset.quantity * asset.costBasis;
+  const native = asset.nativeCurrency ?? asset.currency;
+  const marketValue = convertHoldingMajor(
+    asset.quantity * asset.currentPrice,
+    native,
+    quote
+  );
+  const costValue = convertHoldingMajor(
+    asset.quantity * asset.costBasis,
+    native,
+    quote
+  );
   const gain = marketValue - costValue;
   const gainPct = costValue > 0 ? (gain / costValue) * 100 : 0;
   const weightPct =

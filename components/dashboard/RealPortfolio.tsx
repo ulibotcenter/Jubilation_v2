@@ -172,14 +172,34 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     }
     return [...list].sort((a, b) => {
       if (sortBy === "ticker") return a.ticker.localeCompare(b.ticker);
-      const mvA = a.quantity * a.currentPrice;
-      const mvB = b.quantity * b.currentPrice;
-      const gainA = mvA - a.quantity * a.costBasis;
-      const gainB = mvB - b.quantity * b.costBasis;
+      const mvA = convertHoldingMajor(
+        a.quantity * a.currentPrice,
+        a.nativeCurrency ?? a.currency,
+        valueQuote
+      );
+      const mvB = convertHoldingMajor(
+        b.quantity * b.currentPrice,
+        b.nativeCurrency ?? b.currency,
+        valueQuote
+      );
+      const gainA =
+        mvA -
+        convertHoldingMajor(
+          a.quantity * a.costBasis,
+          a.nativeCurrency ?? a.currency,
+          valueQuote
+        );
+      const gainB =
+        mvB -
+        convertHoldingMajor(
+          b.quantity * b.costBasis,
+          b.nativeCurrency ?? b.currency,
+          valueQuote
+        );
       if (sortBy === "gain") return gainB - gainA;
       return mvB - mvA;
     });
-  }, [portfolio, searchQuery, classFilter, sortBy, locale]);
+  }, [portfolio, searchQuery, classFilter, sortBy, locale, valueQuote]);
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
@@ -242,7 +262,11 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
         <button
           type="button"
           className="btn-primary"
-          onClick={() => setAddOpen(true)}
+          onClick={() => {
+            document
+              .getElementById("portfolio-holdings")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
         >
           <Pencil className="w-4 h-4" size={16} />
           {t("portfolio.editAssets")}
@@ -487,6 +511,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           <PortfolioHoldingsTable
             assets={filteredAssets}
             totalValue={totalValue}
+            quote={valueQuote}
             onRemove={handleRemove}
             mode={mode}
           />

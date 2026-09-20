@@ -4,6 +4,8 @@ import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import { estimateRetirementTax } from "@/lib/tax/estimates";
 import { engineApplyTaxes, taxRegionForCountry } from "@/lib/onboarding/country";
 import { createModelSeed } from "@/lib/onboarding/seed";
+import { heroRealTermsCopy } from "@/lib/i18n/heroRealTerms";
+import { computeHoldingMetrics } from "@/lib/portfolioMetrics";
 import { aggregatePortfolioMajor } from "@/lib/engine/adapter";
 import { buildProjectionEngineConfig } from "@/lib/projectionEngine";
 import {
@@ -101,5 +103,39 @@ describe("BRL / USD / EUR display and conversion", () => {
     expect(us.plan.currency).toBe("USD");
     expect(br.plan.applyTaxes).toBe(true);
     expect(br.plan.currency).toBe("BRL");
+  });
+
+  it("PT hero copy follows the display currency — never hardcodes reais under EUR/USD", () => {
+    expect(heroRealTermsCopy("pt", "EUR")).toMatch(/euros/i);
+    expect(heroRealTermsCopy("pt", "EUR")).not.toMatch(/reais/i);
+    expect(heroRealTermsCopy("pt", "USD")).toMatch(/dólares/i);
+    expect(heroRealTermsCopy("pt", "USD")).not.toMatch(/reais/i);
+    expect(heroRealTermsCopy("pt", "BRL")).toMatch(/reais/i);
+    expect(heroRealTermsCopy("en", "EUR")).not.toMatch(/reais/i);
+  });
+
+  it("table weight uses display-currency market value, not native ÷ FX total", () => {
+    const seed = createModelSeed();
+    const quote = { currency: "USD" as const, rates: FALLBACK_FX_RATES };
+    const total = calculatePortfolioValue(seed, quote);
+    const rows = seed.map((asset) => computeHoldingMetrics(asset, total, quote));
+    const home = rows[seed.findIndex((a) => a.id === "seed-home")];
+    const nativeHome = 850_000;
+    expect(home.marketValue).toBeCloseTo(nativeHome / 5.45, 0);
+    expect(home.weightPct).toBeGreaterThan(50);
+    expect(home.weightPct).toBeLessThan(60);
+    expect(home.weightPct).not.toBeCloseTo((nativeHome / total) * 100, 0);
+    const weightSum = rows.reduce((s, r) => s + r.weightPct, 0);
+    expect(weightSum).toBeCloseTo(100, 0);
+
+    const eurQuote = { currency: "EUR" as const, rates: FALLBACK_FX_RATES };
+    const eurTotal = calculatePortfolioValue(seed, eurQuote);
+    const eurHome = computeHoldingMetrics(
+      seed.find((a) => a.id === "seed-home")!,
+      eurTotal,
+      eurQuote
+    );
+    expect(eurHome.weightPct).toBeGreaterThan(50);
+    expect(eurHome.weightPct).toBeLessThan(60);
   });
 });

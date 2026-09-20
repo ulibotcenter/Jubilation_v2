@@ -97,6 +97,9 @@ export const ES: Record<MessageKey, string> = {
   "hero.title": "Panel de Jubilación",
   "hero.aria": "Renta mensual sostenible en la jubilación",
   "hero.realTerms": "En dinero de hoy, con el impuesto del camino ya descontado.",
+  "currency.unit.BRL": "reales",
+  "currency.unit.USD": "dólares",
+  "currency.unit.EUR": "euros",
   "hero.yearsUnit": "años",
   "hero.useAgeAria": "Usar {n} años como edad de jubilación",
   "hero.score": "Score",
@@ -813,7 +816,7 @@ export const ES: Record<MessageKey, string> = {
     "Panel en {currency}. La cartera de ejemplo está rotulada como modelo — no es consejo.",
   "toast.portfolio.cleared": "Cartera vaciada",
   "toast.portfolio.clearedDesc": "Añade tus posiciones reales. El modelo de ejemplo ya no está.",
-  "portfolio.editAssets": "Editar activos",
+  "portfolio.editAssets": "Ajustar en la tabla",
   "portfolio.clearAll": "Vaciar todo",
   "portfolio.clearConfirm": "¿Vaciar el ejemplo y empezar de cero?",
   "portfolio.model.banner":

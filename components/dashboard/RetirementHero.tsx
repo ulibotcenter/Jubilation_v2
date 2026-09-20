@@ -11,6 +11,7 @@ import { SpacedWords } from "@/components/ui/SpacedWords";
 import { usePlanSolve } from "@/hooks/usePlanSolve";
 import { analyzeIncomeGap } from "@/lib/incomeGoals";
 import { htmlLang } from "@/lib/i18n/htmlLang";
+import { heroRealTermsCopy } from "@/lib/i18n/heroRealTerms";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { fadeUp } from "@/lib/uiMotion";
@@ -104,7 +105,7 @@ export function RetirementHero() {
           className="hero-real-terms"
           text={
             incomeSolve.feasible
-              ? t("hero.realTerms")
+              ? heroRealTermsCopy(locale, currency)
               : t("income.solve.infeasible")
           }
         />

@@ -95,6 +95,9 @@ export const EN = {
   "hero.title": "Retirement Dashboard",
   "hero.aria": "Sustainable monthly retirement income",
   "hero.realTerms": "In today's money, with tax on the path already taken off.",
+  "currency.unit.BRL": "reais",
+  "currency.unit.USD": "dollars",
+  "currency.unit.EUR": "euros",
   "hero.yearsUnit": "years old",
   "hero.useAgeAria": "Use age {n} as the retirement age",
   "hero.score": "Score",
@@ -811,7 +814,7 @@ export const EN = {
     "Dashboard in {currency}. Example portfolio is labeled as a model — not advice.",
   "toast.portfolio.cleared": "Portfolio cleared",
   "toast.portfolio.clearedDesc": "Add your real holdings. The example model is gone.",
-  "portfolio.editAssets": "Edit assets",
+  "portfolio.editAssets": "Adjust in the table",
   "portfolio.clearAll": "Clear all",
   "portfolio.clearConfirm": "Clear the example and start from zero?",
   "portfolio.model.banner":
