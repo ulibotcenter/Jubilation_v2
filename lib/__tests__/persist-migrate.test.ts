@@ -126,6 +126,8 @@ describe("persist partialize", () => {
     const persisted = partializePersistedState({
       locale: "pt",
       currency: "BRL",
+      country: "BR",
+      modelSeedActive: false,
       fxSnapshot: null,
       onboarding: { completed: true },
       sidebarCollapsed: false,
@@ -168,6 +170,8 @@ describe("persist partialize", () => {
     const persisted = partializePersistedState({
       locale: "pt",
       currency: "BRL",
+      country: "BR",
+      modelSeedActive: false,
       fxSnapshot: null,
       onboarding: { completed: true },
       sidebarCollapsed: false,

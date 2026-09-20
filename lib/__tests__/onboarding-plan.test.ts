@@ -9,35 +9,37 @@ import { DEFAULT_LIFE_EXPECTANCY } from "@/types";
 import { partializePersistedState } from "@/lib/persist/partialize";
 
 describe("onboarding plan", () => {
-  it("maps the four fields into KPIs a Brazilian typed, with longevity 90", () => {
+  it("maps country, locale, currency, age and target retirement 90 — no salary", () => {
     const kpis = kpisFromOnboarding({
+      country: "US",
+      locale: "en",
+      currency: "USD",
       age: 52,
-      income: 12_000,
-      contribution: 1_500,
-      lifeExpectancy: 90,
+      retirementAge: 90,
     });
     expect(kpis.currentAge).toBe(52);
-    expect(kpis.monthlyExpenses).toBe(12_000);
-    expect(kpis.desiredMonthlyIncome).toBe(12_000);
-    expect(kpis.monthlyContribution).toBe(1_500);
+    expect(kpis.retirementAge).toBe(90);
     expect(kpis.lifeExpectancy).toBe(DEFAULT_LIFE_EXPECTANCY);
-    expect(kpis.retirementAge).toBe(65);
+    expect(kpis.monthlyExpenses).toBe(0);
+    expect(kpis.monthlyContribution).toBe(0);
+    expect(kpis.desiredMonthlyIncome).toBe(0);
     expect(kpis.currentNetWorth).toBe(0);
   });
 
-  it("pushes retirement past current age when the person is already older than 65", () => {
+  it("keeps retirement after current age when the person is already older", () => {
     const kpis = kpisFromOnboarding({
+      country: "BR",
+      locale: "pt",
+      currency: "BRL",
       age: 70,
-      income: 8_000,
-      contribution: 0,
-      lifeExpectancy: 90,
+      retirementAge: 90,
     });
     expect(kpis.currentAge).toBe(70);
     expect(kpis.retirementAge).toBeGreaterThan(70);
-    expect(kpis.lifeExpectancy).toBeGreaterThan(kpis.retirementAge);
+    expect(kpis.lifeExpectancy).toBeGreaterThanOrEqual(kpis.retirementAge);
   });
 
-  it("starts with empty holdings — no Lamborghini seed", () => {
+  it("starts with empty holdings helper for Clear all", () => {
     expect(emptyHoldings()).toEqual([]);
   });
 
@@ -58,10 +60,11 @@ describe("onboarding plan", () => {
 
     const next = householdFromOnboarding(
       {
+        country: "BR",
+        locale: "pt",
+        currency: "BRL",
         age: 52,
-        income: 10_000,
-        contribution: 800,
-        lifeExpectancy: 90,
+        retirementAge: 90,
       },
       asOf,
       current
@@ -74,20 +77,23 @@ describe("onboarding plan", () => {
     expect(next.holder.lifeExpectancy).toBe(90);
   });
 
-  it("partializes onboarding answers so household survives reload", () => {
+  it("partializes country, locale, currency and empty clear so they survive reload", () => {
     const asOf = "2026-01-01";
     const household = householdFromOnboarding(
       {
+        country: "US",
+        locale: "en",
+        currency: "USD",
         age: 48,
-        income: 9_000,
-        contribution: 600,
-        lifeExpectancy: 90,
+        retirementAge: 90,
       },
       asOf
     );
     const persisted = partializePersistedState({
-      locale: "pt",
-      currency: "BRL",
+      locale: "en",
+      currency: "USD",
+      country: "US",
+      modelSeedActive: false,
       fxSnapshot: null,
       onboarding: { completed: true, currentStep: 2, disclaimerAccepted: true },
       sidebarCollapsed: false,
@@ -117,10 +123,11 @@ describe("onboarding plan", () => {
       aiChatHistory: [],
       savedScenarios: [],
       kpis: kpisFromOnboarding({
+        country: "US",
+        locale: "en",
+        currency: "USD",
         age: 48,
-        income: 9_000,
-        contribution: 600,
-        lifeExpectancy: 90,
+        retirementAge: 90,
       }),
       kpiOutsidePortfolio: 0,
       portfolio: [],
@@ -136,13 +143,12 @@ describe("onboarding plan", () => {
       disclaimerAccepted: true,
     });
     expect(persisted.portfolio).toEqual([]);
-    expect((persisted.household as typeof household).holder.displayName).toBe(
-      "Você"
-    );
+    expect(persisted.country).toBe("US");
+    expect(persisted.currency).toBe("USD");
+    expect(persisted.locale).toBe("en");
+    expect(persisted.modelSeedActive).toBe(false);
     expect((persisted.kpis as { monthlyContribution: number }).monthlyContribution).toBe(
-      600
+      0
     );
-    expect(persisted.locale).toBe("pt");
-    expect(persisted.currency).toBe("BRL");
   });
 });

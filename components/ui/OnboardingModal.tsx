@@ -12,10 +12,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ASSUMPTIONS } from "@/lib/engine/assumptions";
+import { COUNTRIES } from "@/lib/onboarding/country";
+import { DEFAULT_ONBOARDING_RETIREMENT_AGE } from "@/lib/onboarding/plan";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
+import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
+import { CURRENCIES, type Country } from "@/types";
 
 const STEP_VARIANTS = {
   enter: (direction: number) => ({
@@ -34,9 +37,21 @@ const STEP_VARIANTS = {
 
 const CENTER = { x: 0, opacity: 1 };
 
+const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
+  { code: "pt", labelKey: "locale.pt" },
+  { code: "en", labelKey: "locale.en" },
+  { code: "es", labelKey: "locale.es" },
+];
+
 export function OnboardingModal() {
   const { t } = useTranslation();
   const onboarding = useAppStore((s) => s.onboarding);
+  const storedLocale = useAppStore((s) => s.locale);
+  const storedCurrency = useAppStore((s) => s.currency);
+  const storedCountry = useAppStore((s) => s.country);
+  const setLocale = useAppStore((s) => s.setLocale);
+  const setCurrency = useAppStore((s) => s.setCurrency);
+  const setCountry = useAppStore((s) => s.setCountry);
   const setOnboardingStep = useAppStore((s) => s.setOnboardingStep);
   const setDisclaimerAccepted = useAppStore((s) => s.setDisclaimerAccepted);
   const finishOnboarding = useAppStore((s) => s.finishOnboarding);
@@ -46,32 +61,36 @@ export function OnboardingModal() {
   const reduced = useReducedMotion();
 
   const [age, setAge] = useState("");
-  const [income, setIncome] = useState("");
-  const [contribution, setContribution] = useState("");
-  const [lifeExpectancy, setLifeExpectancy] = useState(
-    String(ASSUMPTIONS.lifeExpectancy.defaultValue)
+  const [retirementAge, setRetirementAge] = useState(
+    String(DEFAULT_ONBOARDING_RETIREMENT_AGE)
+  );
+
+  const handleCountry = useCallback(
+    (code: Country) => {
+      const option = COUNTRIES.find((c) => c.code === code);
+      setCountry(code);
+      if (option) {
+        setLocale(option.suggestedLocale);
+        setCurrency(option.suggestedCurrency);
+      }
+    },
+    [setCountry, setLocale, setCurrency]
   );
 
   const handleContinue = useCallback(() => {
     if (currentStep === 1) {
       const parsedAge = Number(age);
-      const parsedIncome = Number(income);
-      const parsedContribution = Number(contribution);
-      const parsedLe = Number(lifeExpectancy);
+      const parsedRetire = Number(retirementAge);
       if (!Number.isFinite(parsedAge) || parsedAge < 18 || parsedAge > 80) {
         toast.error(t("onboarding.invalidAge"));
         return;
       }
-      if (!Number.isFinite(parsedIncome) || parsedIncome < 0) {
-        toast.error(t("onboarding.invalidIncome"));
-        return;
-      }
-      if (!Number.isFinite(parsedContribution) || parsedContribution < 0) {
-        toast.error(t("onboarding.invalidContribution"));
-        return;
-      }
-      if (!Number.isFinite(parsedLe) || parsedLe < 55 || parsedLe > 120) {
-        toast.error(t("onboarding.invalidHorizon"));
+      if (
+        !Number.isFinite(parsedRetire) ||
+        parsedRetire <= parsedAge ||
+        parsedRetire > 120
+      ) {
+        toast.error(t("onboarding.invalidRetirement"));
         return;
       }
       setOnboardingStep(2);
@@ -86,21 +105,25 @@ export function OnboardingModal() {
     }
 
     finishOnboarding({
+      country: storedCountry,
+      locale: storedLocale,
+      currency: storedCurrency,
       age: Number(age),
-      income: Number(income),
-      contribution: Number(contribution),
-      lifeExpectancy: Number(lifeExpectancy),
+      retirementAge: Number(retirementAge),
     });
     toast.success(t("toast.onboarding.complete"), {
-      description: t("toast.onboarding.completeDescReal"),
+      description: t("toast.onboarding.completeDescGate", {
+        currency: storedCurrency,
+      }),
     });
   }, [
     currentStep,
     disclaimerAccepted,
     age,
-    income,
-    contribution,
-    lifeExpectancy,
+    retirementAge,
+    storedCountry,
+    storedLocale,
+    storedCurrency,
     setOnboardingStep,
     finishOnboarding,
     t,
@@ -183,6 +206,58 @@ export function OnboardingModal() {
                   {t("onboarding.step1.desc")}
                 </p>
                 <div className="household-form-grid mt-5">
+                  <label className="household-field household-field--wide">
+                    <span>{t("onboarding.field.country")}</span>
+                    <select
+                      value={storedCountry}
+                      onChange={(e) => handleCountry(e.target.value as Country)}
+                      autoFocus
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {t(`country.${c.code}` as MessageKey)}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-[11px] text-muted-foreground mt-1">
+                      {t("onboarding.why.country")}
+                    </span>
+                  </label>
+                  <fieldset className="household-field">
+                    <legend>{t("onboarding.field.language")}</legend>
+                    <div className="onboarding-chip-row">
+                      {LOCALES.map((l) => (
+                        <button
+                          key={l.code}
+                          type="button"
+                          className="onboarding-chip"
+                          data-active={storedLocale === l.code ? "true" : "false"}
+                          onClick={() => setLocale(l.code)}
+                        >
+                          {t(l.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <fieldset className="household-field">
+                    <legend>{t("onboarding.field.currency")}</legend>
+                    <div className="onboarding-chip-row">
+                      {CURRENCIES.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          className="onboarding-chip"
+                          data-active={storedCurrency === c.code ? "true" : "false"}
+                          onClick={() => setCurrency(c.code)}
+                        >
+                          {c.symbol} {c.code}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1">
+                      {t("onboarding.why.currency", { code: storedCurrency })}
+                    </span>
+                  </fieldset>
                   <label className="household-field">
                     <span>{t("onboarding.field.age")}</span>
                     <input
@@ -192,51 +267,22 @@ export function OnboardingModal() {
                       value={age}
                       onChange={(e) => setAge(e.target.value)}
                       required
-                      autoFocus
                     />
                     <span className="text-[11px] text-muted-foreground mt-1">
                       {t("onboarding.why.age")}
                     </span>
                   </label>
                   <label className="household-field">
-                    <span>{t("onboarding.field.income")}</span>
+                    <span>{t("onboarding.field.retirementAge")}</span>
                     <input
                       type="number"
-                      min={0}
-                      step={100}
-                      value={income}
-                      onChange={(e) => setIncome(e.target.value)}
-                      required
-                    />
-                    <span className="text-[11px] text-muted-foreground mt-1">
-                      {t("onboarding.why.income")}
-                    </span>
-                  </label>
-                  <label className="household-field">
-                    <span>{t("onboarding.field.contribution")}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      step={50}
-                      value={contribution}
-                      onChange={(e) => setContribution(e.target.value)}
-                      required
-                    />
-                    <span className="text-[11px] text-muted-foreground mt-1">
-                      {t("onboarding.why.contribution")}
-                    </span>
-                  </label>
-                  <label className="household-field">
-                    <span>{t("onboarding.field.lifeExpectancy")}</span>
-                    <input
-                      type="number"
-                      min={55}
+                      min={40}
                       max={120}
-                      value={lifeExpectancy}
-                      onChange={(e) => setLifeExpectancy(e.target.value)}
+                      value={retirementAge}
+                      onChange={(e) => setRetirementAge(e.target.value)}
                     />
                     <span className="text-[11px] text-muted-foreground mt-1">
-                      {t("onboarding.why.lifeExpectancy")}
+                      {t("onboarding.why.retirementAge")}
                     </span>
                   </label>
                 </div>

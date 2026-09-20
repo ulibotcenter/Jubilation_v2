@@ -105,8 +105,13 @@ export function PortfolioHoldingsTable({
                       ) : null}
                       <span className="portfolio-asset-class-badge mt-0.5 inline-block">
                         {getAssetClassLabel(locale, asset.assetClass)}
-                        {asset.currency === "BRL" && (
+                        {asset.source === "B3_API" && (
                           <span className="ml-1 opacity-70">· B3</span>
+                        )}
+                        {asset.listing === "unlisted" && (
+                          <span className="ml-1 opacity-70">
+                            · {t("portfolio.unlisted")}
+                          </span>
                         )}
                       </span>
                     </div>

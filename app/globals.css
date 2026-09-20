@@ -2641,6 +2641,39 @@ body::before {
   grid-column: 1 / -1;
 }
 
+.onboarding-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.onboarding-chip {
+  min-height: var(--touch-target);
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.onboarding-chip[data-active="true"] {
+  border-color: var(--accent);
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+
+.portfolio-model-banner {
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border-radius: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
 .household-field input,
 .household-field select {
   min-height: 2.5rem;

@@ -24,6 +24,14 @@ export function convertAmount(
   return roundMoney(amount * getCrossRate(from, to, rates));
 }
 
+export function convertHoldingMajor(
+  amount: number,
+  from: Currency,
+  quote: { currency: Currency; rates: FxRates }
+): number {
+  return convertAmount(amount, from, quote.currency, quote.rates);
+}
+
 export { MissingFxRateError };
 
 /** Display-only: KPI fields live in the app's display currency. */

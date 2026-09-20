@@ -42,14 +42,21 @@ describe("solvePlan income is max sustainable", () => {
 
   it("matches liveSolve on the onboarding case (one path)", () => {
     const kpis = kpisFromOnboarding({
+      country: "BR",
+      locale: "pt",
+      currency: "BRL",
       age: 52,
-      income: 12_000,
-      contribution: 1_500,
-      lifeExpectancy: 90,
+      retirementAge: 65,
+    });
+    const fundedKpis = normalizeKpiValues({
+      ...kpis,
+      monthlyContribution: 1_500,
+      monthlyExpenses: 12_000,
+      desiredMonthlyIncome: 12_000,
     });
     const live = liveSolve(
       {
-        kpis,
+        kpis: fundedKpis,
         portfolio: [],
         includedAssetIds: [],
         outsidePortfolio: 0,

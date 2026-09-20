@@ -19,6 +19,7 @@ export function usePlanSolve(mode: "real" | "playground" = "real") {
   const outsidePortfolio = mode === "playground" ? simOutside : realOutside;
   const household = useAppStore((s) => s.household);
   const currency = useAppStore((s) => s.currency);
+  const country = useAppStore((s) => s.country);
   const fxSnapshot = useAppStore((s) => s.fxSnapshot);
 
   const solveInput = useMemo(
@@ -30,6 +31,7 @@ export function usePlanSolve(mode: "real" | "playground" = "real") {
       currency,
       fxSnapshot,
       household,
+      country,
     }),
     [
       kpis,
@@ -39,6 +41,7 @@ export function usePlanSolve(mode: "real" | "playground" = "real") {
       currency,
       fxSnapshot,
       household,
+      country,
     ]
   );
 

@@ -8,6 +8,8 @@ export function partializePersistedState<
   T extends {
     locale: unknown;
     currency: unknown;
+    country: unknown;
+    modelSeedActive: unknown;
     fxSnapshot: unknown;
     onboarding: unknown;
     sidebarCollapsed: unknown;
@@ -40,6 +42,8 @@ export function partializePersistedState<
   return {
     locale: state.locale,
     currency: state.currency,
+    country: state.country,
+    modelSeedActive: state.modelSeedActive,
     fxSnapshot: state.fxSnapshot,
     onboarding: state.onboarding,
     sidebarCollapsed: state.sidebarCollapsed,

@@ -2,7 +2,8 @@ import { buildProjectionEngineConfig } from "@/lib/projectionEngine";
 import { solvePlan, type SolveResult, type SolveUnknown } from "@/lib/engine/solve";
 import { liveFxQuote, type FxSnapshot } from "@/lib/fx/types";
 import type { Household } from "@/lib/engine/household";
-import type { Currency, KPIValues, PortfolioAsset } from "@/types";
+import type { Country, Currency, KPIValues, PortfolioAsset } from "@/types";
+import { engineApplyTaxes } from "@/lib/onboarding/country";
 
 export interface LiveSolveInput {
   kpis: KPIValues;
@@ -12,6 +13,7 @@ export interface LiveSolveInput {
   currency: Currency;
   fxSnapshot?: FxSnapshot | null;
   household?: Household | null;
+  country?: Country;
 }
 
 /**
@@ -29,7 +31,10 @@ export function liveSolve(
     input.includedAssetIds,
     input.outsidePortfolio,
     quote,
-    { household: input.household }
+    {
+      household: input.household,
+      applyTaxes: input.country ? engineApplyTaxes(input.country) : true,
+    }
   );
   return solvePlan(cfg.plan, unknown);
 }

@@ -14,6 +14,7 @@ import { aggregatePortfolioMajor } from "@/lib/engine/adapter";
 import { MissingFxRateError } from "@/lib/engine/money";
 import type { Household } from "@/lib/engine/household";
 import {
+  DEFAULT_CURRENCY,
   type KPIValues,
   type PortfolioAsset,
   type ProjectionYear,
@@ -44,7 +45,7 @@ function sameCurrencyQuote(
   if (currencies.length > 1) {
     throw new MissingFxRateError(currencies[0]!, currencies[1]!);
   }
-  const currency = (currencies[0] ?? "USD") as Currency;
+  const currency = (currencies[0] ?? DEFAULT_CURRENCY) as Currency;
   return { currency, rates: { USD: 1, BRL: 1, EUR: 1 } };
 }
 
@@ -55,7 +56,7 @@ export function buildProjectionEngineConfig(
   includedAssetIds: string[],
   outsidePortfolio = 0,
   quote?: EngineBuildInput["quote"],
-  extras?: { household?: Household | null }
+  extras?: { household?: Household | null; applyTaxes?: boolean }
 ): ProjectionEngineConfig {
   const fx = quote ?? sameCurrencyQuote(portfolio);
   const plan = buildEnginePlan({
@@ -65,6 +66,7 @@ export function buildProjectionEngineConfig(
     outsidePortfolio,
     quote: fx,
     household: extras?.household,
+    applyTaxes: extras?.applyTaxes,
   });
   return {
     kpis,
@@ -78,13 +80,16 @@ export function buildProjectionEngineConfig(
   };
 }
 
-export function buildSingleBucketConfig(kpis: KPIValues): ProjectionEngineConfig {
+export function buildSingleBucketConfig(
+  kpis: KPIValues,
+  currency: Currency = DEFAULT_CURRENCY
+): ProjectionEngineConfig {
   const inflation = kpis.annualInflation / 100;
   const plan = defaultPlan({
     currentAge: kpis.currentAge,
     retirementAge: kpis.retirementAge,
     lifeExpectancy: kpis.lifeExpectancy,
-    currency: "BRL",
+    currency,
     liquidCents: Math.round(kpis.currentNetWorth * 100),
     illiquidCents: 0,
     monthlyContributionCents: Math.round(kpis.monthlyContribution * 100),

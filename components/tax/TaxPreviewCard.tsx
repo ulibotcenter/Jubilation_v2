@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { Receipt } from "lucide-react";
+import { taxRegionForCountry } from "@/lib/onboarding/country";
 import { estimateRetirementTax, type TaxRegion } from "@/lib/tax/estimates";
+import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import {
   getTaxEstimateLabel,
   getTaxEstimateNotes,
@@ -18,7 +20,16 @@ export function TaxPreviewCard() {
   const plan = useAppStore((s) => s.planTier);
   const billingLive = useAppStore((s) => s.billingLive);
   const currency = useAppStore((s) => s.currency);
-  const [region, setRegion] = useState<TaxRegion>("br");
+  const country = useAppStore((s) => s.country);
+  const fxRates = useAppStore((s) => s.fxSnapshot?.rates) ?? FALLBACK_FX_RATES;
+  const countryRegion = taxRegionForCountry(country);
+  const [pickedRegion, setPickedRegion] = useState<TaxRegion | null>(null);
+  const [regionCountry, setRegionCountry] = useState(country);
+  if (regionCountry !== country) {
+    setRegionCountry(country);
+    setPickedRegion(null);
+  }
+  const region = pickedRegion ?? countryRegion;
 
   const annualIncome =
     kpis.desiredMonthlyIncome > 0
@@ -26,8 +37,12 @@ export function TaxPreviewCard() {
       : kpis.monthlyExpenses * 12;
 
   const estimate = useMemo(
-    () => estimateRetirementTax(region, kpis, annualIncome),
-    [region, kpis, annualIncome]
+    () =>
+      estimateRetirementTax(region, kpis, annualIncome, {
+        displayCurrency: currency,
+        rates: fxRates,
+      }),
+    [region, kpis, annualIncome, currency, fxRates]
   );
 
   const label = getTaxEstimateLabel(locale, region);
@@ -55,7 +70,7 @@ export function TaxPreviewCard() {
             type="button"
             className="portfolio-class-chip"
             data-active={region === r ? "true" : "false"}
-            onClick={() => setRegion(r)}
+            onClick={() => setPickedRegion(r)}
           >
             {r.toUpperCase()}
           </button>

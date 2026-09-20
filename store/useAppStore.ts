@@ -62,6 +62,12 @@ import {
   kpisFromOnboarding,
   type OnboardingAnswers,
 } from "@/lib/onboarding/plan";
+import { engineApplyTaxes } from "@/lib/onboarding/country";
+import {
+  createModelSeed,
+  emptyHoldings,
+  isModelSeedPortfolio,
+} from "@/lib/onboarding/seed";
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { migratePersistedState, CURRENT_PERSIST_VERSION } from "@/lib/persist/migrate";
 import type { CoachMessage } from "@/lib/ai/retirementCoach";
@@ -85,9 +91,11 @@ import {
   resolveSimulationKpis,
 } from "@/lib/simulationScope";
 import {
+  DEFAULT_COUNTRY,
   DEFAULT_CURRENCY,
   DEFAULT_LOCALE,
   DEFAULT_USER,
+  type Country,
   LOCAL_STORAGE_KEY,
   type AssetClass,
   type Currency,
@@ -178,7 +186,7 @@ function monteCarloOutputFromEngine(
   };
 }
 
-const SEED_PORTFOLIO: PortfolioAsset[] = [];
+const SEED_PORTFOLIO: PortfolioAsset[] = createModelSeed();
 
 export interface NetWorthSnapshot {
   id: string;
@@ -231,8 +239,9 @@ function buildProjectionsFromState(state: {
   currency?: Currency;
   fxSnapshot?: FxSnapshot | null;
   household?: Household | null;
+  country?: Country;
 }) {
-  const quote = liveFxQuote(state.currency ?? "USD", state.fxSnapshot);
+  const quote = liveFxQuote(state.currency ?? DEFAULT_CURRENCY, state.fxSnapshot);
   const portfolio = normalizePortfolioAssets(
     normalizePortfolioCagr(state.portfolio)
   );
@@ -262,7 +271,10 @@ function buildProjectionsFromState(state: {
     state.simulationIncludedAssetIds,
     state.kpiOutsidePortfolio,
     quote,
-    { household: state.household }
+    {
+      household: state.household,
+      applyTaxes: engineApplyTaxes(state.country ?? DEFAULT_COUNTRY),
+    }
   );
   if (state.sensitivity?.cagr != null) {
     const inflation = effectiveKpis.annualInflation / 100;
@@ -329,6 +341,8 @@ function mcBandsInput(monteCarlo: AppStore["monteCarlo"]) {
 export interface AppStore {
   locale: typeof DEFAULT_LOCALE;
   currency: Currency;
+  country: Country;
+  modelSeedActive: boolean;
   activeNav: NavItemId;
   activeTab: DashboardTab;
   sidebarOpen: boolean;
@@ -403,7 +417,9 @@ export interface AppStore {
   loadNamedScenario: (id: string) => void;
   undoSimPlayground: () => void;
   setCurrency: (currency: Currency) => void;
+  setCountry: (country: Country) => void;
   changeCurrency: (currency: Currency) => Promise<FxSnapshot>;
+  clearPortfolio: () => void;
   setOnboardingStep: (step: OnboardingStep) => void;
   setDisclaimerAccepted: (accepted: boolean) => void;
   completeOnboarding: () => void;
@@ -589,8 +605,8 @@ function rebuildWithHousehold<
   };
 }
 
-/** Empty holdings until the person types something. Demo Lamborghini/Trancoso is not the plan. */
-const defaultIncludedIds: string[] = [];
+/** Model seed is included until the person clears it. */
+const defaultIncludedIds: string[] = SEED_PORTFOLIO.map((a) => a.id);
 const seedKpis = normalizeKpiValues({});
 const initialOutside = 0;
 const seedHousehold = householdFromKpis(seedKpis, todayIsoDate());
@@ -601,6 +617,8 @@ const initialBuild = buildProjectionsFromState({
   kpiOutsidePortfolio: initialOutside,
   sensitivity: { cagr: null, inflation: null },
   household: seedHousehold,
+  country: DEFAULT_COUNTRY,
+  currency: DEFAULT_CURRENCY,
 });
 
 function mergePersistedAppState(
@@ -645,6 +663,7 @@ function mergePersistedAppState(
     currency: migrated.currency ?? current.currency,
     fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
     household,
+    country: migrated.country ?? current.country,
   });
 
   const simPlayground = normalizeSimPlayground(migrated.simPlayground, {
@@ -685,6 +704,12 @@ function mergePersistedAppState(
       : [],
     connectorSync: migrated.connectorSync ?? { b3: emptyB3Sync() },
     household,
+    country: migrated.country ?? current.country,
+    modelSeedActive:
+      migrated.modelSeedActive ??
+      (Array.isArray(migrated.portfolio)
+        ? isModelSeedPortfolio(portfolio)
+        : current.modelSeedActive),
     portfolio,
     simulationIncludedAssetIds,
     kpiOutsidePortfolio,
@@ -701,6 +726,8 @@ export const useAppStore = create<AppStore>()(
     (set, get) => ({
       locale: DEFAULT_LOCALE,
       currency: DEFAULT_CURRENCY,
+      country: DEFAULT_COUNTRY,
+      modelSeedActive: true,
       activeNav: "dashboard",
       activeTab: "real-portfolio",
       sidebarOpen: false,
@@ -910,6 +937,32 @@ export const useAppStore = create<AppStore>()(
 
       setCurrency: (currency) => set({ currency }),
 
+      setCountry: (country) => set({ country }),
+
+      clearPortfolio: () => {
+        const state = get();
+        const portfolio = emptyHoldings();
+        const simulationIncludedAssetIds: string[] = [];
+        const built = buildProjectionsFromState({
+          ...state,
+          kpis: { ...state.kpis, currentNetWorth: 0 },
+          portfolio,
+          simulationIncludedAssetIds,
+          kpiOutsidePortfolio: 0,
+        });
+        set({
+          portfolio,
+          simulationIncludedAssetIds,
+          kpiOutsidePortfolio: 0,
+          modelSeedActive: false,
+          kpis: built.kpis,
+          projections: built.projections,
+          chartData: built.chartData,
+          projectionRevision: state.projectionRevision + 1,
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
+        });
+      },
+
       changeCurrency: async (next) => {
         const state = get();
         if (state.currency === next) {
@@ -1018,8 +1071,18 @@ export const useAppStore = create<AppStore>()(
           asOf,
           state.household
         );
-        const portfolio: PortfolioAsset[] = [];
-        const simulationIncludedAssetIds: string[] = [];
+        const keepSeed =
+          state.modelSeedActive &&
+          (state.portfolio.length === 0 || isModelSeedPortfolio(state.portfolio));
+        const portfolio = keepSeed
+          ? state.portfolio.length > 0
+            ? state.portfolio
+            : createModelSeed()
+          : state.portfolio;
+        const simulationIncludedAssetIds =
+          portfolio.length > 0
+            ? portfolio.map((a) => a.id)
+            : [];
         const built = buildProjectionsFromState({
           ...state,
           kpis,
@@ -1027,13 +1090,19 @@ export const useAppStore = create<AppStore>()(
           simulationIncludedAssetIds,
           kpiOutsidePortfolio: 0,
           household,
+          currency: answers.currency,
+          country: answers.country,
         });
         set({
+          locale: answers.locale,
+          currency: answers.currency,
+          country: answers.country,
           kpis: built.kpis,
           household,
           portfolio,
           simulationIncludedAssetIds,
           kpiOutsidePortfolio: 0,
+          modelSeedActive: keepSeed,
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
@@ -1045,6 +1114,9 @@ export const useAppStore = create<AppStore>()(
             disclaimerAccepted: true,
           },
         });
+        if (typeof document !== "undefined") {
+          document.documentElement.lang = htmlLang(answers.locale);
+        }
       },
 
       setKPI: (field, value) => {
