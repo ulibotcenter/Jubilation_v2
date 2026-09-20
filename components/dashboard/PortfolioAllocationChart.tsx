@@ -97,9 +97,13 @@ export function PortfolioAllocationChart({
         </div>
       </div>
 
-      <ul className="portfolio-allocation-legend">
+      <ul className="portfolio-allocation-legend" data-testid="allocation-legend">
         {segments.map((seg) => (
-          <li key={seg.assetClass} className="portfolio-allocation-legend-item">
+          <li
+            key={seg.assetClass}
+            className="portfolio-allocation-legend-item"
+            data-testid={`allocation-legend-${seg.assetClass}`}
+          >
             <span
               className="portfolio-allocation-swatch"
               style={{ backgroundColor: CLASS_HEX[seg.assetClass] }}

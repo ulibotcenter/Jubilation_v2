@@ -29,9 +29,16 @@ export function RebalanceCard() {
           {t("rebalance.empty")}
         </p>
       ) : (
-        <ul className="dashboard-insight-body space-y-1.5">
+        <ul
+          className="dashboard-insight-body space-y-1.5"
+          data-testid="allocation-mix"
+        >
           {slices.slice(0, 4).map((s) => (
-            <li key={s.assetClass} className="text-xs flex justify-between gap-2">
+            <li
+              key={s.assetClass}
+              className="text-xs flex justify-between gap-2"
+              data-testid={`allocation-mix-${s.assetClass}`}
+            >
               <span className="text-muted-foreground">
                 {getAssetClassLabel(locale, s.assetClass)}
               </span>
