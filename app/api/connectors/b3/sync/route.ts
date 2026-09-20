@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { allowRequest, rateLimitKey } from "@/lib/api/rateLimit";
 import { fetchB3Canonical } from "@/lib/connectors/b3/client";
-import { isConnectorEnabled } from "@/lib/connectors/flags";
+import { isConnectorEnabled, isLiveB3Mode } from "@/lib/connectors/flags";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     const snapshot = await fetchB3Canonical();
     return NextResponse.json({
       mode: snapshot.health.mode,
+      live: isLiveB3Mode(snapshot.health.mode),
       asOf: snapshot.health.asOf,
       partial: snapshot.health.partial,
       rawHash: snapshot.raw.hash,

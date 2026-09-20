@@ -63,9 +63,9 @@ export const B3_CONSENT_SCOPES = [
 export const B3_CONSENT_PURPOSE =
   "Consolidar posição e rentabilidade da carteira em custódia B3 no plano de aposentadoria. Não inclui recomendação de ticker.";
 
-export const B3_CONSENT_EVIDENCE_VERSION = "b3-position-v1";
+export const B3_CONSENT_EVIDENCE_VERSION = "b3-position-v2";
 
-export const B3_CONSENT_EVIDENCE_PT = `Você autoriza o Jubilation a consultar sua posição na B3 (custódia D-1: ações, Tesouro Direto e renda fixa registrada) para consolidar a carteira no plano. Não recomendamos tickers (Res. CVM 19). A B3 é licença comercial da Área Logada do Investidor, não Open Finance. Sem credencial de sandbox, este lote carrega uma fixture. Já importado permanece no plano se você revogar; paramos de coletar dado novo. Revogação é imediata para coleta; a exclusão física espera 48 horas (revogação reversível).`;
+export const B3_CONSENT_EVIDENCE_PT = `Você autoriza o Jubilation a consultar sua posição na B3 (custódia D-1: ações, Tesouro Direto e renda fixa registrada) para consolidar a carteira no plano. Não recomendamos tickers (Res. CVM 19). A B3 é licença comercial da Nova Área Logada do Investidor (PJ não financeira), não Open Finance. Sem credencial de produção (B3_PRODUCTION_*) o app fica na fixture e diz isso — não é a sua custódia. Já importado permanece no plano se você revogar; paramos de coletar dado novo. Revogação é imediata para coleta; a exclusão física espera 48 horas (revogação reversível).`;
 
 export const PURGE_GRACE_MS = 48 * 60 * 60 * 1000;
 

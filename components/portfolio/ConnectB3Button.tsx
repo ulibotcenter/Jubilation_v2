@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Landmark, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { canCollect, ConsentRequiredError, isConnectorEnabled } from "@/lib/connectors";
 import { B3_CONSENT_EVIDENCE_PT } from "@/lib/connectors/consent";
+import type { PublicB3Status } from "@/lib/connectors/flags";
 import { formatCurrencyValue } from "@/types";
 import { useAppStore } from "@/store/useAppStore";
 
 export function ConnectB3Button() {
   const { t, locale } = useTranslation();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [status, setStatus] = useState<PublicB3Status | null>(null);
   const consents = useAppStore((s) => s.consents);
   const grant = useAppStore((s) => s.grantB3Consent);
   const syncB3 = useAppStore((s) => s.syncB3);
@@ -20,6 +22,30 @@ export function ConnectB3Button() {
   const sync = useAppStore((s) => s.connectorSync.b3);
   const currency = useAppStore((s) => s.currency);
   const portfolio = useAppStore((s) => s.portfolio);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/connectors/b3/status");
+        const json = (await res.json()) as PublicB3Status;
+        if (!cancelled) setStatus(json);
+      } catch {
+        if (!cancelled) {
+          setStatus({
+            enabled: true,
+            live: false,
+            mode: "fixture",
+            reason: "missing_env",
+            openFinance: false,
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!isConnectorEnabled("b3")) return null;
 
@@ -36,9 +62,11 @@ export function ConnectB3Button() {
       if (!authorised) grant();
       const result = await syncB3();
       toast.success(
-        result.mode === "fixture"
-          ? t("toast.b3.fixtureSynced")
-          : t("toast.b3.synced"),
+        result.mode === "live"
+          ? t("toast.b3.liveSynced")
+          : result.mode === "fixture"
+            ? t("toast.b3.fixtureSynced")
+            : t("toast.b3.synced"),
         {
           description: result.asOf
             ? t("portfolio.b3.asOf", { date: result.asOf })
@@ -90,16 +118,27 @@ export function ConnectB3Button() {
               ? t("portfolio.syncB3")
               : t("portfolio.connectB3")}
         </button>
-        {freshnessLabel && (
+        {status && !status.live ? (
+          <p className="text-[10px] text-muted-foreground max-w-[16rem] sm:text-right leading-snug">
+            {status.reason === "sandbox_only"
+              ? t("portfolio.b3.sandboxOnly")
+              : t("portfolio.b3.notLive")}
+          </p>
+        ) : null}
+        {freshnessLabel ? (
           <p className="text-[10px] text-muted-foreground tabular-nums">
             {freshnessLabel}
-            {sync?.mode === "fixture" ? ` · ${t("portfolio.b3.fixture")}` : ""}
+            {sync?.mode === "live"
+              ? ` · ${t("portfolio.b3.live")}`
+              : sync?.mode === "sandbox"
+                ? ` · ${t("portfolio.b3.sandbox")}`
+                : ` · ${t("portfolio.b3.fixture")}`}
             {sync?.partial ? ` · ${t("portfolio.b3.partial")}` : ""}
             {imported.length > 0
               ? ` · ${formatCurrencyValue(importedValue, currency, true, locale === "pt" ? "pt-BR" : undefined)}`
               : ""}
           </p>
-        )}
+        ) : null}
       </div>
 
       <AnimatePresence>

@@ -18,7 +18,15 @@ export {
 } from "@/lib/connectors/consent";
 export { reconcileHoldings, matchImported } from "@/lib/connectors/reconcile";
 export { isOutsideB3Coverage } from "@/lib/connectors/coverage";
-export { isConnectorEnabled, isOpenFinanceEnabled, hasB3SandboxCredentials } from "@/lib/connectors/flags";
+export {
+  isConnectorEnabled,
+  isOpenFinanceEnabled,
+  hasB3SandboxCredentials,
+  hasB3ProductionCredentials,
+  resolveB3Mode,
+  isLiveB3Mode,
+  publicB3Status,
+} from "@/lib/connectors/flags";
 export { runB3Sync, ConsentRequiredError } from "@/lib/connectors/sync";
 export { B3Connector, createB3Connector, fixtureCanonical } from "@/lib/connectors/b3";
 export { ManualEntryConnector } from "@/lib/connectors/manual";

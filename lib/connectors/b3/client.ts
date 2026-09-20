@@ -1,5 +1,9 @@
 import { fetchWithTimeout } from "@/lib/api/rateLimit";
-import { hasB3SandboxCredentials } from "@/lib/connectors/flags";
+import {
+  hasB3ProductionCredentials,
+  hasB3SandboxCredentials,
+  resolveB3Mode,
+} from "@/lib/connectors/flags";
 import { hashPayload } from "@/lib/connectors/hash";
 import { allowlistB3Payload } from "@/lib/connectors/b3/allowlist";
 import { B3_FIXTURE_AS_OF, B3_FIXTURE_RAW } from "@/lib/connectors/b3/fixture";
@@ -13,26 +17,54 @@ export interface B3FetchOptions {
   since?: string;
 }
 
-function sandboxHeaders(env: Record<string, string | undefined>): Record<string, string> {
+type RemoteKind = "sandbox" | "live";
+
+const DEFAULT_PATHS = {
+  token: "/oauth/token",
+  equities: "/api/investidor/posicao/v1/equities",
+  treasury: "/api/investidor/posicao/v1/treasury-bonds",
+  fixedIncome: "/api/investidor/posicao/v1/fixed-income",
+  movements: "/api/investidor/movimentacao/v1/equities",
+} as const;
+
+function prefixFor(kind: RemoteKind): "B3_SANDBOX" | "B3_PRODUCTION" {
+  return kind === "live" ? "B3_PRODUCTION" : "B3_SANDBOX";
+}
+
+function envStr(
+  env: Record<string, string | undefined>,
+  key: string,
+  fallback = ""
+): string {
+  const value = env[key]?.trim();
+  return value || fallback;
+}
+
+function remoteHeaders(
+  env: Record<string, string | undefined>,
+  prefix: "B3_SANDBOX" | "B3_PRODUCTION"
+): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
-  const token = env.B3_SANDBOX_ACCESS_TOKEN?.trim();
+  const token = env[`${prefix}_ACCESS_TOKEN`]?.trim();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const document = env.B3_SANDBOX_INVESTOR_DOCUMENT?.trim();
+  const document = env[`${prefix}_INVESTOR_DOCUMENT`]?.trim();
   if (document) headers["X-Investor-Document"] = document;
   return headers;
 }
 
-async function sandboxToken(env: Record<string, string | undefined>): Promise<string | null> {
-  if (env.B3_SANDBOX_ACCESS_TOKEN?.trim()) {
-    return env.B3_SANDBOX_ACCESS_TOKEN.trim();
-  }
-  const base = env.B3_SANDBOX_BASE_URL?.replace(/\/$/, "");
-  const id = env.B3_SANDBOX_CLIENT_ID?.trim();
-  const secret = env.B3_SANDBOX_CLIENT_SECRET?.trim();
+async function remoteToken(
+  env: Record<string, string | undefined>,
+  prefix: "B3_SANDBOX" | "B3_PRODUCTION"
+): Promise<string | null> {
+  const existing = env[`${prefix}_ACCESS_TOKEN`]?.trim();
+  if (existing) return existing;
+  const base = env[`${prefix}_BASE_URL`]?.replace(/\/$/, "");
+  const id = env[`${prefix}_CLIENT_ID`]?.trim();
+  const secret = env[`${prefix}_CLIENT_SECRET`]?.trim();
   if (!base || !id || !secret) return null;
-  const tokenPath = env.B3_SANDBOX_TOKEN_PATH ?? "/oauth/token";
+  const tokenPath = envStr(env, `${prefix}_TOKEN_PATH`, DEFAULT_PATHS.token);
   const res = await fetchWithTimeout(`${base}${tokenPath}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -44,7 +76,7 @@ async function sandboxToken(env: Record<string, string | undefined>): Promise<st
     timeoutMs: 8000,
   });
   if (!res.ok) {
-    throw new Error(`B3 sandbox token ${res.status}`);
+    throw new Error(`B3 ${prefix} token ${res.status}`);
   }
   const body = (await res.json()) as { access_token?: string };
   return body.access_token ?? null;
@@ -72,30 +104,62 @@ async function getJson(
   }
 }
 
-async function fetchSandboxRaw(
-  env: Record<string, string | undefined>
+async function fetchRemoteRaw(
+  env: Record<string, string | undefined>,
+  kind: RemoteKind
 ): Promise<{ raw: Record<string, unknown>; errors: string[] }> {
-  const base = env.B3_SANDBOX_BASE_URL!.replace(/\/$/, "");
-  const token = await sandboxToken(env);
-  const headers = sandboxHeaders(env);
+  const prefix = prefixFor(kind);
+  const base = env[`${prefix}_BASE_URL`]!.replace(/\/$/, "");
+  const token = await remoteToken(env, prefix);
+  const headers = remoteHeaders(env, prefix);
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const paths = {
-    equities: env.B3_SANDBOX_EQUITIES_PATH ?? "/api/investidor/posicao/v1/equities",
-    treasury:
-      env.B3_SANDBOX_TREASURY_PATH ?? "/api/investidor/posicao/v1/treasury-bonds",
-    fixedIncome:
-      env.B3_SANDBOX_FIXED_INCOME_PATH ?? "/api/investidor/posicao/v1/fixed-income",
-    movements:
-      env.B3_SANDBOX_MOVEMENTS_PATH ?? "/api/investidor/movimentacao/v1/equities",
+    equities: envStr(env, `${prefix}_EQUITIES_PATH`, DEFAULT_PATHS.equities),
+    treasury: envStr(env, `${prefix}_TREASURY_PATH`, DEFAULT_PATHS.treasury),
+    fixedIncome: envStr(
+      env,
+      `${prefix}_FIXED_INCOME_PATH`,
+      DEFAULT_PATHS.fixedIncome
+    ),
+    movements: envStr(env, `${prefix}_MOVEMENTS_PATH`, DEFAULT_PATHS.movements),
+    events: env[`${prefix}_EVENTS_PATH`]?.trim() ?? "",
+    guide: env[`${prefix}_GUIDE_PATH`]?.trim() ?? "",
+    authorization: env[`${prefix}_AUTHORIZATION_PATH`]?.trim() ?? "",
   };
 
-  const [equities, treasury, fixedIncome, movements] = await Promise.all([
-    getJson(`${base}${paths.equities}`, headers),
-    getJson(`${base}${paths.treasury}`, headers),
-    getJson(`${base}${paths.fixedIncome}`, headers),
-    getJson(`${base}${paths.movements}`, headers),
-  ]);
+  const optionalGets: Promise<{
+    key: string;
+    result: { ok: true; body: unknown } | { ok: false; error: string };
+  }>[] = [];
+  if (paths.guide) {
+    optionalGets.push(
+      getJson(`${base}${paths.guide}`, headers).then((result) => ({
+        key: "guide",
+        result,
+      }))
+    );
+  }
+  if (paths.authorization) {
+    optionalGets.push(
+      getJson(`${base}${paths.authorization}`, headers).then((result) => ({
+        key: "authorization",
+        result,
+      }))
+    );
+  }
+
+  const [equities, treasury, fixedIncome, movements, events, optional] =
+    await Promise.all([
+      getJson(`${base}${paths.equities}`, headers),
+      getJson(`${base}${paths.treasury}`, headers),
+      getJson(`${base}${paths.fixedIncome}`, headers),
+      getJson(`${base}${paths.movements}`, headers),
+      paths.events
+        ? getJson(`${base}${paths.events}`, headers)
+        : Promise.resolve({ ok: true as const, body: [] }),
+      Promise.all(optionalGets),
+    ]);
 
   const errors: string[] = [];
   const merge = (
@@ -120,8 +184,90 @@ async function fetchSandboxRaw(
     treasuryBondsPositions: merge(treasury, "treasuryBondsPositions"),
     fixedIncomePositions: merge(fixedIncome, "fixedIncomePositions"),
     movements: merge(movements, "movements"),
+    provisionedEvents: merge(events, "provisionedEvents"),
   };
+
+  for (const item of optional) {
+    if (!item.result.ok) {
+      errors.push(item.result.error);
+      continue;
+    }
+    raw[item.key] = item.result.body;
+  }
+
   return { raw, errors };
+}
+
+function emptyRemoteFetch(
+  mode: Extract<ConnectorMode, "sandbox" | "live">,
+  message: string,
+  now: Date
+): CanonicalFetch {
+  const receivedAt = now.toISOString();
+  return {
+    institutions: [],
+    accounts: [],
+    holdings: [],
+    cashFlows: [],
+    health: {
+      status: "unavailable",
+      lastSuccessAt: null,
+      lastError: message,
+      staleness: "unknown",
+      asOf: null,
+      partial: true,
+      mode,
+    },
+    raw: {
+      asOf: now.toISOString().slice(0, 10),
+      receivedAt,
+      hash: hashPayload({ error: message }),
+      payload: {},
+      partial: true,
+      errors: [message],
+      mode,
+    },
+  };
+}
+
+async function fetchRemoteCanonical(
+  env: Record<string, string | undefined>,
+  kind: RemoteKind,
+  now: Date
+): Promise<CanonicalFetch> {
+  const mode: ConnectorMode = kind;
+  try {
+    const { raw, errors } = await fetchRemoteRaw(env, kind);
+    const allowlisted = allowlistB3Payload(raw, now.toISOString().slice(0, 10));
+    const mapped = mapAllowlistedB3(allowlisted);
+    const receivedAt = now.toISOString();
+    const partial = errors.length > 0;
+    const empty = mapped.holdings.length === 0 && mapped.cashFlows.length === 0;
+    return {
+      ...mapped,
+      health: {
+        status: empty && partial ? "unavailable" : partial ? "degraded" : "ok",
+        lastSuccessAt: empty ? null : receivedAt,
+        lastError: errors[0] ?? null,
+        staleness: stalenessOf(allowlisted.asOf, now),
+        asOf: allowlisted.asOf,
+        partial,
+        mode,
+      },
+      raw: {
+        asOf: allowlisted.asOf,
+        receivedAt,
+        hash: hashPayload(allowlisted),
+        payload: allowlisted,
+        partial,
+        errors,
+        mode,
+      },
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return emptyRemoteFetch(mode, message, now);
+  }
 }
 
 export function fixtureCanonical(now = new Date()): CanonicalFetch {
@@ -153,76 +299,26 @@ export function fixtureCanonical(now = new Date()): CanonicalFetch {
 }
 
 /**
- * Fixture unless sandbox env vars are complete. Never pretends a fixture
- * is a live B3 response.
+ * Fixture unless sandbox or production env vars are complete.
+ * Never pretends a fixture is a live B3 response. A failed live/sandbox
+ * call stays in that mode with empty holdings — it does not fall back.
  */
 export async function fetchB3Canonical(
   options: B3FetchOptions = {}
 ): Promise<CanonicalFetch> {
   const env = options.env ?? process.env;
   const now = options.now ?? new Date();
-  if (!hasB3SandboxCredentials(env)) {
-    return fixtureCanonical(now);
+  if (hasB3ProductionCredentials(env)) {
+    return fetchRemoteCanonical(env, "live", now);
   }
+  if (hasB3SandboxCredentials(env)) {
+    return fetchRemoteCanonical(env, "sandbox", now);
+  }
+  return fixtureCanonical(now);
+}
 
-  try {
-    const { raw, errors } = await fetchSandboxRaw(env);
-    const allowlisted = allowlistB3Payload(
-      raw,
-      now.toISOString().slice(0, 10)
-    );
-    const mapped = mapAllowlistedB3(allowlisted);
-    const receivedAt = now.toISOString();
-    const partial = errors.length > 0;
-    const empty =
-      mapped.holdings.length === 0 && mapped.cashFlows.length === 0;
-    return {
-      ...mapped,
-      health: {
-        status: empty && partial ? "unavailable" : partial ? "degraded" : "ok",
-        lastSuccessAt: empty ? null : receivedAt,
-        lastError: errors[0] ?? null,
-        staleness: stalenessOf(allowlisted.asOf, now),
-        asOf: allowlisted.asOf,
-        partial,
-        mode: "sandbox",
-      },
-      raw: {
-        asOf: allowlisted.asOf,
-        receivedAt,
-        hash: hashPayload(allowlisted),
-        payload: allowlisted,
-        partial,
-        errors,
-        mode: "sandbox",
-      },
-    };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const receivedAt = now.toISOString();
-    return {
-      institutions: [],
-      accounts: [],
-      holdings: [],
-      cashFlows: [],
-      health: {
-        status: "unavailable",
-        lastSuccessAt: null,
-        lastError: message,
-        staleness: "unknown",
-        asOf: null,
-        partial: true,
-        mode: "sandbox",
-      },
-      raw: {
-        asOf: now.toISOString().slice(0, 10),
-        receivedAt,
-        hash: hashPayload({ error: message }),
-        payload: {},
-        partial: true,
-        errors: [message],
-        mode: "sandbox",
-      },
-    };
-  }
+export function b3FetchMode(
+  env: Record<string, string | undefined> = process.env
+): ConnectorMode {
+  return resolveB3Mode(env);
 }

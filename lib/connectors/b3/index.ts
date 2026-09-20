@@ -1,6 +1,9 @@
 import type { CanonicalFetch, Connector, ConnectorCapabilities, ConnectorHealth, DiscoveredAccount } from "@/lib/connectors/types";
 import { fetchB3Canonical, fixtureCanonical } from "@/lib/connectors/b3/client";
-import { hasB3SandboxCredentials } from "@/lib/connectors/flags";
+import {
+  hasB3ProductionCredentials,
+  resolveB3Mode,
+} from "@/lib/connectors/flags";
 
 export class B3Connector implements Connector {
   readonly id = "b3" as const;
@@ -14,7 +17,7 @@ export class B3Connector implements Connector {
       products: ["equities", "treasury", "fixed_income", "events"],
       supportsCashFlows: true,
       supportsDiscover: true,
-      live: hasB3SandboxCredentials(this.env),
+      live: hasB3ProductionCredentials(this.env),
     };
   }
 
@@ -27,7 +30,7 @@ export class B3Connector implements Connector {
       staleness: "unknown",
       asOf: null,
       partial: false,
-      mode: hasB3SandboxCredentials(this.env) ? "sandbox" : "fixture",
+      mode: resolveB3Mode(this.env),
     };
   }
 
