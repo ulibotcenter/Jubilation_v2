@@ -93,6 +93,7 @@ describe("onboarding plan", () => {
       locale: "en",
       currency: "USD",
       country: "US",
+      manualEffectiveTaxRatePct: 22,
       modelSeedActive: false,
       fxSnapshot: null,
       onboarding: { completed: true, currentStep: 2, disclaimerAccepted: true },
@@ -144,6 +145,7 @@ describe("onboarding plan", () => {
     });
     expect(persisted.portfolio).toEqual([]);
     expect(persisted.country).toBe("US");
+    expect(persisted.manualEffectiveTaxRatePct).toBe(22);
     expect(persisted.currency).toBe("USD");
     expect(persisted.locale).toBe("en");
     expect(persisted.modelSeedActive).toBe(false);

@@ -14,6 +14,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { COUNTRIES } from "@/lib/onboarding/country";
 import { DEFAULT_ONBOARDING_RETIREMENT_AGE } from "@/lib/onboarding/plan";
+import { ManualTaxRateField } from "@/components/tax/ManualTaxRateField";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
 import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -52,6 +53,12 @@ export function OnboardingModal() {
   const setLocale = useAppStore((s) => s.setLocale);
   const setCurrency = useAppStore((s) => s.setCurrency);
   const setCountry = useAppStore((s) => s.setCountry);
+  const manualEffectiveTaxRatePct = useAppStore(
+    (s) => s.manualEffectiveTaxRatePct
+  );
+  const setManualEffectiveTaxRatePct = useAppStore(
+    (s) => s.setManualEffectiveTaxRatePct
+  );
   const setOnboardingStep = useAppStore((s) => s.setOnboardingStep);
   const setDisclaimerAccepted = useAppStore((s) => s.setDisclaimerAccepted);
   const finishOnboarding = useAppStore((s) => s.finishOnboarding);
@@ -110,6 +117,7 @@ export function OnboardingModal() {
       currency: storedCurrency,
       age: Number(age),
       retirementAge: Number(retirementAge),
+      manualEffectiveTaxRatePct,
     });
     toast.success(t("toast.onboarding.complete"), {
       description: t("toast.onboarding.completeDescGate", {
@@ -124,6 +132,7 @@ export function OnboardingModal() {
     storedCountry,
     storedLocale,
     storedCurrency,
+    manualEffectiveTaxRatePct,
     setOnboardingStep,
     finishOnboarding,
     t,
@@ -223,6 +232,12 @@ export function OnboardingModal() {
                       {t("onboarding.why.country")}
                     </span>
                   </label>
+                  <ManualTaxRateField
+                    country={storedCountry}
+                    value={manualEffectiveTaxRatePct}
+                    onChange={setManualEffectiveTaxRatePct}
+                    className="household-field household-field--wide"
+                  />
                   <fieldset className="household-field">
                     <legend>{t("onboarding.field.language")}</legend>
                     <div className="onboarding-chip-row">

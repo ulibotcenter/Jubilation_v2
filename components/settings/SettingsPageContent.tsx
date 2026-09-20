@@ -23,6 +23,7 @@ import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { COUNTRIES } from "@/lib/onboarding/country";
+import { ManualTaxRateField } from "@/components/tax/ManualTaxRateField";
 import { CURRENCIES, type Country, type Currency } from "@/types";
 import { HouseholdCard } from "@/components/settings/HouseholdCard";
 import { B3ConsentCard } from "@/components/settings/B3ConsentCard";
@@ -49,6 +50,12 @@ export function SettingsPageContent() {
   const currency = useAppStore((s) => s.currency);
   const country = useAppStore((s) => s.country);
   const setCountry = useAppStore((s) => s.setCountry);
+  const manualEffectiveTaxRatePct = useAppStore(
+    (s) => s.manualEffectiveTaxRatePct
+  );
+  const setManualEffectiveTaxRatePct = useAppStore(
+    (s) => s.setManualEffectiveTaxRatePct
+  );
   const changeCurrency = useAppStore((s) => s.changeCurrency);
   const isChangingCurrency = useAppStore((s) => s.isChangingCurrency);
   const fxSnapshot = useAppStore((s) => s.fxSnapshot);
@@ -221,6 +228,13 @@ export function SettingsPageContent() {
               </button>
             ))}
           </div>
+          <ManualTaxRateField
+            country={country}
+            value={manualEffectiveTaxRatePct}
+            onChange={setManualEffectiveTaxRatePct}
+            id="settings-manual-tax-rate"
+            className="household-field mt-4"
+          />
         </section>
 
         <section className="settings-page-card">

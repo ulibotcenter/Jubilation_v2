@@ -20,6 +20,8 @@ export interface OnboardingAnswers {
   currency: Currency;
   age: number;
   retirementAge: number;
+  /** Uncovered tax homes only. Ignored when country is BR. Empty = 0. */
+  manualEffectiveTaxRatePct?: number | null;
 }
 
 export const DEFAULT_ONBOARDING_RETIREMENT_AGE = 90;

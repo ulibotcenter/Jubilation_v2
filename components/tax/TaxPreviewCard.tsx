@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Receipt } from "lucide-react";
-import { taxRegionForCountry } from "@/lib/onboarding/country";
-import { estimateRetirementTax, type TaxRegion } from "@/lib/tax/estimates";
+import { estimateRetirementTax } from "@/lib/tax/estimates";
+import { isCoveredTaxHome } from "@/lib/tax/manual";
 import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import {
   getTaxEstimateLabel,
@@ -13,6 +13,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { canAccess } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrencyValue } from "@/types";
+import { ManualTaxRateField } from "@/components/tax/ManualTaxRateField";
 
 export function TaxPreviewCard() {
   const { t, locale } = useTranslation();
@@ -21,15 +22,14 @@ export function TaxPreviewCard() {
   const billingLive = useAppStore((s) => s.billingLive);
   const currency = useAppStore((s) => s.currency);
   const country = useAppStore((s) => s.country);
+  const manualEffectiveTaxRatePct = useAppStore(
+    (s) => s.manualEffectiveTaxRatePct
+  );
+  const setManualEffectiveTaxRatePct = useAppStore(
+    (s) => s.setManualEffectiveTaxRatePct
+  );
   const fxRates = useAppStore((s) => s.fxSnapshot?.rates) ?? FALLBACK_FX_RATES;
-  const countryRegion = taxRegionForCountry(country);
-  const [pickedRegion, setPickedRegion] = useState<TaxRegion | null>(null);
-  const [regionCountry, setRegionCountry] = useState(country);
-  if (regionCountry !== country) {
-    setRegionCountry(country);
-    setPickedRegion(null);
-  }
-  const region = pickedRegion ?? countryRegion;
+  const covered = isCoveredTaxHome(country);
 
   const annualIncome =
     kpis.desiredMonthlyIncome > 0
@@ -38,15 +38,20 @@ export function TaxPreviewCard() {
 
   const estimate = useMemo(
     () =>
-      estimateRetirementTax(region, kpis, annualIncome, {
+      estimateRetirementTax(country, kpis, annualIncome, {
         displayCurrency: currency,
         rates: fxRates,
+        manualEffectiveTaxRatePct,
       }),
-    [region, kpis, annualIncome, currency, fxRates]
+    [country, kpis, annualIncome, currency, fxRates, manualEffectiveTaxRatePct]
   );
 
-  const label = getTaxEstimateLabel(locale, region);
-  const notes = getTaxEstimateNotes(locale, region);
+  const label = covered
+    ? getTaxEstimateLabel(locale, "br")
+    : t("tax.region.manual.label");
+  const notes = covered
+    ? getTaxEstimateNotes(locale, "br")
+    : t("tax.notes.manual");
 
   if (!canAccess(plan, "tax_preview", billingLive)) {
     return (
@@ -63,19 +68,12 @@ export function TaxPreviewCard() {
         <h3 className="text-sm font-bold">{t("tax.title")}</h3>
       </div>
       <div className="dashboard-insight-body flex flex-col gap-3">
-      <div className="flex gap-1">
-        {(["usa", "eu", "br"] as TaxRegion[]).map((r) => (
-          <button
-            key={r}
-            type="button"
-            className="portfolio-class-chip"
-            data-active={region === r ? "true" : "false"}
-            onClick={() => setPickedRegion(r)}
-          >
-            {r.toUpperCase()}
-          </button>
-        ))}
-      </div>
+      <ManualTaxRateField
+        country={country}
+        value={manualEffectiveTaxRatePct}
+        onChange={setManualEffectiveTaxRatePct}
+        id="tax-preview-manual-rate"
+      />
       <p className="text-xs text-muted-foreground mb-1">{label}</p>
       <p className="text-lg font-bold tabular-nums">
         {formatCurrencyValue(estimate.estimatedAnnualTax, currency)}

@@ -36,8 +36,8 @@ describe("M9 — IRPF progressive, no 400k cliff", () => {
   });
 
   it("R$ 2 of extra annual income cannot cost R$ 50.000 of tax", () => {
-    const a = estimateRetirementTax("br", kpis, 399_999);
-    const b = estimateRetirementTax("br", kpis, 400_001);
+    const a = estimateRetirementTax("BR", kpis, 399_999);
+    const b = estimateRetirementTax("BR", kpis, 400_001);
     expect(Math.abs(b.estimatedAnnualTax - a.estimatedAnnualTax)).toBeLessThan(100);
     expect(a.estimatedAnnualTax).not.toBe(60_000);
     expect(b.estimatedAnnualTax).not.toBe(110_000);

@@ -36,6 +36,8 @@ export interface EngineBuildInput {
   quote: FxQuote;
   asOf?: string;
   applyTaxes?: boolean;
+  /** Flat 0–1. Ignored when applyTaxes (BR IRPF). */
+  manualEffectiveTaxRate?: number;
   inssMonthly?: number;
   seed?: number;
   /** When set (sensitivity slider), replaces portfolio-implied liquid return. */
@@ -186,6 +188,9 @@ export function buildEnginePlan(input: EngineBuildInput): EnginePlan {
     inflation,
     allowIlliquidSale: illiquidAssets.some((a) => a.allowSale === true),
     applyTaxes: input.applyTaxes ?? true,
+    manualEffectiveTaxRate: input.applyTaxes
+      ? 0
+      : Math.min(1, Math.max(0, input.manualEffectiveTaxRate ?? 0)),
     taxRegime: comeCotasFraction >= 1 ? "come_cotas" : "taxable",
     comeCotasRate: paramsForYear(
       DEFAULT_PARAMETER_SET,

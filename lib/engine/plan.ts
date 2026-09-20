@@ -37,6 +37,11 @@ export interface EnginePlan {
   /** Age-ranged benefit slices (INSS, survivor pension, RendA+). */
   benefits: BenefitSlice[];
   applyTaxes: boolean;
+  /**
+   * Flat 0–1 rate for uncovered tax homes. Ignored when `applyTaxes`
+   * (Brazil IRPF). Empty / missing is 0 — never an invented bracket.
+   */
+  manualEffectiveTaxRate: number;
   taxRegime: TaxRegime;
   comeCotasRate: number;
   /**
@@ -84,6 +89,7 @@ export function defaultPlan(overrides: Partial<EnginePlan> = {}): EnginePlan {
     inssMonthlyCents: 0,
     benefits: [],
     applyTaxes: false,
+    manualEffectiveTaxRate: 0,
     taxRegime: "taxable",
     comeCotasRate: 0.15,
     comeCotasFraction: 0,
