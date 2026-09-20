@@ -1,8 +1,14 @@
-import type { BillingOffer } from "@/lib/billing/config";
+import type { BillingCurrency, CheckoutPrice } from "@/lib/billing/config";
+
+const STRIPE_LOCALE: Record<BillingCurrency, string> = {
+  brl: "pt-BR",
+  usd: "en",
+  eur: "auto",
+};
 
 export interface CreateCheckoutInput {
   secretKey: string;
-  offer: BillingOffer;
+  offer: CheckoutPrice;
   userId: string;
   email: string;
   customerId?: string | null;
@@ -20,15 +26,17 @@ export async function createStripeCheckoutSession(
   body.set("success_url", input.successUrl);
   body.set("cancel_url", input.cancelUrl);
   body.set("client_reference_id", input.userId);
-  body.set("locale", "pt-BR");
+  body.set("locale", STRIPE_LOCALE[input.offer.currency]);
   body.set("metadata[userId]", input.userId);
   body.set("metadata[planTier]", input.offer.plan);
   body.set("metadata[offerId]", input.offer.id);
   body.set("metadata[priceId]", input.offer.priceId);
+  body.set("metadata[currency]", input.offer.currency);
   body.set("subscription_data[metadata][userId]", input.userId);
   body.set("subscription_data[metadata][planTier]", input.offer.plan);
   body.set("subscription_data[metadata][offerId]", input.offer.id);
   body.set("subscription_data[metadata][priceId]", input.offer.priceId);
+  body.set("subscription_data[metadata][currency]", input.offer.currency);
   if (input.customerId) {
     body.set("customer", input.customerId);
   } else {
