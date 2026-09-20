@@ -5159,7 +5159,11 @@ html.light .add-asset-modal {
 }
 
 .wizard-modal {
-  padding-inline: 0;
+  padding: 1.25rem 0 0;
+}
+
+.wizard-modal .add-asset-modal-header {
+  padding-inline: 1.25rem;
 }
 
 .wizard-body {
