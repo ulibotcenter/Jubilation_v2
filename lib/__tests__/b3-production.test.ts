@@ -203,9 +203,31 @@ describe("B3 production path", () => {
     expect(snapshot.health.mode).toBe("live");
     expect(isLiveB3Mode(snapshot.health.mode)).toBe(true);
     expect(snapshot.holdings).toEqual([]);
+    expect(snapshot.cashFlows).toEqual([]);
     expect(snapshot.health.status).toBe("unavailable");
     expect(snapshot.holdings.some((h) => h.ticker === "PETR4")).toBe(false);
-    expect(snapshot.health.asOf).toBeNull();
+    expect(snapshot.health.asOf).not.toBe(B3_FIXTURE_AS_OF);
+    expect(snapshot.raw.mode).toBe("live");
+  });
+
+  it("token failure on live stays live with no holdings", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ error: "unauthorized" }, 401))
+    );
+    const snapshot = await fetchB3Canonical({
+      env: {
+        B3_PRODUCTION_BASE_URL: "https://b3.example.test",
+        B3_PRODUCTION_CLIENT_ID: "id",
+        B3_PRODUCTION_CLIENT_SECRET: "secret",
+        B3_PRODUCTION_INVESTOR_DOCUMENT: "39053344705",
+      },
+      now: new Date("2026-09-20T12:00:00Z"),
+    });
+    expect(snapshot.health.mode).toBe("live");
+    expect(snapshot.holdings).toEqual([]);
+    expect(snapshot.health.lastError).toMatch(/token 401/);
+    expect(isLiveB3Mode(snapshot.health.mode)).toBe(true);
   });
 
   it("production wins over sandbox when both envs are set", () => {
