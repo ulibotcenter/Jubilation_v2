@@ -792,18 +792,46 @@ export const EN = {
   "portfolio.b3.asOf": "as of {date}",
   "portfolio.b3.stale": "B3 stale since {date}",
   "portfolio.b3.fixture": "fixture",
+  "portfolio.b3.sandbox": "sandbox",
+  "portfolio.b3.live": "live",
   "portfolio.b3.partial": "partial",
   "portfolio.b3.sourceAsOf": "B3 · {date}",
+  "portfolio.b3.sourceAsOfFixture": "B3 fixture · {date}",
+  "portfolio.b3.sourceAsOfSandbox": "B3 sandbox · {date}",
+  "portfolio.b3.notLive":
+    "No production licence or env — this load is a fixture, not your custody.",
+  "portfolio.b3.sandboxOnly":
+    "Certification credentials only. Not production custody.",
+  "portfolio.b3.disabled":
+    "Production B3 is switched off — this load is a fixture, not your custody.",
   "portfolio.b3.noAdvice":
     "We consolidate position and return of the imported sleeve. We do not recommend a ticker (CVM 19).",
   "settings.b3.title": "B3 connection",
   "settings.b3.body":
-    "Commercial licence to the Investor Logged Area (not Open Finance). Consent is revocable; collection stops immediately.",
+    "Commercial licence to the Nova Área Logada (non-financial company). Not Open Finance. Consent is revocable; collection stops immediately.",
+  "settings.b3.checking": "Checking whether the licensed B3 API is configured…",
+  "settings.b3.disabledBadge": "Production killed",
+  "settings.b3.disabledTitle": "Production B3 is switched off",
+  "settings.b3.disabledBody":
+    "B3_LIVE or B3_PRODUCTION is off. Credentials may be present; this deployment will not call the licensed host. Connect still loads a fixture and labels it as such.",
+  "settings.b3.unavailableBadge": "Licence / env missing",
+  "settings.b3.unavailableTitle": "Production B3 is not connected",
+  "settings.b3.unavailableBody":
+    "This deployment has no B3_PRODUCTION_* credentials. Connect still loads a fixture and labels it as such. A click here cannot invent your B3 custody. The licensed Nova Área Logada API turns on only after the commercial contract and env. Not Open Finance; we do not scrape Meu INSS.",
+  "settings.b3.sandboxBadge": "Certification / sandbox",
+  "settings.b3.sandboxTitle": "Sandbox credentials only",
+  "settings.b3.sandboxBody":
+    "B3_SANDBOX_* is set. That is the certification host, not production custody. Fixture is off; live is still off.",
+  "settings.b3.liveBadge": "Licensed API",
+  "settings.b3.liveTitle": "Production B3 is connected",
+  "settings.b3.liveBody":
+    "This deployment has B3_PRODUCTION_* credentials for the Nova Área Logada commercial API. Data is D-1. We consolidate class allocation; we do not recommend a ticker (CVM 19).",
   "settings.b3.active": "B3 consent is active.",
   "settings.b3.revoked": "B3 consent revoked. Collection stopped; imported rows stay.",
   "settings.b3.none": "B3 is not connected.",
   "settings.b3.export": "Export consent log",
   "toast.b3.synced": "B3 sandbox synced",
+  "toast.b3.liveSynced": "B3 production synced",
   "toast.b3.fixtureSynced": "B3 fixture loaded",
   "toast.b3.error": "Could not sync B3",
   "toast.b3.consentRequired": "Authorize B3 before syncing",

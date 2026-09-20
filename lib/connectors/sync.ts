@@ -1,7 +1,11 @@
 import { B3Connector } from "@/lib/connectors/b3";
 import { canCollect, type Consent } from "@/lib/connectors/consent";
 import { reconcileHoldings, type ReconcileResult } from "@/lib/connectors/reconcile";
-import type { CanonicalFetch, ConnectorSyncState } from "@/lib/connectors/types";
+import type {
+  CanonicalFetch,
+  ConnectorHealth,
+  ConnectorSyncState,
+} from "@/lib/connectors/types";
 import type { FinancialAccount, Institution } from "@/lib/engine/canonical";
 import type { PortfolioAsset } from "@/types";
 
@@ -20,12 +24,89 @@ export interface RunB3SyncInput {
   connector?: B3Connector;
   now?: Date;
   aborted?: () => boolean;
+  previousSync?: ConnectorSyncState | null;
 }
 
 export interface RunB3SyncResult {
   fetch: CanonicalFetch;
   reconcile: ReconcileResult;
   sync: ConnectorSyncState;
+  applied: boolean;
+}
+
+export function isB3RemoteUnavailable(
+  health: Pick<ConnectorHealth, "status"> | null | undefined
+): boolean {
+  return health?.status === "unavailable";
+}
+
+export interface CommitB3SyncInput {
+  existing: PortfolioAsset[];
+  institutions: Institution[];
+  accounts: FinancialAccount[];
+  snapshot: {
+    holdings: PortfolioAsset[];
+    institutions: Institution[];
+    accounts: FinancialAccount[];
+    health: ConnectorHealth;
+    raw: { hash: string };
+  };
+  previousSync?: ConnectorSyncState | null;
+}
+
+/**
+ * Apply a B3 snapshot onto the current book. An unavailable remote
+ * (live or sandbox) must not reconcile empty incoming over fixture
+ * rows or stamp mode=live / lastSuccessAt.
+ */
+export function commitB3Sync(input: CommitB3SyncInput): {
+  reconcile: ReconcileResult;
+  sync: ConnectorSyncState;
+  applied: boolean;
+} {
+  const applied = !isB3RemoteUnavailable(input.snapshot.health);
+  const previous = input.previousSync;
+  const reconcile = applied
+    ? reconcileHoldings({
+        existing: input.existing,
+        incoming: input.snapshot.holdings,
+        institutions: input.snapshot.institutions,
+        accounts: input.snapshot.accounts,
+        existingInstitutions: input.institutions,
+        existingAccounts: input.accounts,
+      })
+    : {
+        portfolio: input.existing,
+        institutions: input.institutions,
+        accounts: input.accounts,
+        merges: [],
+      };
+  const health = input.snapshot.health;
+  return {
+    reconcile,
+    applied,
+    sync: applied
+      ? {
+          connectorId: "b3",
+          lastSuccessAt: health.lastSuccessAt,
+          lastError: health.lastError,
+          staleness: health.staleness,
+          asOf: health.asOf,
+          mode: health.mode,
+          partial: health.partial,
+          rawHash: input.snapshot.raw.hash,
+        }
+      : {
+          connectorId: "b3",
+          lastSuccessAt: previous?.lastSuccessAt ?? null,
+          lastError: health.lastError,
+          staleness: previous?.staleness ?? "unknown",
+          asOf: previous?.asOf ?? null,
+          mode: previous?.mode ?? "fixture",
+          partial: true,
+          rawHash: previous?.rawHash ?? null,
+        },
+  };
 }
 
 export async function runB3Sync(input: RunB3SyncInput): Promise<RunB3SyncResult> {
@@ -40,26 +121,17 @@ export async function runB3Sync(input: RunB3SyncInput): Promise<RunB3SyncResult>
   if (input.aborted?.()) {
     throw new ConsentRequiredError();
   }
-  const reconcile = reconcileHoldings({
+  const committed = commitB3Sync({
     existing: input.existing,
-    incoming: snapshot.holdings,
-    institutions: snapshot.institutions,
-    accounts: snapshot.accounts,
-    existingInstitutions: input.institutions,
-    existingAccounts: input.accounts,
+    institutions: input.institutions,
+    accounts: input.accounts,
+    snapshot,
+    previousSync: input.previousSync,
   });
   return {
     fetch: snapshot,
-    reconcile,
-    sync: {
-      connectorId: "b3",
-      lastSuccessAt: snapshot.health.lastSuccessAt,
-      lastError: snapshot.health.lastError,
-      staleness: snapshot.health.staleness,
-      asOf: snapshot.health.asOf,
-      mode: snapshot.health.mode,
-      partial: snapshot.health.partial,
-      rawHash: snapshot.raw.hash,
-    },
+    reconcile: committed.reconcile,
+    sync: committed.sync,
+    applied: committed.applied,
   };
 }

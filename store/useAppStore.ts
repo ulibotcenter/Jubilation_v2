@@ -31,7 +31,7 @@ import {
   grantB3Consent as createB3Consent,
   grantCnisConsent as createCnisConsent,
   grantIrpfConsent as createIrpfConsent,
-  reconcileHoldings,
+  commitB3Sync,
   revokeConsent as revokeB3ConsentRecord,
   type Consent,
   type ConsentAuditEntry,
@@ -1338,6 +1338,8 @@ export const useAppStore = create<AppStore>()(
           }
           const body = (await res.json()) as {
             mode: ConnectorSyncState["mode"];
+            status?: "ok" | "degraded" | "unavailable";
+            lastSuccessAt?: string | null;
             asOf: string | null;
             partial: boolean;
             rawHash: string;
@@ -1357,14 +1359,43 @@ export const useAppStore = create<AppStore>()(
           if (!consent) {
             throw new ConsentRequiredError();
           }
-          const reconciled = reconcileHoldings({
+          const committed = commitB3Sync({
             existing: latest.portfolio,
-            incoming: body.holdings ?? [],
-            institutions: body.institutions ?? [],
-            accounts: body.accounts ?? [],
-            existingInstitutions: latest.institutions,
-            existingAccounts: latest.accounts,
+            institutions: latest.institutions,
+            accounts: latest.accounts,
+            previousSync: latest.connectorSync.b3,
+            snapshot: {
+              holdings: body.holdings ?? [],
+              institutions: body.institutions ?? [],
+              accounts: body.accounts ?? [],
+              health: {
+                status: body.status ?? "ok",
+                lastSuccessAt: body.lastSuccessAt ?? null,
+                lastError: body.lastError,
+                staleness: body.staleness,
+                asOf: body.asOf,
+                partial: body.partial,
+                mode: body.mode,
+              },
+              raw: { hash: body.rawHash },
+            },
           });
+          if (!committed.applied) {
+            const audit = auditEntry({
+              at: new Date().toISOString(),
+              actor: latest.user.id,
+              action: "deny-sync",
+              consentId: consent.id,
+              detail: `unavailable;keptMode=${committed.sync.mode};error=${committed.sync.lastError ?? ""}`,
+            });
+            set({
+              connectorSync: { ...latest.connectorSync, b3: committed.sync },
+              consentAuditLog: appendAudit(latest.consentAuditLog, audit),
+              isSyncingB3: false,
+            });
+            throw new Error(committed.sync.lastError ?? "B3 unavailable");
+          }
+          const reconciled = committed.reconcile;
           const simulationIncludedAssetIds = [
             ...new Set([
               ...latest.simulationIncludedAssetIds,
@@ -1376,16 +1407,7 @@ export const useAppStore = create<AppStore>()(
             portfolio: reconciled.portfolio,
             simulationIncludedAssetIds,
           });
-          const sync: ConnectorSyncState = {
-            connectorId: "b3",
-            lastSuccessAt: new Date().toISOString(),
-            lastError: body.lastError,
-            staleness: body.staleness,
-            asOf: body.asOf,
-            mode: body.mode,
-            partial: body.partial,
-            rawHash: body.rawHash,
-          };
+          const sync = committed.sync;
           const audit = auditEntry({
             at: new Date().toISOString(),
             actor: latest.user.id,

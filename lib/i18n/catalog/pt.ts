@@ -794,18 +794,46 @@ export const PT: Record<MessageKey, string> = {
   "portfolio.b3.asOf": "posição em {date}",
   "portfolio.b3.stale": "B3 desatualizada desde {date}",
   "portfolio.b3.fixture": "fixture",
+  "portfolio.b3.sandbox": "sandbox",
+  "portfolio.b3.live": "produção",
   "portfolio.b3.partial": "parcial",
   "portfolio.b3.sourceAsOf": "B3 · {date}",
+  "portfolio.b3.sourceAsOfFixture": "B3 fixture · {date}",
+  "portfolio.b3.sourceAsOfSandbox": "B3 sandbox · {date}",
+  "portfolio.b3.notLive":
+    "Sem licença ou env de produção — este carregamento é fixture, não a sua custódia.",
+  "portfolio.b3.sandboxOnly":
+    "Só credencial de certificação. Não é custódia de produção.",
+  "portfolio.b3.disabled":
+    "B3 de produção está desligada — este carregamento é fixture, não a sua custódia.",
   "portfolio.b3.noAdvice":
     "Consolidamos posição e rentabilidade da carteira importada. Não recomendamos ticker (Res. CVM 19).",
   "settings.b3.title": "Conexão B3",
   "settings.b3.body":
-    "Licença comercial da Área Logada do Investidor (não é Open Finance). Consentimento revogável; a coleta para na hora.",
+    "Licença comercial da Nova Área Logada (PJ não financeira). Não é Open Finance. Consentimento revogável; a coleta para na hora.",
+  "settings.b3.checking": "Verificando se a API licenciada da B3 está configurada…",
+  "settings.b3.disabledBadge": "Produção desligada",
+  "settings.b3.disabledTitle": "B3 de produção está desligada",
+  "settings.b3.disabledBody":
+    "B3_LIVE ou B3_PRODUCTION está off. As chaves podem existir; este ambiente não chama o host licenciado. Conectar ainda carrega uma fixture e rotula como fixture.",
+  "settings.b3.unavailableBadge": "Licença / env ausentes",
+  "settings.b3.unavailableTitle": "B3 de produção não está ligada",
+  "settings.b3.unavailableBody":
+    "Este ambiente não tem credenciais B3_PRODUCTION_*. Conectar ainda carrega uma fixture e rotula como fixture. Um clique aqui não inventa a sua custódia. A API licenciada da Nova Área Logada só liga depois do contrato comercial e do env. Não é Open Finance; não raspamos o Meu INSS.",
+  "settings.b3.sandboxBadge": "Certificação / sandbox",
+  "settings.b3.sandboxTitle": "Só credencial de sandbox",
+  "settings.b3.sandboxBody":
+    "B3_SANDBOX_* está definido. Isso é o host de certificação, não a custódia de produção. A fixture está desligada; produção também.",
+  "settings.b3.liveBadge": "API licenciada",
+  "settings.b3.liveTitle": "B3 de produção ligada",
+  "settings.b3.liveBody":
+    "Este ambiente tem B3_PRODUCTION_* para a API comercial da Nova Área Logada. O dado é D-1. Consolidamos alocação por classe; não recomendamos ticker (Res. CVM 19).",
   "settings.b3.active": "Consentimento B3 ativo.",
   "settings.b3.revoked": "Consentimento B3 revogado. Coleta parou; o já importado permanece.",
   "settings.b3.none": "B3 não conectada.",
   "settings.b3.export": "Exportar log de consentimento",
   "toast.b3.synced": "B3 sandbox sincronizada",
+  "toast.b3.liveSynced": "B3 de produção sincronizada",
   "toast.b3.fixtureSynced": "Fixture B3 carregada",
   "toast.b3.error": "Não foi possível sincronizar a B3",
   "toast.b3.consentRequired": "Autorize a B3 antes de sincronizar",

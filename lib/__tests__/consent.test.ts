@@ -26,7 +26,7 @@ describe("B3 consent", () => {
     expect(consent.scopes).toContain("position:equities");
     expect(consent.scopes).toContain("position:treasury");
     expect(consent.evidence.shownText.length).toBeGreaterThan(40);
-    expect(consent.evidence.version).toBe("b3-position-v1");
+    expect(consent.evidence.version).toBe("b3-position-v2");
     expect(consent.integratorId).toBe("jubilation");
     expect(consent.partnerId).toBe("b2c-default");
     expect(canCollect(consent, now)).toBe(true);
@@ -96,7 +96,7 @@ describe("B3 consent", () => {
     };
     expect(exported.format).toBe("jubilation-consent-v1");
     expect(exported.consents[0]?.id).toBe(consent.id);
-    expect(exported.consents[0]?.evidence.version).toBe("b3-position-v1");
+    expect(exported.consents[0]?.evidence.version).toBe("b3-position-v2");
   });
 
   it("grants CNIS and IRPF file consents with evidence, same revoke model", () => {

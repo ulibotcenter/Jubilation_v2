@@ -24,6 +24,7 @@ export function PortfolioHoldingsTable({
   mode = "real",
 }: PortfolioHoldingsTableProps) {
   const { t, locale } = useTranslation();
+  const b3Mode = useAppStore((s) => s.connectorSync.b3?.mode);
   const updatePortfolioAsset = useAppStore((s) => s.updatePortfolioAsset);
   const updateSimPortfolioAsset = useAppStore((s) => s.updateSimPortfolioAsset);
   const updateAsset =
@@ -91,7 +92,15 @@ export function PortfolioHoldingsTable({
                       </p>
                       {asset.source === "B3_API" && asset.asOf ? (
                         <p className="text-[10px] text-muted tabular-nums">
-                          {t("portfolio.b3.sourceAsOf", { date: asset.asOf })}
+                          {b3Mode === "live"
+                            ? t("portfolio.b3.sourceAsOf", { date: asset.asOf })
+                            : b3Mode === "sandbox"
+                              ? t("portfolio.b3.sourceAsOfSandbox", {
+                                  date: asset.asOf,
+                                })
+                              : t("portfolio.b3.sourceAsOfFixture", {
+                                  date: asset.asOf,
+                                })}
                         </p>
                       ) : null}
                       <span className="portfolio-asset-class-badge mt-0.5 inline-block">
