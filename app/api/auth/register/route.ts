@@ -4,6 +4,7 @@ import { createSession, createUser, findUserByEmail } from "@/lib/cloud/db";
 import {
   attachSession,
   cloudDisabledResponse,
+  publicAuthUser,
   requireCloudConfig,
 } from "@/lib/cloud/http";
 import { hashPassword } from "@/lib/cloud/passwords";
@@ -42,9 +43,6 @@ export async function POST(request: NextRequest) {
     dataRegion: cfg.defaultDataRegion,
   });
   const token = await createSession(user.id);
-  const res = NextResponse.json({
-    email: user.email,
-    dataRegion: user.dataRegion,
-  });
+  const res = NextResponse.json(publicAuthUser(user));
   return attachSession(res, token);
 }

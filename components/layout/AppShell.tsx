@@ -10,6 +10,7 @@ import { FloatingNav } from "@/components/layout/FloatingNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { LegalFooter } from "@/components/legal/LegalFooter";
+import { BillingSync } from "@/components/billing/BillingSync";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
 import { navIdFromPathname } from "@/hooks/useAppNavigation";
 import { isPrivacyPath } from "@/lib/privacy/local";
@@ -124,6 +125,7 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
       {pathname === "/" && onboardingCompleted && <CoachMarks />}
       <CommandPalette />
       <RetirementCoach />
+      <BillingSync />
       {!privacyRoute && <OnboardingModal />}
     </div>
   );

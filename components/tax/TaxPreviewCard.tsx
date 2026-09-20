@@ -16,6 +16,7 @@ export function TaxPreviewCard() {
   const { t, locale } = useTranslation();
   const kpis = useAppStore((s) => s.kpis);
   const plan = useAppStore((s) => s.planTier);
+  const billingLive = useAppStore((s) => s.billingLive);
   const currency = useAppStore((s) => s.currency);
   const [region, setRegion] = useState<TaxRegion>("br");
 
@@ -32,7 +33,7 @@ export function TaxPreviewCard() {
   const label = getTaxEstimateLabel(locale, region);
   const notes = getTaxEstimateNotes(locale, region);
 
-  if (!canAccess(plan, "tax_preview")) {
+  if (!canAccess(plan, "tax_preview", billingLive)) {
     return (
       <div className="dashboard-insight-card card-surface p-4 text-xs text-muted-foreground">
         {t("tax.locked")}

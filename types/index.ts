@@ -586,7 +586,7 @@ export interface UserProfile {
   email: string;
   avatarUrl: string | null;
   plan: PlanTier;
-  /** TODO: Stripe + Supabase — sync subscription status */
+  /** TODO: Stripe + Postgres — subscriptionStatus is set by the webhook, never the client */
   subscriptionStatus: "active" | "canceled" | "trialing" | "none";
   createdAt: string;
 }

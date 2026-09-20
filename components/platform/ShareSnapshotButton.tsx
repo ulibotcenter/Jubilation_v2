@@ -13,6 +13,7 @@ export function ShareSnapshotButton() {
   const kpis = useAppStore((s) => s.kpis);
   const projections = useAppStore((s) => s.projections);
   const plan = useAppStore((s) => s.planTier);
+  const billingLive = useAppStore((s) => s.billingLive);
   const projected =
     projections.find((p: ProjectionYear) => p.age === kpis.retirementAge)
       ?.portfolioValue ?? 0;
@@ -27,7 +28,7 @@ export function ShareSnapshotButton() {
         Math.round((projected / (kpis.desiredMonthlyIncome * 12 * 25 || 1)) * 100)
       ),
       currency: sym,
-      branded: canAccess(plan, "share_branded"),
+      branded: canAccess(plan, "share_branded", billingLive),
     });
     try {
       await navigator.clipboard.writeText(text);

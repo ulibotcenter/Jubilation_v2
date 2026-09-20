@@ -150,4 +150,47 @@ describe("persist partialize", () => {
       "João Silva"
     );
   });
+
+  it("never persists a paid plan from the client", () => {
+    const persisted = partializePersistedState({
+      locale: "pt",
+      currency: "BRL",
+      fxSnapshot: null,
+      onboarding: { completed: true },
+      sidebarCollapsed: false,
+      persistVersion: 1,
+      tenant: { dataRegion: "eu" },
+      institutions: [],
+      accounts: [],
+      entitlements: [],
+      consents: [],
+      consentAuditLog: [],
+      connectorSync: {},
+      household: defaultHousehold("2026-01-01", "1976-06-01", "F"),
+      user: {
+        id: "u-maria",
+        name: "Maria Silva",
+        email: "maria@example.com",
+        avatarUrl: null,
+        plan: "premium" as const,
+        subscriptionStatus: "active" as const,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      explainSimple: false,
+      theme: "dark",
+      coachMarksDismissed: false,
+      sensitivity: { cagr: null, inflation: null },
+      netWorthSnapshots: [],
+      aiChatHistory: [],
+      savedScenarios: [],
+      kpis: { currentAge: 50 },
+      kpiOutsidePortfolio: 0,
+      portfolio: [],
+      portfolioLastRefreshedAt: null,
+      simulationIncludedAssetIds: [],
+      monteCarlo: { hasRun: false },
+      simPlayground: {},
+    });
+    expect(persisted.planTier).toBe("free");
+  });
 });

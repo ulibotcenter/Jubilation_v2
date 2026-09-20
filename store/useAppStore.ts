@@ -103,6 +103,7 @@ import {
   type PortfolioAsset,
   type ProjectionYear,
   type StressTestId,
+  type UserProfile,
   generateChartData,
   MONTE_CARLO_SCENARIO_LABELS,
   buildDistributionBins,
@@ -367,6 +368,7 @@ export interface AppStore {
   isImportingFile: boolean;
   household: Household;
   planTier: PlanTier;
+  billingLive: boolean;
   explainSimple: boolean;
   theme: "dark" | "light";
   presentationMode: boolean;
@@ -382,6 +384,11 @@ export interface AppStore {
 
   setLocale: (locale: AppLocale) => void;
   setPlanTier: (tier: PlanTier) => void;
+  syncServerBilling: (input: {
+    live: boolean;
+    planTier: PlanTier;
+    subscriptionStatus: UserProfile["subscriptionStatus"];
+  }) => void;
   setExplainSimple: (value: boolean) => void;
   setTheme: (theme: "dark" | "light") => void;
   togglePresentationMode: () => void;
@@ -659,7 +666,15 @@ function mergePersistedAppState(
     ...migrated,
     persistVersion: CURRENT_PERSIST_VERSION,
     planTier: "free",
-    user: migrated.user ?? current.user,
+    billingLive: false,
+    user: (() => {
+      const nextUser = migrated.user ?? current.user;
+      return {
+        ...nextUser,
+        plan: "free" as const,
+        subscriptionStatus: "none" as const,
+      };
+    })(),
     tenant: migrated.tenant ?? DEFAULT_TENANT,
     institutions: migrated.institutions ?? [],
     accounts: migrated.accounts ?? [],
@@ -737,6 +752,7 @@ export const useAppStore = create<AppStore>()(
       isImportingFile: false,
       household: seedHousehold,
       planTier: "free",
+      billingLive: false,
       explainSimple: false,
       theme: "light",
       presentationMode: false,
@@ -765,7 +781,22 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      setPlanTier: () => set({ planTier: "free" }),
+      setPlanTier: () =>
+        set((state) => ({
+          planTier: "free",
+          user: { ...state.user, plan: "free", subscriptionStatus: "none" },
+        })),
+
+      syncServerBilling: ({ live, planTier, subscriptionStatus }) =>
+        set((state) => ({
+          billingLive: live,
+          planTier: live ? planTier : "free",
+          user: {
+            ...state.user,
+            plan: live ? planTier : "free",
+            subscriptionStatus: live ? subscriptionStatus : "none",
+          },
+        })),
 
       setExplainSimple: (value) => set({ explainSimple: value }),
 

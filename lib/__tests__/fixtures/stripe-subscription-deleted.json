@@ -1,0 +1,19 @@
+{
+  "id": "evt_test_subscription_deleted",
+  "object": "event",
+  "type": "customer.subscription.deleted",
+  "data": {
+    "object": {
+      "id": "sub_test_premium",
+      "object": "subscription",
+      "status": "canceled",
+      "customer": "cus_test_maria",
+      "metadata": {
+        "userId": "user-maria-1",
+        "planTier": "premium",
+        "offerId": "premium_yearly",
+        "priceId": "price_premium_yearly_test"
+      }
+    }
+  }
+}

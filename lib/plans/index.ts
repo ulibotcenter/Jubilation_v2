@@ -18,14 +18,18 @@ export const PLAN_LABELS: Record<PlanTier, string> = {
   horizon: "Horizon",
 };
 
-/** Pricing is unpublished until billing exists. Do not show these in the UI. */
+/**
+ * Display copy only. Real prices live in STRIPE_PRICE_* env (Stripe Price ids
+ * and optional *_AMOUNT placeholders). Do not treat numbers in this file as
+ * a business decision — the owner has not frozen a price.
+ */
 export const PLAN_PRICING: Record<
   PlanTier,
   { monthly: number | null; tagline: string }
 > = {
   free: { monthly: null, tagline: "Full engine while billing is off" },
-  premium: { monthly: null, tagline: "Not for sale yet" },
-  horizon: { monthly: null, tagline: "Not for sale yet" },
+  premium: { monthly: null, tagline: "Individual — scenarios, tax preview, exports" },
+  horizon: { monthly: null, tagline: "Couple add-on (Horizon)" },
 };
 
 const FEATURE_GATES: Record<FeatureId, PlanTier> = {
@@ -41,14 +45,24 @@ const FEATURE_GATES: Record<FeatureId, PlanTier> = {
   sensitivity_sliders: "free",
 };
 
+const PLAN_RANK: Record<PlanTier, number> = {
+  free: 0,
+  premium: 1,
+  horizon: 2,
+};
+
 /**
- * Billing is not live. Hiding features behind a theatrical paywall was a
- * lie — every feature is available until a real server-side plan exists.
+ * Feature gate. While billing is off (no Stripe env), every feature stays
+ * available — a theatrical paywall was a lie. The gate is real only after
+ * Stripe confirms a plan on the server (`billingLive`).
  */
-export function canAccess(_plan: PlanTier, _feature: FeatureId): boolean {
-  void _plan;
-  void _feature;
-  return true;
+export function canAccess(
+  plan: PlanTier,
+  feature: FeatureId,
+  billingLive = false
+): boolean {
+  if (!billingLive) return true;
+  return PLAN_RANK[plan] >= PLAN_RANK[FEATURE_GATES[feature]];
 }
 
 export function requiredPlan(feature: FeatureId): PlanTier {

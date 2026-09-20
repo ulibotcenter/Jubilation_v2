@@ -1,0 +1,24 @@
+{
+  "id": "evt_test_checkout_completed",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_completed",
+      "object": "checkout.session",
+      "mode": "subscription",
+      "status": "complete",
+      "payment_status": "paid",
+      "client_reference_id": "user-maria-1",
+      "customer": "cus_test_maria",
+      "subscription": "sub_test_premium",
+      "currency": "brl",
+      "metadata": {
+        "userId": "user-maria-1",
+        "planTier": "premium",
+        "offerId": "premium_yearly",
+        "priceId": "price_premium_yearly_test"
+      }
+    }
+  }
+}
