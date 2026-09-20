@@ -5,35 +5,40 @@ import Link from "next/link";
 import { Crown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
-import type {
-  BillingOfferId,
-  PublicBillingStatus,
+import {
+  DISPLAY_AMOUNT_CENTS,
+  type BillingCurrency,
+  type BillingOfferId,
+} from "@/lib/billing/catalog";
+import {
+  parseBillingCurrency,
+  publicBillingStatus,
+  type PublicBillingStatus,
 } from "@/lib/billing/config";
+import { formatPlanAmount } from "@/lib/billing/display";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
+import type { Currency } from "@/types";
 
-const OFFER_TITLE: Record<BillingOfferId, MessageKey> = {
-  premium_yearly: "upgrade.offer.premiumYearly.title",
-  premium_monthly: "upgrade.offer.premiumMonthly.title",
-  horizon_yearly: "upgrade.offer.horizonYearly.title",
-};
+function numberLocaleFor(locale: string): string {
+  if (locale === "pt") return "pt-BR";
+  if (locale === "es") return "es-ES";
+  return "en-US";
+}
 
-const OFFER_BODY: Record<BillingOfferId, MessageKey> = {
-  premium_yearly: "upgrade.offer.premiumYearly.body",
-  premium_monthly: "upgrade.offer.premiumMonthly.body",
-  horizon_yearly: "upgrade.offer.horizonYearly.body",
-};
-
-function formatAmount(amount: number, currency: string, locale: string): string {
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(amount / 100);
-  } catch {
-    return `${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`;
-  }
+function amountFor(
+  status: PublicBillingStatus | null,
+  offerId: BillingOfferId,
+  currency: BillingCurrency
+): { unitAmount: number; checkoutReady: boolean } {
+  const slot = status?.offers
+    .find((offer) => offer.id === offerId)
+    ?.amounts.find((item) => item.currency === currency);
+  return {
+    unitAmount: slot?.unitAmount ?? DISPLAY_AMOUNT_CENTS[offerId][currency],
+    checkoutReady: Boolean(slot?.checkoutReady),
+  };
 }
 
 function subscribeSearch() {
@@ -48,6 +53,9 @@ export function UpgradePageContent() {
   const { t, locale } = useTranslation();
   const planTier = useAppStore((s) => s.planTier);
   const billingLive = useAppStore((s) => s.billingLive);
+  const currencyCode = useAppStore((s) => s.currency) as Currency;
+  const billingCurrency =
+    parseBillingCurrency(currencyCode) ?? ("brl" as BillingCurrency);
   const [status, setStatus] = useState<PublicBillingStatus | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [busyOffer, setBusyOffer] = useState<string | null>(null);
@@ -69,12 +77,7 @@ export function UpgradePageContent() {
         if (!cancelled) setSignedIn(meRes.ok);
       } catch {
         if (!cancelled) {
-          setStatus({
-            enabled: false,
-            reason: "missing_env",
-            settlement: "br",
-            offers: [],
-          });
+          setStatus(publicBillingStatus({}));
         }
       }
     })();
@@ -93,11 +96,15 @@ export function UpgradePageContent() {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ offerId }),
+        body: JSON.stringify({ offerId, currency: billingCurrency }),
       });
       const body = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !body.url) {
-        toast.error(t("toast.billing.checkoutError"));
+        toast.error(
+          body.error === "price_unavailable_for_currency"
+            ? t("toast.billing.currencyUnavailable", { code: currencyCode })
+            : t("toast.billing.checkoutError")
+        );
         return;
       }
       window.location.assign(body.url);
@@ -111,7 +118,59 @@ export function UpgradePageContent() {
   const loading = status === null;
   const enabled = Boolean(status?.enabled);
   const reason = status?.reason;
-  const numberLocale = locale === "pt" ? "pt-BR" : locale === "es" ? "es-ES" : "en-US";
+  const numberLocale = numberLocaleFor(locale);
+
+  const yearly = amountFor(status, "premium_yearly", billingCurrency);
+  const monthly = amountFor(status, "premium_monthly", billingCurrency);
+  const couple = amountFor(status, "horizon_yearly", billingCurrency);
+
+  const yearlyLabel = formatPlanAmount(
+    yearly.unitAmount,
+    billingCurrency,
+    numberLocale
+  );
+  const monthlyLabel = formatPlanAmount(
+    monthly.unitAmount,
+    billingCurrency,
+    numberLocale
+  );
+  const coupleLabel = formatPlanAmount(
+    couple.unitAmount,
+    billingCurrency,
+    numberLocale
+  );
+
+  const renderCheckout = (
+    offerId: BillingOfferId,
+    ready: boolean,
+    current: boolean
+  ) => {
+    if (current) {
+      return (
+        <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+          {t("upgrade.currentOffer")}
+        </p>
+      );
+    }
+    if (!enabled) return null;
+    if (!ready) {
+      return (
+        <p className="text-xs text-muted-foreground">
+          {t("upgrade.priceNotInCurrency", { code: currencyCode })}
+        </p>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className="btn-upgrade"
+        disabled={!signedIn || busyOffer !== null}
+        onClick={() => void startCheckout(offerId)}
+      >
+        {busyOffer === offerId ? t("upgrade.checkoutBusy") : t("upgrade.checkout")}
+      </button>
+    );
+  };
 
   return (
     <div className="secondary-page space-y-6">
@@ -162,7 +221,7 @@ export function UpgradePageContent() {
         </div>
       )}
 
-      {!loading && enabled && (
+      {!loading && (
         <>
           <div className="card-surface p-6 space-y-2">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -178,9 +237,12 @@ export function UpgradePageContent() {
             ) : (
               <p className="text-sm text-muted-foreground">{t("upgrade.regionNote")}</p>
             )}
+            <p className="text-sm text-muted-foreground">
+              {t("upgrade.currencyFollowsGate")}
+            </p>
           </div>
 
-          {!signedIn && (
+          {enabled && !signedIn && (
             <div className="card-surface p-6 space-y-3">
               <h3 className="font-bold">{t("upgrade.signInTitle")}</h3>
               <p className="text-sm text-muted-foreground">{t("upgrade.signInBody")}</p>
@@ -191,43 +253,96 @@ export function UpgradePageContent() {
           )}
 
           <div className="grid gap-4 sm:grid-cols-3">
-            {status?.offers.map((offer) => {
-              const current = planTier === offer.plan && billingLive;
-              const priceLabel =
-                offer.unitAmount != null
-                  ? formatAmount(offer.unitAmount, offer.currency, numberLocale)
-                  : t("upgrade.priceOnCheckout");
-              return (
-                <div key={offer.id} className="card-surface p-6 space-y-3 flex flex-col">
-                  <h3 className="font-bold">{t(OFFER_TITLE[offer.id])}</h3>
-                  <p className="text-sm text-muted-foreground flex-1">
-                    {t(OFFER_BODY[offer.id])}
-                  </p>
-                  <p className="text-lg font-semibold">{priceLabel}</p>
-                  {offer.unitAmount != null && (
-                    <p className="text-[11px] text-muted-foreground">
-                      {t("upgrade.priceRecommendationNote")}
-                    </p>
-                  )}
-                  {current ? (
-                    <p className="text-xs font-semibold uppercase tracking-wide text-accent">
-                      {t("upgrade.currentOffer")}
-                    </p>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn-upgrade"
-                      disabled={!signedIn || busyOffer !== null}
-                      onClick={() => void startCheckout(offer.id)}
-                    >
-                      {busyOffer === offer.id
-                        ? t("upgrade.checkoutBusy")
-                        : t("upgrade.checkout")}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+            <article
+              className="card-surface p-6 space-y-3 flex flex-col"
+              data-plan="free"
+              data-currency={currencyCode}
+            >
+              <h3 className="font-bold">{t("upgrade.plan.free.title")}</h3>
+              <p className="text-sm text-muted-foreground flex-1">
+                {t("upgrade.plan.free.body")}
+              </p>
+              <p className="text-lg font-semibold" data-price="free">
+                {t("upgrade.priceFree")}
+              </p>
+              {planTier === "free" ? (
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                  {t("upgrade.currentOffer")}
+                </p>
+              ) : null}
+            </article>
+
+            <article
+              className="card-surface-accent p-6 space-y-3 flex flex-col"
+              data-plan="individual"
+              data-currency={currencyCode}
+            >
+              <h3 className="font-bold">{t("upgrade.plan.individual.title")}</h3>
+              <p className="text-sm text-muted-foreground flex-1">
+                {t("upgrade.plan.individual.body")}
+              </p>
+              <p className="text-lg font-semibold" data-price="premium_yearly">
+                {yearlyLabel}
+                <span className="text-sm font-medium text-muted-foreground">
+                  {" "}
+                  {t("upgrade.interval.year")}
+                </span>
+              </p>
+              <p
+                className="text-sm text-muted-foreground"
+                data-price="premium_monthly"
+              >
+                {t("upgrade.decoyMonthly", { amount: monthlyLabel })}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {t("upgrade.priceRecommendationNote")}
+              </p>
+              {renderCheckout(
+                "premium_yearly",
+                yearly.checkoutReady,
+                billingLive && planTier === "premium"
+              )}
+              {enabled &&
+                monthly.checkoutReady &&
+                !(billingLive && planTier === "premium") && (
+                  <button
+                    type="button"
+                    className="btn-ghost text-sm"
+                    disabled={!signedIn || busyOffer !== null}
+                    onClick={() => void startCheckout("premium_monthly")}
+                  >
+                    {busyOffer === "premium_monthly"
+                      ? t("upgrade.checkoutBusy")
+                      : t("upgrade.checkoutMonthly")}
+                  </button>
+                )}
+            </article>
+
+            <article
+              className="card-surface p-6 space-y-3 flex flex-col"
+              data-plan="couple"
+              data-currency={currencyCode}
+            >
+              <h3 className="font-bold">{t("upgrade.plan.couple.title")}</h3>
+              <p className="text-sm text-muted-foreground flex-1">
+                {t("upgrade.plan.couple.body")}
+              </p>
+              <p className="text-lg font-semibold" data-price="horizon_yearly">
+                {coupleLabel}
+                <span className="text-sm font-medium text-muted-foreground">
+                  {" "}
+                  {t("upgrade.interval.year")}
+                </span>
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {t("upgrade.priceRecommendationNote")}
+              </p>
+              {renderCheckout(
+                "horizon_yearly",
+                couple.checkoutReady,
+                billingLive && planTier === "horizon"
+              )}
+            </article>
           </div>
         </>
       )}

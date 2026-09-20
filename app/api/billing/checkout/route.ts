@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { allowRequest, rateLimitKey } from "@/lib/api/rateLimit";
-import { billingConfig, offerById } from "@/lib/billing/config";
+import {
+  billingConfig,
+  isBillingOfferId,
+  parseBillingCurrency,
+  resolveCheckoutPrice,
+} from "@/lib/billing/config";
 import { createStripeCheckoutSession } from "@/lib/billing/checkout";
 import { isAuthUser, requireUser } from "@/lib/cloud/http";
 
@@ -22,16 +27,29 @@ export async function POST(request: NextRequest) {
   const user = await requireUser(request);
   if (!isAuthUser(user)) return user;
 
-  let body: { offerId?: string };
+  let body: { offerId?: string; currency?: string };
   try {
-    body = (await request.json()) as { offerId?: string };
+    body = (await request.json()) as { offerId?: string; currency?: string };
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const offer = offerById(cfg.offers, body.offerId ?? "");
-  if (!offer) {
+  const offerId = body.offerId ?? "";
+  if (!isBillingOfferId(offerId)) {
     return NextResponse.json({ error: "unknown_offer" }, { status: 400 });
+  }
+
+  const currency = parseBillingCurrency(body.currency);
+  if (!currency) {
+    return NextResponse.json({ error: "invalid_currency" }, { status: 400 });
+  }
+
+  const offer = resolveCheckoutPrice(cfg.offers, offerId, currency);
+  if (!offer) {
+    return NextResponse.json(
+      { error: "price_unavailable_for_currency", currency },
+      { status: 400 }
+    );
   }
 
   const origin = (

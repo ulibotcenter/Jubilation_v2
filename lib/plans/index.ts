@@ -20,8 +20,8 @@ export const PLAN_LABELS: Record<PlanTier, string> = {
 
 /**
  * Display copy only. Real prices live in STRIPE_PRICE_* env (Stripe Price ids
- * and optional *_AMOUNT placeholders). Do not treat numbers in this file as
- * a business decision — the owner has not frozen a price.
+ * per currency, plus optional *_AMOUNT placeholders). Do not treat numbers
+ * here as a business decision — the owner has not frozen a price.
  */
 export const PLAN_PRICING: Record<
   PlanTier,
