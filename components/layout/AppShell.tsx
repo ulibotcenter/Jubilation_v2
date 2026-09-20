@@ -43,8 +43,20 @@ function subscribeNoop() {
   return () => {};
 }
 
+function subscribePersistHydration(onChange: () => void) {
+  const persistApi = useAppStore.persist;
+  if (!persistApi?.onFinishHydration) return () => {};
+  return persistApi.onFinishHydration(onChange);
+}
+
 export function AppShell({ children, enableHashSync = false }: AppShellProps) {
-  const hydrated = useSyncExternalStore(subscribeNoop, () => true, () => false);
+  const client = useSyncExternalStore(subscribeNoop, () => true, () => false);
+  const persistReady = useSyncExternalStore(
+    subscribePersistHydration,
+    () => useAppStore.persist?.hasHydrated() ?? true,
+    () => false
+  );
+  const hydrated = client && persistReady;
   const pathname = usePathname();
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const onboardingCompleted = useAppStore((s) => s.onboarding.completed);

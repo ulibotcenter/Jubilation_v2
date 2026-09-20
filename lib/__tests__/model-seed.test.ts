@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createModelSeed, emptyHoldings, isModelSeedPortfolio } from "@/lib/onboarding/seed";
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { migratePersistedState } from "@/lib/persist/migrate";
-import { useAppStore } from "@/store/useAppStore";
+import { mergePersistedAppState, useAppStore } from "@/store/useAppStore";
 
 describe("model seed and Clear all", () => {
   it("seeds Apple, Bitcoin, Tesouro, one ETF, unlisted SpaceX, and a house", () => {
@@ -50,5 +50,32 @@ describe("model seed and Clear all", () => {
     );
     expect(migrated.portfolio).toEqual([]);
     expect(migrated.modelSeedActive).toBe(false);
+  });
+
+  it("reload merge keeps a completed gate and an empty cleared book", () => {
+    const current = useAppStore.getState();
+    const merged = mergePersistedAppState(
+      {
+        locale: "en",
+        currency: "USD",
+        country: "US",
+        modelSeedActive: false,
+        onboarding: {
+          completed: true,
+          currentStep: 2,
+          disclaimerAccepted: true,
+        },
+        portfolio: [],
+        simulationIncludedAssetIds: [],
+        kpis: { currentAge: 42, retirementAge: 90 },
+      },
+      current
+    );
+    expect(merged.portfolio).toEqual([]);
+    expect(merged.modelSeedActive).toBe(false);
+    expect(merged.onboarding.completed).toBe(true);
+    expect(merged.currency).toBe("USD");
+    expect(merged.country).toBe("US");
+    expect(isModelSeedPortfolio(merged.portfolio)).toBe(false);
   });
 });

@@ -150,7 +150,7 @@ export function OnboardingModal() {
         animate={{ opacity: 1, y: 0 }}
         transition={reduced ? { duration: 0 } : { duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
       >
-        <div className="px-5 pt-6 pb-4 sm:px-6 sm:pt-7">
+        <div className="modal-body px-5 pt-6 pb-4 sm:px-6 sm:pt-7">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent/15">
@@ -369,7 +369,7 @@ export function OnboardingModal() {
           </AnimatePresence>
         </div>
 
-        <div className="px-5 pb-5 sm:px-6 sm:pb-6 flex items-center justify-between gap-3">
+        <div className="modal-footer px-5 pb-5 sm:px-6 sm:pb-6 flex items-center justify-between gap-3">
           {currentStep === 2 ? (
             <button
               type="button"

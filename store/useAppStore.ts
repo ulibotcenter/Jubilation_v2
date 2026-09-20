@@ -70,6 +70,10 @@ import {
 } from "@/lib/onboarding/seed";
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { migratePersistedState, CURRENT_PERSIST_VERSION } from "@/lib/persist/migrate";
+import {
+  createGateSafeStorage,
+  enablePersistWrites,
+} from "@/lib/persist/storage";
 import type { CoachMessage } from "@/lib/ai/retirementCoach";
 import type { AppLocale } from "@/lib/i18n/messages";
 import type { PlanTier } from "@/lib/plans";
@@ -621,7 +625,7 @@ const initialBuild = buildProjectionsFromState({
   currency: DEFAULT_CURRENCY,
 });
 
-function mergePersistedAppState(
+export function mergePersistedAppState(
   persisted: unknown,
   current: AppStore
 ): AppStore {
@@ -2210,10 +2214,14 @@ export const useAppStore = create<AppStore>()(
     {
       name: LOCAL_STORAGE_KEY,
       version: CURRENT_PERSIST_VERSION,
+      storage: createGateSafeStorage(),
       migrate: (persisted, fromVersion) =>
         migratePersistedState(persisted, fromVersion) as never,
       merge: (persisted, current) => mergePersistedAppState(persisted, current),
       partialize: (state) => partializePersistedState(state),
+      onRehydrateStorage: () => () => {
+        enablePersistWrites();
+      },
     }
   )
 );
