@@ -25,7 +25,14 @@ export function canonicalOrigin(value: unknown): HoldingOrigin | null {
   return ORIGIN_ALIASES[value] ?? ORIGIN_ALIASES[value.trim()] ?? null;
 }
 
-export function originOf(asset: Pick<PortfolioAsset, "origin" | "source">): HoldingOrigin | null {
+export function isModelSeedHoldingId(id: unknown): boolean {
+  return typeof id === "string" && id.startsWith("seed-");
+}
+
+export function originOf(
+  asset: Pick<PortfolioAsset, "origin" | "source"> & { id?: string }
+): HoldingOrigin | null {
+  if (isModelSeedHoldingId(asset.id)) return null;
   return canonicalOrigin(asset.origin) ?? canonicalOrigin(asset.source);
 }
 
@@ -36,6 +43,7 @@ export function isUserOrigin(
 }
 
 export function isUserHolding(asset: PortfolioAsset): boolean {
+  if (isModelSeedHoldingId(asset.id)) return false;
   return isUserOrigin(originOf(asset));
 }
 
@@ -126,13 +134,12 @@ export function originRank(origin: HoldingOrigin | null): number {
   return ORIGIN_PRECEDENCE[origin];
 }
 
-function looksLikeModelSeed(asset: PortfolioAsset): boolean {
-  return typeof asset.id === "string" && asset.id.startsWith("seed-");
-}
-
 export function migrateHolding(asset: PortfolioAsset): PortfolioAsset {
+  const seedRow = isModelSeedHoldingId(asset.id);
   let origin = originOf(asset);
-  if (!origin && !looksLikeModelSeed(asset)) {
+  if (seedRow) {
+    origin = null;
+  } else if (!origin) {
     origin = "manual";
   }
   const asOf =

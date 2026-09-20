@@ -260,6 +260,113 @@ describe("seed clears on the first real holding", () => {
     expect(isModelSeedPortfolio(merged.portfolio)).toBe(true);
     expect(merged.portfolio.length).toBeGreaterThan(0);
   });
+
+  it("migrates a v1 seed book (Tesouro/CASA MANUAL) and keeps the model until WEGE3", () => {
+    const v1Seed = [
+      {
+        id: "seed-aapl",
+        ticker: "AAPL",
+        name: "Apple Inc.",
+        assetClass: "stocks",
+        quantity: 40,
+        currentPrice: 198.75,
+        costBasis: 145.2,
+        currency: "USD",
+        allocation: 0,
+        source: "YAHOO",
+      },
+      {
+        id: "seed-btc",
+        ticker: "BTC",
+        name: "Bitcoin",
+        assetClass: "crypto",
+        quantity: 0.75,
+        currentPrice: 67_500,
+        costBasis: 41_200,
+        currency: "USD",
+        allocation: 0,
+        source: "COINGECKO",
+      },
+      {
+        id: "seed-tesouro",
+        ticker: "TESOURO",
+        name: "Tesouro IPCA+",
+        assetClass: "bonds",
+        quantity: 80,
+        currentPrice: 1_150,
+        costBasis: 980,
+        currency: "BRL",
+        allocation: 0,
+        source: "MANUAL",
+      },
+      {
+        id: "seed-spy",
+        ticker: "SPY",
+        name: "SPDR S&P 500 ETF Trust",
+        assetClass: "etf",
+        quantity: 18,
+        currentPrice: 542.18,
+        costBasis: 412.5,
+        currency: "USD",
+        allocation: 0,
+        source: "YAHOO",
+      },
+      {
+        id: "seed-spacex",
+        ticker: "SPCX",
+        name: "SpaceX",
+        assetClass: "stocks",
+        quantity: 315,
+        currentPrice: 152.71,
+        costBasis: 135,
+        currency: "USD",
+        allocation: 0,
+        source: "YAHOO",
+      },
+      {
+        id: "seed-home",
+        ticker: "CASA",
+        name: "Apartamento — São Paulo",
+        assetClass: "real_estate",
+        quantity: 1,
+        currentPrice: 850_000,
+        costBasis: 620_000,
+        currency: "BRL",
+        allocation: 0,
+        source: "MANUAL",
+      },
+    ];
+    const migrated = migratePersistedState(
+      {
+        kpis: { currentAge: 48 },
+        portfolio: v1Seed,
+        modelSeedActive: true,
+      },
+      1
+    );
+    const book = migrated.portfolio as PortfolioAsset[];
+    expect(book).toHaveLength(6);
+    expect(isModelSeedPortfolio(book)).toBe(true);
+    expect(book.every((row) => originOf(row) === null)).toBe(true);
+    expect(book.find((row) => row.id === "seed-tesouro")?.source).toBe("MANUAL");
+    expect(book.find((row) => row.id === "seed-home")?.source).toBe("MANUAL");
+    expect(book.some((row) => row.origin === "manual")).toBe(false);
+
+    const withWege = dropSeedIfUserHoldings([
+      ...book,
+      holding({
+        id: "asset-wege3",
+        ticker: "WEGE3",
+        origin: "manual",
+        source: "MANUAL",
+        valueType: "user_estimate",
+        asOf: "2026-09-20",
+      }),
+    ]);
+    expect(withWege).toHaveLength(1);
+    expect(withWege[0]!.ticker).toBe("WEGE3");
+    expect(isModelSeedPortfolio(withWege)).toBe(false);
+  });
 });
 
 describe("engine ignores IRPF cost, B3 cashFlows, gravame and derivatives", () => {
