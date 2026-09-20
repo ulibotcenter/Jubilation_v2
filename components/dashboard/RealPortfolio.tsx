@@ -24,6 +24,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { getAssetClassLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { computeWeightedPortfolioCagr } from "@/lib/portfolioCagr";
+import { allocationByClass } from "@/lib/rebalance";
 import { useAppStore } from "@/store/useAppStore";
 import { convertHoldingMajor } from "@/lib/fx/convert";
 import { FALLBACK_FX_RATES } from "@/lib/fx/types";
@@ -132,23 +133,12 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
 
   const allocationSegments = useMemo(() => {
     if (totalValue === 0) return [];
-    const map = new Map<AssetClass, number>();
-    for (const asset of portfolio) {
-      const val = convertHoldingMajor(
-        asset.quantity * asset.currentPrice,
-        asset.nativeCurrency ?? asset.currency,
-        valueQuote
-      );
-      map.set(asset.assetClass, (map.get(asset.assetClass) ?? 0) + val);
-    }
-    return Array.from(map.entries())
-      .map(([assetClass, value]) => ({
-        assetClass,
-        label: getAssetClassLabel(locale, assetClass),
-        value,
-        pct: (value / totalValue) * 100,
-      }))
-      .sort((a, b) => b.pct - a.pct);
+    return allocationByClass(portfolio, valueQuote).map((seg) => ({
+      assetClass: seg.assetClass,
+      label: getAssetClassLabel(locale, seg.assetClass),
+      value: seg.value,
+      pct: seg.pct,
+    }));
   }, [portfolio, totalValue, locale, valueQuote]);
 
   const classChips = useMemo(() => {

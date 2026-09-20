@@ -14,6 +14,7 @@ import {
   normalizeKpiValues,
 } from "@/types";
 import { convertPortfolio } from "@/lib/fx/convert";
+import { allocationByClass, currentAllocation } from "@/lib/rebalance";
 
 const RATES = { USD: 1, BRL: 5, EUR: 0.9 };
 
@@ -137,5 +138,51 @@ describe("BRL / USD / EUR display and conversion", () => {
     );
     expect(eurHome.weightPct).toBeGreaterThan(50);
     expect(eurHome.weightPct).toBeLessThan(60);
+  });
+
+  it("class allocation uses display-currency values — no class over 100% on mixed seed", () => {
+    const seed = createModelSeed();
+    const nativeHome = 850_000;
+
+    for (const currency of ["USD", "EUR", "BRL"] as const) {
+      const quote = { currency, rates: FALLBACK_FX_RATES };
+      const total = calculatePortfolioValue(seed, quote);
+      const slices = currentAllocation(seed, quote);
+      const segments = allocationByClass(seed, quote);
+      const realEstate = slices.find((s) => s.assetClass === "real_estate");
+      const homeRow = computeHoldingMetrics(
+        seed.find((a) => a.id === "seed-home")!,
+        total,
+        quote
+      );
+
+      expect(realEstate).toBeDefined();
+      expect(realEstate!.currentPct).toBeGreaterThan(50);
+      expect(realEstate!.currentPct).toBeLessThan(60);
+      expect(realEstate!.currentPct).toBeCloseTo(
+        Math.round(homeRow.weightPct * 10) / 10,
+        1
+      );
+      if (currency !== "BRL") {
+        expect(realEstate!.currentPct).not.toBeCloseTo(
+          (nativeHome / total) * 100,
+          0
+        );
+      }
+
+      for (const slice of slices) {
+        expect(slice.currentPct).toBeGreaterThan(0);
+        expect(slice.currentPct).toBeLessThanOrEqual(100);
+      }
+      const sliceSum = slices.reduce((sum, s) => sum + s.currentPct, 0);
+      expect(sliceSum).toBeCloseTo(100, 0);
+
+      for (const seg of segments) {
+        expect(seg.pct).toBeGreaterThan(0);
+        expect(seg.pct).toBeLessThanOrEqual(100);
+      }
+      const segSum = segments.reduce((sum, s) => sum + s.pct, 0);
+      expect(segSum).toBeCloseTo(100, 0);
+    }
   });
 });
