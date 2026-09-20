@@ -56,7 +56,6 @@ export const B3_CONSENT_SCOPES = [
   "position:equities",
   "position:treasury",
   "position:fixed_income",
-  "movement:read",
   "events:read",
 ] as const;
 
@@ -65,7 +64,7 @@ export const B3_CONSENT_PURPOSE =
 
 export const B3_CONSENT_EVIDENCE_VERSION = "b3-position-v2";
 
-export const B3_CONSENT_EVIDENCE_PT = `Você autoriza o Jubilation a consultar sua posição na B3 (custódia D-1: ações, Tesouro Direto e renda fixa registrada) para consolidar a carteira no plano. Não recomendamos tickers (Res. CVM 19). A B3 é licença comercial da Nova Área Logada do Investidor (PJ não financeira), não Open Finance. Sem credencial de produção (B3_PRODUCTION_*) o app fica na fixture e diz isso — não é a sua custódia. Já importado permanece no plano se você revogar; paramos de coletar dado novo. Revogação é imediata para coleta; a exclusão física espera 48 horas (revogação reversível).`;
+export const B3_CONSENT_EVIDENCE_PT = `Você autoriza na B3 (Área do Investidor). Não nos passa senha — nem gov.br, nem da B3. Consultamos Pacote de Acesso, Autorização Fintech, API Guia e Posição (D-1: RV, Tesouro, RF, derivativos). Não usamos Movimentação nem Negociação no motor. Sem credencial de produção o app fica na fixture e diz isso. Desconectar aqui apaga só as posições source=b3; manual e IRPF ficam. A revogação oficial é no site da B3.`;
 
 export const PURGE_GRACE_MS = 48 * 60 * 60 * 1000;
 
@@ -82,7 +81,7 @@ export const IRPF_CONSENT_SCOPES = ["irpf:dbk"] as const;
 export const IRPF_CONSENT_PURPOSE =
   "Ler o backup .DBK/.DEC da declaração do IRPF que você exportou do programa da Receita, com allowlist de campos.";
 export const IRPF_CONSENT_EVIDENCE_VERSION = "irpf-file-v1";
-export const IRPF_CONSENT_EVIDENCE_PT = `Você envia o .DBK (cópia de segurança do programa gerador) ou o .DEC. O leiaute é o publicado pela Receita (registros de largura fixa). O registro 26 (pagamentos a médicos/clínicas) é descartado antes de qualquer persistência ou log. Rendimentos, bens e previdência privada podem entrar no plano; posições da B3 não são sobrescritas. O arquivo não sai deste aparelho. Sem senha gov.br e sem e-CAC. Revogação para a coleta na hora; exclusão física em 48 horas.`;
+export const IRPF_CONSENT_EVIDENCE_PT = `O IRPF cobre o que a B3 não traz (imóvel, previdência, veículo, FGTS). Você exporta .DEC/.DBK no programa da Receita no seu computador — sem senha gov.br e sem e-CAC neste app. Guardamos só o extrato estruturado; o arquivo bruto é apagado depois do parse. O registro 26 (pagamentos a médicos/clínicas) é descartado. Não é consultoria nem declaração de imposto. Tickers já na B3 não entram.`;
 
 export const FILE_CONSENT_EVIDENCE: Record<
   "cnis" | "irpf",

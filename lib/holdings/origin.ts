@@ -154,6 +154,11 @@ export function migrateHolding(asset: PortfolioAsset): PortfolioAsset {
     cnpj: asset.cnpj ?? null,
     code: asset.code ?? null,
     gravameValue: Math.max(0, asset.gravameValue ?? 0),
+    costBasisKnown:
+      asset.costBasisKnown ??
+      (origin === "manual" || origin === "irpf"
+        ? Number.isFinite(asset.costBasis) && asset.costBasis > 0
+        : asset.costBasisKnown),
   };
 }
 

@@ -65,8 +65,10 @@ describe("B3 mapping", () => {
     expect(mapped.accounts.some((a) => a.kind === "BROKERAGE")).toBe(true);
   });
 
-  it("maps movements and events to cash flows without recommending a ticker", () => {
-    expect(mapped.cashFlows.length).toBeGreaterThan(0);
+  it("does not feed Movimentação into cash flows; Guia events may remain unused by the engine", () => {
+    expect(
+      mapped.cashFlows.some((cf) => cf.externalRef?.includes("2026-08-12"))
+    ).toBe(false);
     expect(mapped.cashFlows.every((cf) => cf.source === "B3_API")).toBe(true);
   });
 

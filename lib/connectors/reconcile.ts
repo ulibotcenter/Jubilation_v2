@@ -1,6 +1,7 @@
 import { appendDatedValue } from "@/lib/datedValue";
 import { isOutsideB3Coverage } from "@/lib/connectors/coverage";
 import type { FinancialAccount, Institution } from "@/lib/engine/canonical";
+import { resolveB3CostBasis } from "@/lib/holdings/costBasis";
 import {
   originOf,
   originRank,
@@ -106,7 +107,7 @@ function mergeHolding(existing: PortfolioAsset, incoming: PortfolioAsset): Portf
     quantity: incoming.quantity,
     currentPrice: incoming.currentPrice,
     previousPrice: existing.currentPrice,
-    costBasis: existing.costBasis > 0 ? existing.costBasis : incoming.costBasis,
+    ...resolveB3CostBasis(incoming, existing),
     asOf: incoming.asOf,
     lastPriceAt: incoming.lastPriceAt,
     source: incoming.source ?? existing.source,
@@ -122,6 +123,8 @@ function mergeHolding(existing: PortfolioAsset, incoming: PortfolioAsset): Portf
     priceSource: incoming.priceSource ?? existing.priceSource ?? "manual",
     cnpj: incoming.cnpj ?? existing.cnpj,
     code: incoming.code ?? existing.code,
+    institutionName: incoming.institutionName ?? existing.institutionName,
+    productClass: incoming.productClass ?? existing.productClass,
     gravameValue: incoming.gravameValue ?? existing.gravameValue,
     includeInEngine: existing.includeInEngine ?? incoming.includeInEngine,
     valueType: incoming.valueType ?? existing.valueType,

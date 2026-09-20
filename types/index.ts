@@ -415,6 +415,15 @@ export interface PortfolioAsset {
   gravameValue?: number;
   /** Derivatives stay out of the engine unless the user opts in. */
   includeInEngine?: boolean;
+  /**
+   * True when B3 sent averagePrice, or IRPF/manual supplied a cost.
+   * When false the row hides P/L — we do not invent a cost from market.
+   */
+  costBasisKnown?: boolean;
+  /** Broker / custodian name from B3 Posição, when present. */
+  institutionName?: string | null;
+  /** Product class label from the B3 instrument (RV, Tesouro, RF, derivativo). */
+  productClass?: string | null;
 }
 
 export interface TickerSearchResult {

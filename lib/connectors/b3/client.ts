@@ -19,12 +19,15 @@ export interface B3FetchOptions {
 
 type RemoteKind = "sandbox" | "live";
 
+/**
+ * Pacote de Acesso + Autorização Fintech + API Guia + Posição.
+ * Movimentação / Negociação are not called — they do not feed the engine.
+ */
 const DEFAULT_PATHS = {
   token: "/oauth/token",
   equities: "/api/investidor/posicao/v1/equities",
   treasury: "/api/investidor/posicao/v1/treasury-bonds",
   fixedIncome: "/api/investidor/posicao/v1/fixed-income",
-  movements: "/api/investidor/movimentacao/v1/equities",
 } as const;
 
 function prefixFor(kind: RemoteKind): "B3_SANDBOX" | "B3_PRODUCTION" {
@@ -122,7 +125,6 @@ async function fetchRemoteRaw(
       `${prefix}_FIXED_INCOME_PATH`,
       DEFAULT_PATHS.fixedIncome
     ),
-    movements: envStr(env, `${prefix}_MOVEMENTS_PATH`, DEFAULT_PATHS.movements),
     events: env[`${prefix}_EVENTS_PATH`]?.trim() ?? "",
     guide: env[`${prefix}_GUIDE_PATH`]?.trim() ?? "",
     authorization: env[`${prefix}_AUTHORIZATION_PATH`]?.trim() ?? "",
@@ -149,12 +151,11 @@ async function fetchRemoteRaw(
     );
   }
 
-  const [equities, treasury, fixedIncome, movements, events, optional] =
+  const [equities, treasury, fixedIncome, events, optional] =
     await Promise.all([
       getJson(`${base}${paths.equities}`, headers),
       getJson(`${base}${paths.treasury}`, headers),
       getJson(`${base}${paths.fixedIncome}`, headers),
-      getJson(`${base}${paths.movements}`, headers),
       paths.events
         ? getJson(`${base}${paths.events}`, headers)
         : Promise.resolve({ ok: true as const, body: [] }),
@@ -183,7 +184,7 @@ async function fetchRemoteRaw(
     equitiesPositions: merge(equities, "equitiesPositions"),
     treasuryBondsPositions: merge(treasury, "treasuryBondsPositions"),
     fixedIncomePositions: merge(fixedIncome, "fixedIncomePositions"),
-    movements: merge(movements, "movements"),
+    movements: [],
     provisionedEvents: merge(events, "provisionedEvents"),
   };
 

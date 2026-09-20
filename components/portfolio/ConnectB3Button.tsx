@@ -1,19 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Landmark, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { canCollect, ConsentRequiredError, isConnectorEnabled } from "@/lib/connectors";
-import { B3_CONSENT_EVIDENCE_PT } from "@/lib/connectors/consent";
+import {
+  B3AlreadyUpdatedError,
+  canCollect,
+  ConsentRequiredError,
+  formatAsOfDayMonth,
+  isB3QuotaConsumed,
+  isConnectorEnabled,
+} from "@/lib/connectors";
 import type { PublicB3Status } from "@/lib/connectors/flags";
 import { formatCurrencyValue } from "@/types";
 import { useAppStore } from "@/store/useAppStore";
 
+const WIZARD_STEPS = 4;
+
 export function ConnectB3Button() {
   const { t, locale } = useTranslation();
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [step, setStep] = useState(1);
+  const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState<PublicB3Status | null>(null);
   const consents = useAppStore((s) => s.consents);
   const grant = useAppStore((s) => s.grantB3Consent);
@@ -22,6 +33,11 @@ export function ConnectB3Button() {
   const sync = useAppStore((s) => s.connectorSync.b3);
   const currency = useAppStore((s) => s.currency);
   const portfolio = useAppStore((s) => s.portfolio);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,16 +67,21 @@ export function ConnectB3Button() {
 
   const consent = consents.find((c) => c.provider === "b3");
   const authorised = canCollect(consent);
-  const imported = portfolio.filter((a) => a.source === "B3_API");
+  const imported = portfolio.filter(
+    (a) => a.origin === "b3" || a.source === "B3_API"
+  );
   const importedValue = imported.reduce(
     (sum, a) => sum + a.quantity * a.currentPrice,
     0
   );
+  const quotaUsed = isB3QuotaConsumed(sync?.lastQueryAt);
+  const asOfDay = formatAsOfDayMonth(sync?.asOf ?? imported[0]?.asOf ?? null);
 
   const runSync = async () => {
     try {
       if (!authorised) grant();
       const result = await syncB3();
+      setStep(4);
       toast.success(
         result.mode === "live"
           ? t("toast.b3.liveSynced")
@@ -74,27 +95,32 @@ export function ConnectB3Button() {
         }
       );
     } catch (err) {
+      if (err instanceof B3AlreadyUpdatedError) {
+        toast.info(t("portfolio.b3.alreadyToday"));
+        setWizardOpen(false);
+        return;
+      }
       if (err instanceof ConsentRequiredError) {
         toast.error(t("toast.b3.consentRequired"));
         return;
       }
-      toast.error(t("toast.b3.error"));
+      toast.error(t("toast.b3.error"), {
+        description: t("portfolio.b3.failKeepsPlan"),
+      });
     }
   };
 
   const handleClick = () => {
     if (authorised) {
+      if (quotaUsed) return;
       void runSync();
       return;
     }
-    setConfirmOpen(true);
+    setStep(1);
+    setWizardOpen(true);
   };
 
-  const freshnessLabel = sync?.asOf
-    ? sync.staleness === "stale"
-      ? t("portfolio.b3.stale", { date: sync.asOf })
-      : t("portfolio.b3.asOf", { date: sync.asOf })
-    : null;
+  const localeTag = locale === "pt" ? "pt-BR" : locale === "es" ? "es" : "en";
 
   return (
     <>
@@ -103,7 +129,8 @@ export function ConnectB3Button() {
           type="button"
           className="btn-secondary"
           onClick={handleClick}
-          disabled={isSyncing}
+          disabled={isSyncing || (authorised && quotaUsed)}
+          data-b3-cta={authorised ? "update" : "connect"}
         >
           {isSyncing ? (
             <Loader2 className="w-4 h-4 animate-spin" size={16} />
@@ -115,9 +142,25 @@ export function ConnectB3Button() {
           {isSyncing
             ? t("portfolio.b3.syncing")
             : authorised
-              ? t("portfolio.syncB3")
+              ? t("portfolio.updateB3")
               : t("portfolio.connectB3")}
         </button>
+        {authorised && quotaUsed ? (
+          <p className="text-[10px] text-muted-foreground sm:text-right leading-snug">
+            {t("portfolio.b3.alreadyToday")}
+          </p>
+        ) : null}
+        {authorised ? (
+          <p
+            className="text-[10px] text-muted-foreground tabular-nums sm:text-right"
+            data-b3-status="connected"
+          >
+            {t("portfolio.b3.connectedStatus", {
+              date: asOfDay || "—",
+            })}
+            {sync?.asOf ? ` · asOf ${sync.asOf}` : ""}
+          </p>
+        ) : null}
         {status && !status.live ? (
           <p className="text-[10px] text-muted-foreground max-w-[16rem] sm:text-right leading-snug">
             {status.reason === "sandbox_only"
@@ -127,83 +170,155 @@ export function ConnectB3Button() {
                 : t("portfolio.b3.notLive")}
           </p>
         ) : null}
-        {freshnessLabel ? (
-          <p className="text-[10px] text-muted-foreground tabular-nums">
-            {freshnessLabel}
-            {sync?.mode === "live"
-              ? ` · ${t("portfolio.b3.live")}`
-              : sync?.mode === "sandbox"
-                ? ` · ${t("portfolio.b3.sandbox")}`
-                : ` · ${t("portfolio.b3.fixture")}`}
-            {sync?.partial ? ` · ${t("portfolio.b3.partial")}` : ""}
-            {imported.length > 0
-              ? ` · ${formatCurrencyValue(importedValue, currency, true, locale === "pt" ? "pt-BR" : undefined)}`
-              : ""}
-          </p>
-        ) : null}
       </div>
 
-      <AnimatePresence>
-        {confirmOpen && (
-          <div className="add-asset-modal-root">
-            <motion.div
-              className="add-asset-modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setConfirmOpen(false)}
-            />
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="b3-consent-title"
-              className="add-asset-modal max-w-md"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 16 }}
-            >
-              <div className="add-asset-modal-header">
-                <h2 id="b3-consent-title" className="text-base font-semibold">
-                  {t("portfolio.b3.consentTitle")}
-                </h2>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => setConfirmOpen(false)}
-                  aria-label={t("common.close")}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {wizardOpen && (
+              <div className="add-asset-modal-root" data-b3-wizard="true">
+                <motion.div
+                  className="add-asset-modal-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setWizardOpen(false)}
+                />
+                <motion.div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="b3-wizard-title"
+                  className="add-asset-modal max-w-md wizard-modal"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 16 }}
                 >
-                  <X className="w-4 h-4" size={16} />
-                </button>
+                  <div className="add-asset-modal-header">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                        {t("wizard.step", { current: step, total: WIZARD_STEPS })}
+                      </p>
+                      <h2 id="b3-wizard-title" className="text-base font-semibold">
+                        {step === 1
+                          ? t("portfolio.b3.wizard.pullsTitle")
+                          : step === 2
+                            ? t("portfolio.b3.wizard.skipsTitle")
+                            : step === 3
+                              ? t("portfolio.b3.wizard.authTitle")
+                              : t("portfolio.b3.wizard.successTitle")}
+                      </h2>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => setWizardOpen(false)}
+                      aria-label={t("common.close")}
+                    >
+                      <X className="w-4 h-4" size={16} />
+                    </button>
+                  </div>
+
+                  {step === 1 && (
+                    <div className="wizard-body">
+                      <p>{t("portfolio.b3.wizard.pullsBody")}</p>
+                      <ul className="wizard-list">
+                        <li>{t("portfolio.b3.wizard.pullsRv")}</li>
+                        <li>{t("portfolio.b3.wizard.pullsTesouro")}</li>
+                        <li>{t("portfolio.b3.wizard.pullsRf")}</li>
+                        <li>{t("portfolio.b3.wizard.pullsDeriv")}</li>
+                      </ul>
+                    </div>
+                  )}
+                  {step === 2 && (
+                    <div className="wizard-body">
+                      <p>{t("portfolio.b3.wizard.skipsBody")}</p>
+                      <ul className="wizard-list">
+                        <li>{t("portfolio.b3.wizard.skipInss")}</li>
+                        <li>{t("portfolio.b3.wizard.skipPrev")}</li>
+                        <li>{t("portfolio.b3.wizard.skipImovel")}</li>
+                        <li>{t("portfolio.b3.wizard.skipBanco")}</li>
+                      </ul>
+                    </div>
+                  )}
+                  {step === 3 && (
+                    <div className="wizard-body">
+                      <p className="font-medium">{t("portfolio.b3.wizard.noPassword")}</p>
+                      <p>{t("portfolio.b3.wizard.authBody")}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t("portfolio.b3.noAdvice")}
+                      </p>
+                    </div>
+                  )}
+                  {step === 4 && (
+                    <div className="wizard-body" data-b3-wizard-success="true">
+                      <p>{t("portfolio.b3.wizard.successBody", {
+                        n: imported.length,
+                        total: formatCurrencyValue(
+                          importedValue,
+                          currency,
+                          true,
+                          localeTag
+                        ),
+                        date: sync?.asOf ?? "—",
+                      })}</p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 px-5 pb-5">
+                    {step > 1 && step < 4 ? (
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => setStep((s) => s - 1)}
+                      >
+                        {t("common.back")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => setWizardOpen(false)}
+                      >
+                        {t("common.close")}
+                      </button>
+                    )}
+                    {step < 3 ? (
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => setStep((s) => s + 1)}
+                      >
+                        {t("common.continue")}
+                      </button>
+                    ) : step === 3 ? (
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        disabled={isSyncing}
+                        onClick={() => void runSync()}
+                        data-b3-authorize="true"
+                      >
+                        {isSyncing ? (
+                          <Loader2 className="w-4 h-4 animate-spin" size={16} />
+                        ) : null}
+                        {t("portfolio.b3.wizard.authorizeOnB3")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => setWizardOpen(false)}
+                      >
+                        {t("portfolio.updateB3")}
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed px-5 pb-3">
-                {B3_CONSENT_EVIDENCE_PT}
-              </p>
-              <p className="text-[11px] text-muted px-5 pb-4">
-                {t("portfolio.b3.noAdvice")}
-              </p>
-              <div className="flex justify-end gap-2 px-5 pb-5">
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => setConfirmOpen(false)}
-                >
-                  {t("common.close")}
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => {
-                    setConfirmOpen(false);
-                    void runSync();
-                  }}
-                >
-                  {t("portfolio.b3.authorize")}
-                </button>
-              </div>
-            </motion.div>
-          </div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </>
   );
 }

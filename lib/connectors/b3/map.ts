@@ -4,6 +4,7 @@ import { stableEntityId } from "@/lib/engine/ids";
 import { defaultCagrForAssetClass } from "@/lib/portfolioCagr";
 import type { AllowlistedB3Payload } from "@/lib/connectors/b3/allowlist";
 import { B3_INSTITUTION_ID } from "@/lib/connectors/consent";
+import { averagePriceFromApi } from "@/lib/holdings/costBasis";
 
 function num(value: unknown, fallback = 0): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -94,18 +95,28 @@ function externalRef(product: string, row: Record<string, unknown>): string {
   return [product, isin || ticker, participant, account].join(":");
 }
 
+function productClassOf(product: string, instrumentType: string): string {
+  if (product === "derivatives" || instrumentType.toUpperCase() === "DERIVATIVE") {
+    return "derivativos";
+  }
+  if (product === "treasury") return "tesouro";
+  if (product === "fixed_income") return "renda_fixa";
+  return "rv";
+}
+
 function toHolding(
   product: string,
   row: Record<string, unknown>,
   asOf: string,
   accountId: string,
-  institutionId: string
+  institutionId: string,
+  institutionName: string | null
 ): PortfolioAsset {
   const ticker = str(row.tickerSymbol).toUpperCase();
   const instrumentType = str(row.instrumentType) || str(row.product);
   const quantity = num(row.quantity);
   const price = unitPrice(row, quantity);
-  const cost = num(row.averagePrice, price);
+  const apiAvg = averagePriceFromApi(row.averagePrice);
   const assetClass = assetClassOf(instrumentType, ticker);
   const ref = externalRef(product, row);
   const marketValue = quantity * price;
@@ -117,7 +128,8 @@ function toHolding(
     assetClass,
     quantity,
     currentPrice: price,
-    costBasis: cost > 0 ? cost : price,
+    costBasis: apiAvg ?? 0,
+    costBasisKnown: apiAvg != null,
     currency: "BRL",
     nativeCurrency: "BRL",
     allocation: 0,
@@ -136,9 +148,11 @@ function toHolding(
     confidence: "high",
     externalRef: ref,
     institutionId,
+    institutionName,
     accountId,
     ownership: "holder",
     cnpj: cnpjDigits(row.issuerDocumentNumber) || null,
+    productClass: productClassOf(product, instrumentType),
     gravameValue: gravameValueOf(row, quantity, price),
     includeInEngine: isDerivative ? false : undefined,
     valueHistory: [
@@ -244,32 +258,61 @@ export function mapAllowlistedB3(payload: AllowlistedB3Payload): MappedB3 {
 
   for (const row of payload.equitiesPositions) {
     const acct = ensureAccount(row);
-    holdings.push(toHolding("equities", row, asOf, acct.id, acct.institutionId ?? ""));
+    const inst = institutions.get(acct.institutionId ?? "") ?? null;
+    holdings.push(
+      toHolding(
+        "equities",
+        row,
+        asOf,
+        acct.id,
+        acct.institutionId ?? "",
+        inst?.name ?? (str(row.participantName) || null)
+      )
+    );
   }
   for (const row of payload.treasuryPositions) {
     const acct = ensureAccount(row);
-    holdings.push(toHolding("treasury", row, asOf, acct.id, acct.institutionId ?? ""));
+    const inst = institutions.get(acct.institutionId ?? "") ?? null;
+    holdings.push(
+      toHolding(
+        "treasury",
+        row,
+        asOf,
+        acct.id,
+        acct.institutionId ?? "",
+        inst?.name ?? (str(row.participantName) || null)
+      )
+    );
   }
   for (const row of payload.fixedIncomePositions) {
     const acct = ensureAccount(row);
-    holdings.push(toHolding("fixed_income", row, asOf, acct.id, acct.institutionId ?? ""));
+    const inst = institutions.get(acct.institutionId ?? "") ?? null;
+    holdings.push(
+      toHolding(
+        "fixed_income",
+        row,
+        asOf,
+        acct.id,
+        acct.institutionId ?? "",
+        inst?.name ?? (str(row.participantName) || null)
+      )
+    );
   }
   for (const row of payload.derivativesPositions ?? []) {
     const acct = ensureAccount(row);
+    const inst = institutions.get(acct.institutionId ?? "") ?? null;
     holdings.push(
       toHolding(
         "derivatives",
         { ...row, instrumentType: str(row.instrumentType) || "DERIVATIVE" },
         asOf,
         acct.id,
-        acct.institutionId ?? ""
+        acct.institutionId ?? "",
+        inst?.name ?? (str(row.participantName) || null)
       )
     );
   }
-  for (const row of payload.movements) {
-    const acct = ensureAccount(row);
-    cashFlows.push(cashFlowFromMovement(row, acct.id, asOf));
-  }
+  void payload.movements;
   for (const row of payload.events) {
     const acct = ensureAccount(row);
     cashFlows.push({
