@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       mode: snapshot.health.mode,
       live: isLiveB3Mode(snapshot.health.mode),
+      status: snapshot.health.status,
+      lastSuccessAt: snapshot.health.lastSuccessAt,
       asOf: snapshot.health.asOf,
       partial: snapshot.health.partial,
       rawHash: snapshot.raw.hash,

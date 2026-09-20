@@ -81,6 +81,16 @@ export function B3ConsentCard() {
         </p>
       )}
 
+      {status && !live && reason === "disabled" && (
+        <div className="mt-3 space-y-2">
+          <p className="settings-soon-badge">{t("settings.b3.disabledBadge")}</p>
+          <h3 className="font-bold text-sm">{t("settings.b3.disabledTitle")}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t("settings.b3.disabledBody")}
+          </p>
+        </div>
+      )}
+
       {status && !live && reason === "missing_env" && (
         <div className="mt-3 space-y-2">
           <p className="settings-soon-badge">{t("settings.b3.unavailableBadge")}</p>

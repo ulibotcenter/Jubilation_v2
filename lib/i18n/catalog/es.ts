@@ -804,12 +804,18 @@ export const ES: Record<MessageKey, string> = {
     "Sin licencia ni env de producción — esta carga es fixture, no tu custodia.",
   "portfolio.b3.sandboxOnly":
     "Solo credenciales de certificación. No es custodia de producción.",
+  "portfolio.b3.disabled":
+    "B3 de producción está apagada — esta carga es fixture, no tu custodia.",
   "portfolio.b3.noAdvice":
     "Consolidamos posición y rentabilidad de la cartera importada. No recomendamos un ticker (CVM 19).",
   "settings.b3.title": "Conexión B3",
   "settings.b3.body":
     "Licencia comercial de la Nova Área Logada (PJ no financiera). No es Open Finance. El consentimiento es revocable; la recolección se detiene al instante.",
   "settings.b3.checking": "Comprobando si la API licenciada de B3 está configurada…",
+  "settings.b3.disabledBadge": "Producción apagada",
+  "settings.b3.disabledTitle": "B3 de producción está apagada",
+  "settings.b3.disabledBody":
+    "B3_LIVE o B3_PRODUCTION está off. Las claves pueden existir; este entorno no llama al host licenciado. Conectar sigue cargando una fixture y la etiqueta como tal.",
   "settings.b3.unavailableBadge": "Licencia / env ausentes",
   "settings.b3.unavailableTitle": "B3 de producción no está conectada",
   "settings.b3.unavailableBody":

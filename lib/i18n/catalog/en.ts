@@ -802,12 +802,18 @@ export const EN = {
     "No production licence or env — this load is a fixture, not your custody.",
   "portfolio.b3.sandboxOnly":
     "Certification credentials only. Not production custody.",
+  "portfolio.b3.disabled":
+    "Production B3 is switched off — this load is a fixture, not your custody.",
   "portfolio.b3.noAdvice":
     "We consolidate position and return of the imported sleeve. We do not recommend a ticker (CVM 19).",
   "settings.b3.title": "B3 connection",
   "settings.b3.body":
     "Commercial licence to the Nova Área Logada (non-financial company). Not Open Finance. Consent is revocable; collection stops immediately.",
   "settings.b3.checking": "Checking whether the licensed B3 API is configured…",
+  "settings.b3.disabledBadge": "Production killed",
+  "settings.b3.disabledTitle": "Production B3 is switched off",
+  "settings.b3.disabledBody":
+    "B3_LIVE or B3_PRODUCTION is off. Credentials may be present; this deployment will not call the licensed host. Connect still loads a fixture and labels it as such.",
   "settings.b3.unavailableBadge": "Licence / env missing",
   "settings.b3.unavailableTitle": "Production B3 is not connected",
   "settings.b3.unavailableBody":

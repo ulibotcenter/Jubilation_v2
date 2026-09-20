@@ -26,8 +26,14 @@ export {
   resolveB3Mode,
   isLiveB3Mode,
   publicB3Status,
+  isB3ProductionKilled,
 } from "@/lib/connectors/flags";
-export { runB3Sync, ConsentRequiredError } from "@/lib/connectors/sync";
+export {
+  runB3Sync,
+  commitB3Sync,
+  isB3RemoteUnavailable,
+  ConsentRequiredError,
+} from "@/lib/connectors/sync";
 export { B3Connector, createB3Connector, fixtureCanonical } from "@/lib/connectors/b3";
 export { ManualEntryConnector } from "@/lib/connectors/manual";
 export { allowlistB3Payload } from "@/lib/connectors/b3/allowlist";

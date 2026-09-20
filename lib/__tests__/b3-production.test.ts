@@ -4,6 +4,7 @@ import { fetchB3Canonical, fixtureCanonical } from "@/lib/connectors/b3/client";
 import { B3_FIXTURE_AS_OF, B3_FIXTURE_RAW } from "@/lib/connectors/b3/fixture";
 import { mapAllowlistedB3 } from "@/lib/connectors/b3/map";
 import { B3Connector } from "@/lib/connectors/b3";
+import { grantB3Consent } from "@/lib/connectors/consent";
 import {
   hasB3ProductionCredentials,
   hasB3SandboxCredentials,
@@ -12,6 +13,7 @@ import {
   publicB3Status,
   resolveB3Mode,
 } from "@/lib/connectors/flags";
+import { runB3Sync } from "@/lib/connectors/sync";
 
 const LIVE_ENV = {
   B3_PRODUCTION_BASE_URL: "https://b3.example.test",
@@ -117,16 +119,21 @@ describe("B3 production path", () => {
     expect(new B3Connector({}).health().mode).toBe("fixture");
   });
 
-  it("falls back to fixture when production is killed even if keys exist", () => {
-    expect(
-      resolveB3Mode({
-        ...LIVE_ENV,
-        B3_LIVE: "off",
-      })
-    ).toBe("fixture");
-    expect(publicB3Status({ ...LIVE_ENV, B3_PRODUCTION: "false" }).live).toBe(
-      false
-    );
+  it("B3_LIVE=off with keys present reports disabled, not missing_env", () => {
+    const status = publicB3Status({ ...LIVE_ENV, B3_LIVE: "off" });
+    expect(status.live).toBe(false);
+    expect(status.mode).toBe("fixture");
+    expect(status.reason).toBe("disabled");
+    expect(status.reason).not.toBe("missing_env");
+    expect(resolveB3Mode({ ...LIVE_ENV, B3_LIVE: "off" })).toBe("fixture");
+  });
+
+  it("B3_PRODUCTION=off with keys present reports disabled, not missing_env", () => {
+    const status = publicB3Status({ ...LIVE_ENV, B3_PRODUCTION: "false" });
+    expect(status.live).toBe(false);
+    expect(status.mode).toBe("fixture");
+    expect(status.reason).toBe("disabled");
+    expect(status.reason).not.toBe("missing_env");
   });
 
   it("refuses to treat fixture holdings as live even though source is B3_API", async () => {
@@ -237,5 +244,93 @@ describe("B3 production path", () => {
   it("does not enable Open Finance", () => {
     expect(isOpenFinanceEnabled()).toBe(false);
     expect(publicB3Status(LIVE_ENV).openFinance).toBe(false);
+  });
+
+  it("fixture then failed live keeps PETR4 unlabeled as live (reconcile/store path)", async () => {
+    const now = new Date("2026-09-20T12:00:00Z");
+    const { consent } = grantB3Consent({
+      subjectId: "local-user",
+      partnerId: "b2c-default",
+      now,
+    });
+    const first = await runB3Sync({
+      consent,
+      existing: [],
+      institutions: [],
+      accounts: [],
+      connector: new B3Connector({}),
+      now,
+    });
+    expect(first.applied).toBe(true);
+    expect(first.sync.mode).toBe("fixture");
+    expect(first.reconcile.portfolio.some((a) => a.ticker === "PETR4")).toBe(
+      true
+    );
+    const fixtureSuccessAt = first.sync.lastSuccessAt;
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network down");
+      })
+    );
+    const second = await runB3Sync({
+      consent,
+      existing: first.reconcile.portfolio,
+      institutions: first.reconcile.institutions,
+      accounts: first.reconcile.accounts,
+      connector: new B3Connector(LIVE_ENV),
+      previousSync: first.sync,
+      now: new Date("2026-09-20T13:00:00Z"),
+    });
+    expect(second.fetch.health.status).toBe("unavailable");
+    expect(second.fetch.holdings).toEqual([]);
+    expect(second.applied).toBe(false);
+    expect(second.sync.mode).toBe("fixture");
+    expect(isLiveB3Mode(second.sync.mode)).toBe(false);
+    expect(second.sync.lastSuccessAt).toBe(fixtureSuccessAt);
+    expect(second.sync.lastSuccessAt).not.toBe("2026-09-20T13:00:00.000Z");
+    const petr = second.reconcile.portfolio.find((a) => a.ticker === "PETR4");
+    expect(petr).toBeDefined();
+    expect(petr?.source).toBe("B3_API");
+    expect(petr?.asOf).toBe(B3_FIXTURE_AS_OF);
+    expect(isLiveB3Mode(second.sync.mode)).toBe(false);
+  });
+
+  it("fixture then failed sandbox does not stamp mode=sandbox over fixture rows", async () => {
+    const now = new Date("2026-09-20T12:00:00Z");
+    const { consent } = grantB3Consent({
+      subjectId: "local-user",
+      partnerId: "b2c-default",
+      now,
+    });
+    const first = await runB3Sync({
+      consent,
+      existing: [],
+      institutions: [],
+      accounts: [],
+      connector: new B3Connector({}),
+      now,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("sandbox down");
+      })
+    );
+    const second = await runB3Sync({
+      consent,
+      existing: first.reconcile.portfolio,
+      institutions: first.reconcile.institutions,
+      accounts: first.reconcile.accounts,
+      connector: new B3Connector(SANDBOX_ENV),
+      previousSync: first.sync,
+      now,
+    });
+    expect(second.applied).toBe(false);
+    expect(second.sync.mode).toBe("fixture");
+    expect(second.reconcile.portfolio.some((a) => a.ticker === "PETR4")).toBe(
+      true
+    );
   });
 });

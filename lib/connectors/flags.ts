@@ -45,6 +45,12 @@ export function hasB3SandboxCredentials(
   return hasRemoteCredentials("B3_SANDBOX", env);
 }
 
+export function isB3ProductionKilled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return flagOff(env.B3_LIVE) || flagOff(env.B3_PRODUCTION);
+}
+
 /**
  * Licensed Nova Área Logada credentials. Incomplete env stays on fixture.
  * B3_LIVE=off / B3_PRODUCTION=off ignores production keys (same kill-switch
@@ -53,7 +59,7 @@ export function hasB3SandboxCredentials(
 export function hasB3ProductionCredentials(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  if (flagOff(env.B3_LIVE) || flagOff(env.B3_PRODUCTION)) return false;
+  if (isB3ProductionKilled(env)) return false;
   return hasRemoteCredentials("B3_PRODUCTION", env);
 }
 
@@ -86,6 +92,8 @@ export function publicB3Status(
   env: Record<string, string | undefined> = process.env
 ): PublicB3Status {
   const enabled = isConnectorEnabled("b3", env);
+  const productionKeys = hasRemoteCredentials("B3_PRODUCTION", env);
+  const killed = isB3ProductionKilled(env);
   const live = enabled && hasB3ProductionCredentials(env);
   const mode = enabled ? resolveB3Mode(env) : "fixture";
   if (!enabled) {
@@ -93,6 +101,15 @@ export function publicB3Status(
       enabled: false,
       live: false,
       mode: "fixture",
+      reason: "disabled",
+      openFinance: false,
+    };
+  }
+  if (killed && productionKeys) {
+    return {
+      enabled: true,
+      live: false,
+      mode,
       reason: "disabled",
       openFinance: false,
     };

@@ -122,7 +122,9 @@ export function ConnectB3Button() {
           <p className="text-[10px] text-muted-foreground max-w-[16rem] sm:text-right leading-snug">
             {status.reason === "sandbox_only"
               ? t("portfolio.b3.sandboxOnly")
-              : t("portfolio.b3.notLive")}
+              : status.reason === "disabled"
+                ? t("portfolio.b3.disabled")
+                : t("portfolio.b3.notLive")}
           </p>
         ) : null}
         {freshnessLabel ? (
