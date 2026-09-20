@@ -38,10 +38,23 @@ export {
   isB3RemoteUnavailable,
   ConsentRequiredError,
 } from "@/lib/connectors/sync";
+export {
+  B3AlreadyUpdatedError,
+  isB3QuotaConsumed,
+  formatAsOfDayMonth,
+  b3BusinessDay,
+} from "@/lib/connectors/b3/quota";
+export { dropB3Holdings, dropB3CashFlows, isB3Holding } from "@/lib/connectors/b3/disconnect";
 export { B3Connector, createB3Connector, fixtureCanonical } from "@/lib/connectors/b3";
 export { ManualEntryConnector } from "@/lib/connectors/manual";
 export { allowlistB3Payload } from "@/lib/connectors/b3/allowlist";
 export { mapAllowlistedB3 } from "@/lib/connectors/b3/map";
 export { B3_FIXTURE_RAW, B3_FIXTURE_AS_OF } from "@/lib/connectors/b3/fixture";
 export { parseCnisFile, mapCnisToInssPerson } from "@/lib/connectors/cnis";
-export { parseIrpfFile, suggestIrpfHoldings, applyIrpfHoldings } from "@/lib/connectors/irpf";
+export {
+  parseIrpfFile,
+  suggestIrpfHoldings,
+  applyIrpfHoldings,
+  buildIrpfBatchPreview,
+  applyIrpfBatchConfirm,
+} from "@/lib/connectors/irpf";

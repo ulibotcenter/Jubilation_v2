@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
-import { FileUp, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { ConnectB3Button } from "@/components/portfolio/ConnectB3Button";
+import { ImportIrpfButton } from "@/components/portfolio/ImportIrpfButton";
 import { buildOriginTotals } from "@/lib/holdings/origin";
 import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -127,10 +127,7 @@ export function OriginTotalsStrip() {
                 {origin === "b3" ? (
                   <ConnectB3Button />
                 ) : origin === "irpf" ? (
-                  <Link href="/settings#import-irpf" className="btn-secondary">
-                    <FileUp className="w-4 h-4" size={16} />
-                    {t("dashboard.origins.cta.importIrpf")}
-                  </Link>
+                  <ImportIrpfButton />
                 ) : (
                   <button
                     type="button"

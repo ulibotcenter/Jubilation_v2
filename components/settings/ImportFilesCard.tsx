@@ -10,29 +10,24 @@ import {
   canCollect,
   ConsentRequiredError,
   CNIS_CONSENT_EVIDENCE_PT,
-  IRPF_CONSENT_EVIDENCE_PT,
 } from "@/lib/connectors";
+import { ImportIrpfButton } from "@/components/portfolio/ImportIrpfButton";
 import { useAppStore } from "@/store/useAppStore";
-
-type FileKind = "cnis" | "irpf";
 
 export function ImportFilesCard() {
   const { t } = useTranslation();
   const consents = useAppStore((s) => s.consents);
   const grantCnis = useAppStore((s) => s.grantCnisConsent);
-  const grantIrpf = useAppStore((s) => s.grantIrpfConsent);
   const revoke = useAppStore((s) => s.revokeFileConsent);
   const importCnis = useAppStore((s) => s.importCnisFile);
-  const importIrpf = useAppStore((s) => s.importIrpfFile);
   const isImporting = useAppStore((s) => s.isImportingFile);
   const cnisSync = useAppStore((s) => s.connectorSync.cnis);
   const irpfSync = useAppStore((s) => s.connectorSync.irpf);
   const holderInss = useAppStore((s) => s.household.holder.inss);
 
-  const [pending, setPending] = useState<FileKind | null>(null);
+  const [pendingCnis, setPendingCnis] = useState(false);
   const [mounted, setMounted] = useState(false);
   const cnisInput = useRef<HTMLInputElement>(null);
-  const irpfInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setMounted(true));
@@ -42,18 +37,12 @@ export function ImportFilesCard() {
   const cnisOk = canCollect(consents.find((c) => c.provider === "cnis"));
   const irpfOk = canCollect(consents.find((c) => c.provider === "irpf"));
 
-  const runImport = async (kind: FileKind, file: File) => {
+  const runCnis = async (file: File) => {
     const bytes = new Uint8Array(await file.arrayBuffer());
     try {
-      if (kind === "cnis") {
-        if (!cnisOk) grantCnis();
-        importCnis(bytes, file.name);
-        toast.success(t("toast.files.cnisOk"));
-      } else {
-        if (!irpfOk) grantIrpf();
-        importIrpf(bytes, file.name);
-        toast.success(t("toast.files.irpfOk"));
-      }
+      if (!cnisOk) grantCnis();
+      importCnis(bytes, file.name);
+      toast.success(t("toast.files.cnisOk"));
     } catch (err) {
       if (err instanceof ConsentRequiredError) {
         toast.error(t("toast.files.consentRequired"));
@@ -64,16 +53,6 @@ export function ImportFilesCard() {
       });
     }
   };
-
-  const onPick = (kind: FileKind) => {
-    if (kind === "cnis" ? cnisOk : irpfOk) {
-      (kind === "cnis" ? cnisInput : irpfInput).current?.click();
-      return;
-    }
-    setPending(kind);
-  };
-
-  const evidence = pending === "cnis" ? CNIS_CONSENT_EVIDENCE_PT : IRPF_CONSENT_EVIDENCE_PT;
 
   return (
     <section className="settings-page-card" id="import-files">
@@ -95,14 +74,17 @@ export function ImportFilesCard() {
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = "";
-              if (file) void runImport("cnis", file);
+              if (file) void runCnis(file);
             }}
           />
           <button
             type="button"
             className="btn-secondary text-xs"
             disabled={isImporting}
-            onClick={() => onPick("cnis")}
+            onClick={() => {
+              if (cnisOk) cnisInput.current?.click();
+              else setPendingCnis(true);
+            }}
           >
             {isImporting ? (
               <Loader2 className="w-4 h-4 animate-spin" size={16} />
@@ -134,26 +116,7 @@ export function ImportFilesCard() {
         </p>
 
         <div className="flex flex-wrap items-center gap-2" id="import-irpf">
-          <input
-            id="irpf-file-input"
-            ref={irpfInput}
-            type="file"
-            className="sr-only"
-            accept=".dbk,.dec,.txt,text/plain"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (file) void runImport("irpf", file);
-            }}
-          />
-          <button
-            type="button"
-            className="btn-secondary text-xs"
-            disabled={isImporting}
-            onClick={() => onPick("irpf")}
-          >
-            {t("settings.files.irpfButton")}
-          </button>
+          <ImportIrpfButton className="btn-secondary text-xs" />
           {irpfOk && (
             <button
               type="button"
@@ -177,14 +140,14 @@ export function ImportFilesCard() {
       {mounted &&
         createPortal(
           <AnimatePresence>
-            {pending && (
+            {pendingCnis && (
               <div className="add-asset-modal-root" data-file-consent-root="true">
                 <motion.div
                   className="add-asset-modal-backdrop"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  onClick={() => setPending(null)}
+                  onClick={() => setPendingCnis(false)}
                 />
                 <motion.div
                   role="dialog"
@@ -197,27 +160,25 @@ export function ImportFilesCard() {
                 >
                   <div className="add-asset-modal-header">
                     <h2 id="file-consent-title" className="text-base font-semibold">
-                      {pending === "cnis"
-                        ? t("settings.files.cnisConsentTitle")
-                        : t("settings.files.irpfConsentTitle")}
+                      {t("settings.files.cnisConsentTitle")}
                     </h2>
                     <button
                       type="button"
                       className="btn-ghost"
-                      onClick={() => setPending(null)}
+                      onClick={() => setPendingCnis(false)}
                       aria-label={t("common.close")}
                     >
                       <X className="w-4 h-4" size={16} />
                     </button>
                   </div>
                   <p className="text-sm text-foreground/80 leading-relaxed px-5 pb-4">
-                    {evidence}
+                    {CNIS_CONSENT_EVIDENCE_PT}
                   </p>
                   <div className="flex justify-end gap-2 px-5 pb-5">
                     <button
                       type="button"
                       className="btn-ghost"
-                      onClick={() => setPending(null)}
+                      onClick={() => setPendingCnis(false)}
                     >
                       {t("common.close")}
                     </button>
@@ -225,9 +186,8 @@ export function ImportFilesCard() {
                       type="button"
                       className="btn-primary"
                       onClick={() => {
-                        const kind = pending;
-                        setPending(null);
-                        (kind === "cnis" ? cnisInput : irpfInput).current?.click();
+                        setPendingCnis(false);
+                        cnisInput.current?.click();
                       }}
                     >
                       {t("settings.files.authorize")}

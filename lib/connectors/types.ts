@@ -75,6 +75,12 @@ export interface ConnectorSyncState {
   mode: ConnectorMode;
   partial: boolean;
   rawHash: string | null;
+  /** When the host (or fixture) was last queried — drives the 1×/business-day cap. */
+  lastQueryAt?: string | null;
+  queriedBusinessDay?: string | null;
+  /** Structured IRPF extract only. Never the raw .DEC/.DBK. */
+  extract?: Record<string, unknown> | null;
+  extractEncryptedAtRest?: boolean;
 }
 
 export const B3_STALE_AFTER_MS = 2 * 24 * 60 * 60 * 1000;

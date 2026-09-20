@@ -85,10 +85,11 @@ export function applyIrpfHoldings(input: {
 }): PortfolioAsset[] {
   const next = [...input.existing];
   for (const raw of input.incoming) {
+    const valueType = raw.valueType ?? "cost";
     const incoming = stampOrigin(
-      { ...raw, valueType: raw.valueType ?? "cost" },
+      { ...raw, valueType },
       "irpf",
-      "cost"
+      valueType
     );
     const identity = matchImported(next, incoming);
     if (identity && originRank(originOf(identity)) > originRank("irpf")) {
@@ -104,10 +105,11 @@ export function applyIrpfHoldings(input: {
           lastPriceAt: incoming.lastPriceAt,
           source: "FILE_IRPF",
           code: incoming.code ?? identity.code,
-          valueType: "cost",
+          valueType,
+          costBasisKnown: incoming.costBasisKnown ?? identity.costBasisKnown,
         },
         "irpf",
-        "cost"
+        valueType
       );
       continue;
     }
@@ -128,10 +130,11 @@ export function applyIrpfHoldings(input: {
           asOf: incoming.asOf,
           source: "FILE_IRPF",
           code: incoming.code ?? sameKind.code,
-          valueType: "cost",
+          valueType,
+          costBasisKnown: incoming.costBasisKnown ?? sameKind.costBasisKnown,
         },
         "irpf",
-        "cost"
+        valueType
       );
       continue;
     }

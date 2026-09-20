@@ -6,6 +6,16 @@ export {
   irpfAsOf,
 } from "@/lib/connectors/irpf/map";
 export {
+  buildIrpfBatchPreview,
+  applyIrpfBatchConfirm,
+  extractTickerFromIrpfDescription,
+  irpfCoveredByB3,
+  largestIrpfRowId,
+  retainIrpfExtract,
+  type IrpfBatchPreview,
+  type IrpfBatchRow,
+} from "@/lib/connectors/irpf/preview";
+export {
   IRPF_FIXTURE_DBK,
   IRPF_FIXTURE_CLINIC,
   IRPF_FIXTURE_DOCTOR,

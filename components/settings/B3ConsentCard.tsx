@@ -126,6 +126,17 @@ export function B3ConsentCard() {
             ? t("settings.b3.revoked")
             : t("settings.b3.none")}
       </p>
+      <p className="text-[11px] text-muted-foreground mt-1">
+        {t("settings.b3.officialRevoke")}{" "}
+        <a
+          href="https://www.investidor.b3.com.br/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          investidor.b3.com.br
+        </a>
+      </p>
       {sync?.asOf && (
         <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">
           {t("portfolio.b3.asOf", { date: sync.asOf })}

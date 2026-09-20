@@ -15,7 +15,7 @@ export class B3Connector implements Connector {
     return {
       kinds: ["BROKERAGE", "FIXED_INCOME"],
       products: ["equities", "treasury", "fixed_income", "events"],
-      supportsCashFlows: true,
+      supportsCashFlows: false,
       supportsDiscover: true,
       live: hasB3ProductionCredentials(this.env),
     };

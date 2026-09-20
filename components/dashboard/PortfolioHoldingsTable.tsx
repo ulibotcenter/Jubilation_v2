@@ -13,6 +13,7 @@ import { CLASS_BG } from "@/lib/portfolioColors";
 import { useAppStore } from "@/store/useAppStore";
 import { OriginBadge } from "@/components/portfolio/OriginBadge";
 import { originOf } from "@/lib/holdings/origin";
+import { shouldHideRowPnl } from "@/lib/holdings/costBasis";
 import { formatCurrencyValue, type PortfolioAsset } from "@/types";
 
 interface PortfolioHoldingsTableProps {
@@ -76,8 +77,9 @@ export function PortfolioHoldingsTable({
           </tr>
         </thead>
         <tbody>
-          {assets.map((asset) => {
+          {          assets.map((asset) => {
             const m = computeHoldingMetrics(asset, totalValue, quote);
+            const hidePnl = shouldHideRowPnl(asset);
             const isPositive = m.gain >= 0;
             const expectedCagr = resolveAssetExpectedCagr(asset);
 
@@ -96,6 +98,9 @@ export function PortfolioHoldingsTable({
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
                         {asset.name}
+                        {asset.institutionName
+                          ? ` · ${asset.institutionName}`
+                          : ""}
                       </p>
                       {originOf(asset) === "b3" && asset.asOf ? (
                         <p className="text-[10px] text-muted tabular-nums">
@@ -169,17 +174,26 @@ export function PortfolioHoldingsTable({
                 </td>
 
                 <td className="portfolio-col-price text-right hidden md:table-cell">
-                  <PortfolioInlineEdit
-                    value={asset.costBasis}
-                    onCommit={(v) => updateAsset(asset.id, { costBasis: v })}
-                    min={0}
-                    step={0.01}
-                    decimals={2}
-                    className="portfolio-inline-edit--price"
-                    ariaLabel={t("portfolio.table.aria.avgPrice", {
-                      ticker: asset.ticker,
-                    })}
-                  />
+                  {hidePnl ? (
+                    <span className="text-[11px] text-muted-foreground">—</span>
+                  ) : (
+                    <PortfolioInlineEdit
+                      value={asset.costBasis}
+                      onCommit={(v) =>
+                        updateAsset(asset.id, {
+                          costBasis: v,
+                          costBasisKnown: true,
+                        })
+                      }
+                      min={0}
+                      step={0.01}
+                      decimals={2}
+                      className="portfolio-inline-edit--price"
+                      ariaLabel={t("portfolio.table.aria.avgPrice", {
+                        ticker: asset.ticker,
+                      })}
+                    />
+                  )}
                 </td>
 
                 <td className="portfolio-col-price text-right">
@@ -208,27 +222,32 @@ export function PortfolioHoldingsTable({
 
                 <td
                   className={`portfolio-col-value text-right hidden lg:table-cell portfolio-cell-value ${
-                    isPositive ? "text-gain" : "text-loss"
+                    hidePnl ? "text-muted-foreground" : isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
-                  {isPositive ? "+" : ""}
-                  {formatCurrencyValue(m.gain, quote.currency)}
+                  {hidePnl
+                    ? "—"
+                    : `${isPositive ? "+" : ""}${formatCurrencyValue(m.gain, quote.currency)}`}
                 </td>
 
                 <td className="portfolio-col-pct text-right">
-                  <span
-                    className={`inline-flex items-center gap-1 font-bold tabular-nums text-sm whitespace-nowrap ${
-                      isPositive ? "text-gain" : "text-loss"
-                    }`}
-                  >
-                    {isPositive ? (
-                      <TrendingUp className="w-3.5 h-3.5 shrink-0" size={14} />
-                    ) : (
-                      <TrendingDown className="w-3.5 h-3.5 shrink-0" size={14} />
-                    )}
-                    {isPositive ? "+" : ""}
-                    {m.gainPct.toFixed(2)}%
-                  </span>
+                  {hidePnl ? (
+                    <span className="text-[11px] text-muted-foreground">—</span>
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1 font-bold tabular-nums text-sm whitespace-nowrap ${
+                        isPositive ? "text-gain" : "text-loss"
+                      }`}
+                    >
+                      {isPositive ? (
+                        <TrendingUp className="w-3.5 h-3.5 shrink-0" size={14} />
+                      ) : (
+                        <TrendingDown className="w-3.5 h-3.5 shrink-0" size={14} />
+                      )}
+                      {isPositive ? "+" : ""}
+                      {m.gainPct.toFixed(2)}%
+                    </span>
+                  )}
                 </td>
 
                 <td className="portfolio-col-weight text-right hidden sm:table-cell text-muted-foreground tabular-nums text-sm whitespace-nowrap">

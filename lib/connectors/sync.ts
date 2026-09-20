@@ -1,4 +1,5 @@
 import { B3Connector } from "@/lib/connectors/b3";
+import { b3BusinessDay } from "@/lib/connectors/b3/quota";
 import { canCollect, type Consent } from "@/lib/connectors/consent";
 import { reconcileHoldings, type ReconcileResult } from "@/lib/connectors/reconcile";
 import type {
@@ -82,6 +83,7 @@ export function commitB3Sync(input: CommitB3SyncInput): {
         merges: [],
       };
   const health = input.snapshot.health;
+  const queriedAt = health.lastSuccessAt ?? new Date().toISOString();
   return {
     reconcile,
     applied,
@@ -95,6 +97,8 @@ export function commitB3Sync(input: CommitB3SyncInput): {
           mode: health.mode,
           partial: health.partial,
           rawHash: input.snapshot.raw.hash,
+          lastQueryAt: queriedAt,
+          queriedBusinessDay: b3BusinessDay(new Date(queriedAt)),
         }
       : {
           connectorId: "b3",
@@ -105,6 +109,8 @@ export function commitB3Sync(input: CommitB3SyncInput): {
           mode: previous?.mode ?? "fixture",
           partial: true,
           rawHash: previous?.rawHash ?? null,
+          lastQueryAt: queriedAt,
+          queriedBusinessDay: b3BusinessDay(new Date(queriedAt)),
         },
   };
 }

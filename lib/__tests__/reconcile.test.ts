@@ -35,7 +35,7 @@ describe("B3 reconciliation", () => {
   const allowlisted = allowlistB3Payload(B3_FIXTURE_RAW, B3_FIXTURE_AS_OF);
   const incoming = mapAllowlistedB3(allowlisted);
 
-  it("imported market value wins; manual CAGR and cost stay", () => {
+  it("imported market value wins; API averagePrice wins when sent; manual CAGR stays", () => {
     const result = reconcileHoldings({
       existing: [manualPetr()],
       incoming: incoming.holdings,
@@ -50,9 +50,27 @@ describe("B3 reconciliation", () => {
     expect(petr.asOf).toBe(B3_FIXTURE_AS_OF);
     expect(petr.expectedCAGR).toBe(9.1);
     expect(petr.realReturn).toBe(6);
-    expect(petr.costBasis).toBe(28);
+    expect(petr.costBasis).toBe(32.5);
+    expect(petr.costBasisKnown).toBe(true);
     expect(petr.ownership).toBe("holder");
     expect(result.merges.some((m) => m.ticker === "PETR4")).toBe(true);
+  });
+
+  it("keeps IRPF or manual cost when B3 omits averagePrice", () => {
+    const noAvg = {
+      ...incoming.holdings.find((h) => h.ticker === "PETR4")!,
+      costBasis: 0,
+      costBasisKnown: false,
+    };
+    const result = reconcileHoldings({
+      existing: [manualPetr()],
+      incoming: [noAvg],
+      institutions: incoming.institutions,
+      accounts: incoming.accounts,
+    });
+    const petr = result.portfolio.find((a) => a.ticker === "PETR4")!;
+    expect(petr.costBasis).toBe(28);
+    expect(petr.costBasisKnown).toBe(true);
   });
 
   it("does not overwrite PGBL, FGTS or home", () => {

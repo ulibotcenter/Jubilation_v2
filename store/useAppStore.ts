@@ -31,18 +31,25 @@ import {
   grantB3Consent as createB3Consent,
   grantCnisConsent as createCnisConsent,
   grantIrpfConsent as createIrpfConsent,
+  B3AlreadyUpdatedError,
   commitB3Sync,
+  dropB3CashFlows,
+  dropB3Holdings,
+  isB3QuotaConsumed,
   revokeConsent as revokeB3ConsentRecord,
   type Consent,
   type ConsentAuditEntry,
   type ConnectorSyncState,
 } from "@/lib/connectors";
+import { b3BusinessDay } from "@/lib/connectors/b3/quota";
 import { parseCnisFile, mapCnisToInssPerson } from "@/lib/connectors/cnis";
 import {
   parseIrpfFile,
-  suggestIrpfHoldings,
-  applyIrpfHoldings,
-  irpfAsOf,
+  applyIrpfBatchConfirm,
+  buildIrpfBatchPreview,
+  retainIrpfExtract,
+  type IrpfBatchPreview,
+  type IrpfBatchRow,
 } from "@/lib/connectors/irpf";
 import { hashPayload } from "@/lib/connectors/hash";
 import {
@@ -75,7 +82,6 @@ import {
   isModelSeedPortfolio,
 } from "@/lib/onboarding/seed";
 import {
-  mergeCashFlows,
   migrateHolding,
   reconcileIncludedIds,
 } from "@/lib/holdings/origin";
@@ -474,6 +480,7 @@ export interface AppStore {
         | "allowSale"
         | "liquidity"
         | "asOf"
+        | "costBasisKnown"
       >
     >
   ) => void;
@@ -481,11 +488,13 @@ export interface AppStore {
   refreshPortfolioPrices: () => Promise<{ updated: number; skipped: number }>;
   grantB3Consent: () => Consent;
   revokeB3Consent: () => void;
-  syncB3: () => Promise<ConnectorSyncState>;
+  syncB3: (options?: { force?: boolean }) => Promise<ConnectorSyncState>;
   grantCnisConsent: () => Consent;
   grantIrpfConsent: () => Consent;
   revokeFileConsent: (provider: "cnis" | "irpf") => void;
   importCnisFile: (bytes: Uint8Array, fileName?: string) => void;
+  previewIrpfFile: (bytes: Uint8Array, fileName?: string) => IrpfBatchPreview;
+  confirmIrpfImport: (preview: IrpfBatchPreview, rows: IrpfBatchRow[]) => void;
   importIrpfFile: (bytes: Uint8Array, fileName?: string) => void;
   exportConsentLog: () => string;
   setSimulationIncludedAssetIds: (ids: string[]) => void;
@@ -1451,6 +1460,16 @@ export const useAppStore = create<AppStore>()(
           actor: state.user.id,
           channel: "app",
         });
+        const portfolio = dropB3Holdings(state.portfolio);
+        const simulationIncludedAssetIds = reconcileIncludedIds(
+          portfolio,
+          state.simulationIncludedAssetIds
+        );
+        const built = buildProjectionsFromState({
+          ...state,
+          portfolio,
+          simulationIncludedAssetIds,
+        });
         set({
           consents: state.consents.map((c) =>
             c.id === consent.id ? consent : c
@@ -1458,16 +1477,35 @@ export const useAppStore = create<AppStore>()(
           consentAuditLog: appendAudit(state.consentAuditLog, audit),
           b3SyncGeneration: state.b3SyncGeneration + 1,
           isSyncingB3: false,
+          portfolio,
+          cashFlows: dropB3CashFlows(state.cashFlows),
+          modelSeedActive: isModelSeedPortfolio(portfolio),
+          simulationIncludedAssetIds,
+          kpis: built.kpis,
+          projections: built.projections,
+          chartData: built.chartData,
+          projectionRevision: state.projectionRevision + 1,
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
+          connectorSync: {
+            ...state.connectorSync,
+            b3: emptyB3Sync(),
+          },
         });
       },
 
-      syncB3: async () => {
+      syncB3: async (options) => {
         const started = get();
         let consent = started.consents.find(
           (c) => c.provider === "b3" && canCollect(c)
         );
         if (!consent) {
           throw new ConsentRequiredError();
+        }
+        if (
+          !options?.force &&
+          isB3QuotaConsumed(started.connectorSync.b3?.lastQueryAt)
+        ) {
+          throw new B3AlreadyUpdatedError(started.connectorSync.b3?.asOf ?? null);
         }
         const gen = started.b3SyncGeneration;
         set({ isSyncingB3: true });
@@ -1477,7 +1515,37 @@ export const useAppStore = create<AppStore>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ consentId: consent.id }),
           });
+          if (res.status === 409) {
+            const latest = get();
+            const queriedAt = new Date().toISOString();
+            set({
+              isSyncingB3: false,
+              connectorSync: {
+                ...latest.connectorSync,
+                b3: {
+                  ...(latest.connectorSync.b3 ?? emptyB3Sync()),
+                  lastQueryAt: queriedAt,
+                  queriedBusinessDay: b3BusinessDay(new Date(queriedAt)),
+                },
+              },
+            });
+            throw new B3AlreadyUpdatedError(latest.connectorSync.b3?.asOf ?? null);
+          }
           if (!res.ok) {
+            const latest = get();
+            const queriedAt = new Date().toISOString();
+            set({
+              isSyncingB3: false,
+              connectorSync: {
+                ...latest.connectorSync,
+                b3: {
+                  ...(latest.connectorSync.b3 ?? emptyB3Sync()),
+                  lastQueryAt: queriedAt,
+                  queriedBusinessDay: b3BusinessDay(new Date(queriedAt)),
+                  lastError: `B3 sync ${res.status}`,
+                },
+              },
+            });
             throw new Error(`B3 sync ${res.status}`);
           }
           const body = (await res.json()) as {
@@ -1541,8 +1609,6 @@ export const useAppStore = create<AppStore>()(
             throw new Error(committed.sync.lastError ?? "B3 unavailable");
           }
           const reconciled = committed.reconcile;
-          const incomingFlows = body.cashFlows ?? [];
-          const cashFlows = mergeCashFlows(latest.cashFlows, incomingFlows);
           const portfolio = dropSeedIfUserHoldings(reconciled.portfolio);
           const simulationIncludedAssetIds = reconcileIncludedIds(
             portfolio,
@@ -1568,7 +1634,6 @@ export const useAppStore = create<AppStore>()(
             portfolio,
             institutions: reconciled.institutions,
             accounts: reconciled.accounts,
-            cashFlows,
             modelSeedActive: isModelSeedPortfolio(portfolio),
             simulationIncludedAssetIds,
             kpis: built.kpis,
@@ -1717,7 +1782,21 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      importIrpfFile: (bytes, fileName) => {
+      previewIrpfFile: (bytes, fileName) => {
+        const state = get();
+        const consent = state.consents.find(
+          (c) => c.provider === "irpf" && canCollect(c)
+        );
+        if (!consent) throw new ConsentRequiredError();
+        const parsed = parseIrpfFile(bytes, { fileName });
+        return buildIrpfBatchPreview({
+          allowlisted: parsed.allowlisted,
+          existing: state.portfolio,
+          today: todayIsoDate(),
+        });
+      },
+
+      confirmIrpfImport: (preview, rows) => {
         const state = get();
         const consent = state.consents.find(
           (c) => c.provider === "irpf" && canCollect(c)
@@ -1725,17 +1804,11 @@ export const useAppStore = create<AppStore>()(
         if (!consent) throw new ConsentRequiredError();
         set({ isImportingFile: true });
         try {
-          const parsed = parseIrpfFile(bytes, { fileName });
-          const asOf = irpfAsOf(parsed.allowlisted, todayIsoDate());
-          const incoming = suggestIrpfHoldings(
-            parsed.allowlisted,
-            state.portfolio,
-            asOf
-          );
           const portfolio = dropSeedIfUserHoldings(
-            applyIrpfHoldings({
+            applyIrpfBatchConfirm({
               existing: state.portfolio,
-              incoming,
+              preview,
+              rows,
             })
           );
           const simulationIncludedAssetIds = reconcileIncludedIds(
@@ -1750,22 +1823,29 @@ export const useAppStore = create<AppStore>()(
             portfolio,
             simulationIncludedAssetIds,
           });
+          const sealed = retainIrpfExtract(preview.extract, {
+            vaultExists: Boolean(
+              state.connectorSync.irpf?.extractEncryptedAtRest
+            ),
+          });
           const sync: ConnectorSyncState = {
             connectorId: "irpf",
             lastSuccessAt: new Date().toISOString(),
             lastError: null,
             staleness: "fresh",
-            asOf,
+            asOf: preview.today,
             mode: "file",
-            partial: parsed.warnings.length > 0,
-            rawHash: hashPayload(parsed.persisted),
+            partial: preview.covered.length > 0,
+            rawHash: hashPayload(sealed.extract),
+            extract: sealed.extract,
+            extractEncryptedAtRest: sealed.encryptedAtRest,
           };
           const audit = auditEntry({
             at: new Date().toISOString(),
             actor: state.user.id,
             action: "sync",
             consentId: consent.id,
-            detail: `source=FILE_IRPF;asOf=${asOf};holdings=${incoming.length};droppedMedical=${parsed.allowlisted.discardedRecord26}`,
+            detail: `source=FILE_IRPF;asOf=${preview.today};holdings=${rows.filter((r) => r.selected).length};coveredB3=${preview.covered.length}`,
           });
           set({
             portfolio,
@@ -1794,6 +1874,11 @@ export const useAppStore = create<AppStore>()(
           });
           throw err;
         }
+      },
+
+      importIrpfFile: (bytes, fileName) => {
+        const preview = get().previewIrpfFile(bytes, fileName);
+        get().confirmIrpfImport(preview, preview.rows);
       },
 
       exportConsentLog: () => {
