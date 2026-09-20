@@ -9,6 +9,7 @@ export function partializePersistedState<
     locale: unknown;
     currency: unknown;
     country: unknown;
+    manualEffectiveTaxRatePct: unknown;
     modelSeedActive: unknown;
     fxSnapshot: unknown;
     onboarding: unknown;
@@ -43,6 +44,7 @@ export function partializePersistedState<
     locale: state.locale,
     currency: state.currency,
     country: state.country,
+    manualEffectiveTaxRatePct: state.manualEffectiveTaxRatePct,
     modelSeedActive: state.modelSeedActive,
     fxSnapshot: state.fxSnapshot,
     onboarding: state.onboarding,

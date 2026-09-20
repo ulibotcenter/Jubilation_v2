@@ -4,7 +4,8 @@ import type { PortfolioAsset } from "@/types";
 /**
  * Labeled first-visit example (modelo). Not advice — CVM 19.
  * Mixed native currencies on purpose so FX is exercised on day one.
- * SpaceX is a private/unlisted holding, not a listed ticker.
+ * SpaceX is a listed US stock (Nasdaq SPCX, IPO June 2026).
+ * Seed price: last regular close 2026-09-18, $152.71. Cost = IPO $135.
  */
 export const MODEL_SEED_IDS = [
   "seed-aapl",
@@ -84,22 +85,20 @@ const RAW_MODEL_SEED: PortfolioAsset[] = [
   },
   {
     id: "seed-spacex",
-    ticker: "UNLISTED",
+    ticker: "SPCX",
     name: "SpaceX",
-    assetClass: "other",
-    quantity: 1,
-    currentPrice: 48_000,
-    costBasis: 32_000,
+    assetClass: "stocks",
+    quantity: 315,
+    currentPrice: 152.71,
+    costBasis: 135,
     currency: "USD",
     nativeCurrency: "USD",
     allocation: 0,
-    priceSource: "manual",
-    listing: "unlisted",
-    source: "MANUAL",
-    liquidity: "illiquid",
-    allowSale: false,
+    priceSource: "yahoo",
+    listing: "listed",
+    source: "YAHOO",
+    liquidity: "liquid",
     expectedCAGR: 8,
-    confidence: "low",
   },
   {
     id: "seed-home",

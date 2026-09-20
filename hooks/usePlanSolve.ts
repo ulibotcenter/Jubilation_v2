@@ -20,6 +20,9 @@ export function usePlanSolve(mode: "real" | "playground" = "real") {
   const household = useAppStore((s) => s.household);
   const currency = useAppStore((s) => s.currency);
   const country = useAppStore((s) => s.country);
+  const manualEffectiveTaxRatePct = useAppStore(
+    (s) => s.manualEffectiveTaxRatePct
+  );
   const fxSnapshot = useAppStore((s) => s.fxSnapshot);
 
   const solveInput = useMemo(
@@ -32,6 +35,7 @@ export function usePlanSolve(mode: "real" | "playground" = "real") {
       fxSnapshot,
       household,
       country,
+      manualEffectiveTaxRatePct,
     }),
     [
       kpis,
@@ -42,6 +46,7 @@ export function usePlanSolve(mode: "real" | "playground" = "real") {
       fxSnapshot,
       household,
       country,
+      manualEffectiveTaxRatePct,
     ]
   );
 

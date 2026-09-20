@@ -54,6 +54,11 @@ describe("persist migrate", () => {
     expect(migratePersistedState({ planTier: "free" }, 0).planTier).toBe("free");
   });
 
+  it("does not invent a manual tax rate when none was persisted", () => {
+    const next = migratePersistedState({ kpis: { currentAge: 40 } }, 0);
+    expect(next.manualEffectiveTaxRatePct).toBeNull();
+  });
+
   it("does not invent a portfolio when none was persisted", () => {
     const next = migratePersistedState({ kpis: { currentAge: 40 } }, 0);
     expect(next.portfolio).toBeUndefined();
@@ -127,6 +132,7 @@ describe("persist partialize", () => {
       locale: "pt",
       currency: "BRL",
       country: "BR",
+      manualEffectiveTaxRatePct: null,
       modelSeedActive: false,
       fxSnapshot: null,
       onboarding: { completed: true },
@@ -171,6 +177,7 @@ describe("persist partialize", () => {
       locale: "pt",
       currency: "BRL",
       country: "BR",
+      manualEffectiveTaxRatePct: null,
       modelSeedActive: false,
       fxSnapshot: null,
       onboarding: { completed: true },

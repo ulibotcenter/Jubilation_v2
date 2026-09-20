@@ -64,6 +64,11 @@ import {
 } from "@/lib/onboarding/plan";
 import { engineApplyTaxes } from "@/lib/onboarding/country";
 import {
+  isCoveredTaxHome,
+  parseManualTaxRatePct,
+  resolveManualTaxRatePct,
+} from "@/lib/tax/manual";
+import {
   createModelSeed,
   emptyHoldings,
   isModelSeedPortfolio,
@@ -244,6 +249,7 @@ function buildProjectionsFromState(state: {
   fxSnapshot?: FxSnapshot | null;
   household?: Household | null;
   country?: Country;
+  manualEffectiveTaxRatePct?: number | null;
 }) {
   const quote = liveFxQuote(state.currency ?? DEFAULT_CURRENCY, state.fxSnapshot);
   const portfolio = normalizePortfolioAssets(
@@ -278,6 +284,11 @@ function buildProjectionsFromState(state: {
     {
       household: state.household,
       applyTaxes: engineApplyTaxes(state.country ?? DEFAULT_COUNTRY),
+      manualEffectiveTaxRate:
+        resolveManualTaxRatePct(
+          state.country ?? DEFAULT_COUNTRY,
+          state.manualEffectiveTaxRatePct
+        ) / 100,
     }
   );
   if (state.sensitivity?.cagr != null) {
@@ -346,6 +357,8 @@ export interface AppStore {
   locale: typeof DEFAULT_LOCALE;
   currency: Currency;
   country: Country;
+  /** Uncovered tax homes. Ignored when country is BR. null = empty = 0. */
+  manualEffectiveTaxRatePct: number | null;
   modelSeedActive: boolean;
   activeNav: NavItemId;
   activeTab: DashboardTab;
@@ -422,6 +435,7 @@ export interface AppStore {
   undoSimPlayground: () => void;
   setCurrency: (currency: Currency) => void;
   setCountry: (country: Country) => void;
+  setManualEffectiveTaxRatePct: (rate: number | null) => void;
   changeCurrency: (currency: Currency) => Promise<FxSnapshot>;
   clearPortfolio: () => void;
   setOnboardingStep: (step: OnboardingStep) => void;
@@ -668,6 +682,8 @@ export function mergePersistedAppState(
     fxSnapshot: migrated.fxSnapshot ?? current.fxSnapshot,
     household,
     country: migrated.country ?? current.country,
+    manualEffectiveTaxRatePct:
+      migrated.manualEffectiveTaxRatePct ?? current.manualEffectiveTaxRatePct,
   });
 
   const simPlayground = normalizeSimPlayground(migrated.simPlayground, {
@@ -731,6 +747,7 @@ export const useAppStore = create<AppStore>()(
       locale: DEFAULT_LOCALE,
       currency: DEFAULT_CURRENCY,
       country: DEFAULT_COUNTRY,
+      manualEffectiveTaxRatePct: null,
       modelSeedActive: true,
       activeNav: "dashboard",
       activeTab: "real-portfolio",
@@ -941,7 +958,35 @@ export const useAppStore = create<AppStore>()(
 
       setCurrency: (currency) => set({ currency }),
 
-      setCountry: (country) => set({ country }),
+      setCountry: (country) => {
+        const state = get();
+        const built = buildProjectionsFromState({ ...state, country });
+        set({
+          country,
+          kpis: built.kpis,
+          projections: built.projections,
+          chartData: built.chartData,
+          projectionRevision: state.projectionRevision + 1,
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
+        });
+      },
+
+      setManualEffectiveTaxRatePct: (rate) => {
+        const state = get();
+        const manualEffectiveTaxRatePct = parseManualTaxRatePct(rate);
+        const built = buildProjectionsFromState({
+          ...state,
+          manualEffectiveTaxRatePct,
+        });
+        set({
+          manualEffectiveTaxRatePct,
+          kpis: built.kpis,
+          projections: built.projections,
+          chartData: built.chartData,
+          projectionRevision: state.projectionRevision + 1,
+          monteCarlo: markMonteCarloStale(state.monteCarlo),
+        });
+      },
 
       clearPortfolio: () => {
         const state = get();
@@ -1087,6 +1132,10 @@ export const useAppStore = create<AppStore>()(
           portfolio.length > 0
             ? portfolio.map((a) => a.id)
             : [];
+        const manualEffectiveTaxRatePct = isCoveredTaxHome(answers.country)
+          ? state.manualEffectiveTaxRatePct
+          : (answers.manualEffectiveTaxRatePct ??
+            state.manualEffectiveTaxRatePct);
         const built = buildProjectionsFromState({
           ...state,
           kpis,
@@ -1096,11 +1145,13 @@ export const useAppStore = create<AppStore>()(
           household,
           currency: answers.currency,
           country: answers.country,
+          manualEffectiveTaxRatePct,
         });
         set({
           locale: answers.locale,
           currency: answers.currency,
           country: answers.country,
+          manualEffectiveTaxRatePct,
           kpis: built.kpis,
           household,
           portfolio,

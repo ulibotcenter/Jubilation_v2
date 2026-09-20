@@ -4,6 +4,7 @@ import { normalizePortfolioCagr } from "@/lib/portfolioCagr";
 import { normalizeTenant, type Tenant } from "@/lib/region";
 import { isHousehold } from "@/lib/engine/household";
 import { PERSIST_VERSION, normalizeKpiValues, type PortfolioAsset } from "@/types";
+import { parseManualTaxRatePct } from "@/lib/tax/manual";
 
 export const CURRENT_PERSIST_VERSION = PERSIST_VERSION;
 
@@ -69,6 +70,9 @@ export function migratePersistedState(
         ? raw.connectorSync
         : {},
     household: isHousehold(raw.household) ? raw.household : undefined,
+    manualEffectiveTaxRatePct: parseManualTaxRatePct(
+      raw.manualEffectiveTaxRatePct
+    ),
     persistVersion: Math.max(fromVersion, CURRENT_PERSIST_VERSION),
   };
 }

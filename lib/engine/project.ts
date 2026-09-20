@@ -42,19 +42,29 @@ function calendarYear(plan: EnginePlan, age: number): number {
   return asOfYear(plan.asOf) + (age - plan.currentAge);
 }
 
+function clampUnitRate(rate: number): number {
+  if (!Number.isFinite(rate)) return 0;
+  return Math.min(1, Math.max(0, rate));
+}
+
 function taxOnRetirementIncome(
   plan: EnginePlan,
   age: number,
   grossIncomeCents: number
 ): number {
-  if (!plan.applyTaxes || grossIncomeCents <= 0) return 0;
-  return calculateMonthlyIrpf({
-    monthlyIncomeCents: grossIncomeCents,
-    age,
-    retirementIncome: true,
-    year: calendarYear(plan, age),
-    parameterSet: plan.parameterSet,
-  }).taxCents;
+  if (grossIncomeCents <= 0) return 0;
+  if (plan.applyTaxes) {
+    return calculateMonthlyIrpf({
+      monthlyIncomeCents: grossIncomeCents,
+      age,
+      retirementIncome: true,
+      year: calendarYear(plan, age),
+      parameterSet: plan.parameterSet,
+    }).taxCents;
+  }
+  const rate = clampUnitRate(plan.manualEffectiveTaxRate ?? 0);
+  if (rate <= 0) return 0;
+  return Math.round(grossIncomeCents * rate);
 }
 
 /**

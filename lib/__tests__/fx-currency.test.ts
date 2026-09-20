@@ -75,11 +75,11 @@ describe("BRL / USD / EUR display and conversion", () => {
       retirementAge: 65,
       desiredMonthlyIncome: 2_000,
     });
-    const brl = estimateRetirementTax("br", kpis, 24_000, {
+    const brl = estimateRetirementTax("BR", kpis, 24_000, {
       displayCurrency: "BRL",
       rates: RATES,
     });
-    const usd = estimateRetirementTax("br", kpis, 4_800, {
+    const usd = estimateRetirementTax("BR", kpis, 4_800, {
       displayCurrency: "USD",
       rates: RATES,
     });

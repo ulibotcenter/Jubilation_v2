@@ -4,6 +4,10 @@ import { liveFxQuote, type FxSnapshot } from "@/lib/fx/types";
 import type { Household } from "@/lib/engine/household";
 import type { Country, Currency, KPIValues, PortfolioAsset } from "@/types";
 import { engineApplyTaxes } from "@/lib/onboarding/country";
+import {
+  isCoveredTaxHome,
+  resolveManualTaxRatePct,
+} from "@/lib/tax/manual";
 
 export interface LiveSolveInput {
   kpis: KPIValues;
@@ -14,6 +18,7 @@ export interface LiveSolveInput {
   fxSnapshot?: FxSnapshot | null;
   household?: Household | null;
   country?: Country;
+  manualEffectiveTaxRatePct?: number | null;
 }
 
 /**
@@ -34,6 +39,13 @@ export function liveSolve(
     {
       household: input.household,
       applyTaxes: input.country ? engineApplyTaxes(input.country) : true,
+      manualEffectiveTaxRate:
+        input.country && !isCoveredTaxHome(input.country)
+          ? resolveManualTaxRatePct(
+              input.country,
+              input.manualEffectiveTaxRatePct
+            ) / 100
+          : 0,
     }
   );
   return solvePlan(cfg.plan, unknown);

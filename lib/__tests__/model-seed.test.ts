@@ -3,9 +3,10 @@ import { createModelSeed, emptyHoldings, isModelSeedPortfolio } from "@/lib/onbo
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { migratePersistedState } from "@/lib/persist/migrate";
 import { mergePersistedAppState, useAppStore } from "@/store/useAppStore";
+import { t } from "@/lib/i18n/messages";
 
 describe("model seed and Clear all", () => {
-  it("seeds Apple, Bitcoin, Tesouro, one ETF, unlisted SpaceX, and a house", () => {
+  it("seeds Apple, Bitcoin, Tesouro, one ETF, listed SPCX, and a house", () => {
     const seed = createModelSeed();
     expect(isModelSeedPortfolio(seed)).toBe(true);
     const byId = Object.fromEntries(seed.map((a) => [a.id, a]));
@@ -15,10 +16,16 @@ describe("model seed and Clear all", () => {
     expect(byId["seed-tesouro"]?.currency).toBe("BRL");
     expect(byId["seed-spy"]?.assetClass).toBe("etf");
     expect(byId["seed-spacex"]?.name).toBe("SpaceX");
-    expect(byId["seed-spacex"]?.listing).toBe("unlisted");
-    expect(byId["seed-spacex"]?.ticker).toBe("UNLISTED");
+    expect(byId["seed-spacex"]?.ticker).toBe("SPCX");
+    expect(byId["seed-spacex"]?.listing).toBe("listed");
+    expect(byId["seed-spacex"]?.assetClass).toBe("stocks");
+    expect(byId["seed-spacex"]?.currentPrice).toBe(152.71);
+    expect(byId["seed-spacex"]?.costBasis).toBe(135);
     expect(byId["seed-home"]?.assetClass).toBe("real_estate");
+    expect(byId["seed-home"]?.listing).toBe("unlisted");
     expect(seed.some((a) => a.listing === "unlisted")).toBe(true);
+    expect(t("pt", "portfolio.model.banner").toLowerCase()).toMatch(/exemplo/);
+    expect(t("en", "portfolio.model.banner").toLowerCase()).toMatch(/example/);
   });
 
   it("Clear all wipes the seed and persist keeps the empty book", () => {

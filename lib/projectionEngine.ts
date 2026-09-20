@@ -56,7 +56,11 @@ export function buildProjectionEngineConfig(
   includedAssetIds: string[],
   outsidePortfolio = 0,
   quote?: EngineBuildInput["quote"],
-  extras?: { household?: Household | null; applyTaxes?: boolean }
+  extras?: {
+    household?: Household | null;
+    applyTaxes?: boolean;
+    manualEffectiveTaxRate?: number;
+  }
 ): ProjectionEngineConfig {
   const fx = quote ?? sameCurrencyQuote(portfolio);
   const plan = buildEnginePlan({
@@ -67,6 +71,7 @@ export function buildProjectionEngineConfig(
     quote: fx,
     household: extras?.household,
     applyTaxes: extras?.applyTaxes,
+    manualEffectiveTaxRate: extras?.manualEffectiveTaxRate,
   });
   return {
     kpis,
