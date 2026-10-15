@@ -6,6 +6,7 @@ import { cloudDisabledResponse, requireCloudConfig } from "@/lib/cloud/http";
 import { sendMagicLinkEmail } from "@/lib/cloud/mail";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 export async function POST(request: NextRequest) {
   if (!allowRequest(rateLimitKey(request), 8)) {

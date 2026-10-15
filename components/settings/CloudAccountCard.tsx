@@ -210,7 +210,7 @@ export function CloudAccountCard() {
   const enabled = Boolean(status?.enabled);
 
   return (
-    <section className="settings-page-card">
+    <section id="cloud-account" className="settings-page-card" data-login-entry="cloud">
       <div className="settings-page-card-head">
         {enabled ? (
           <Cloud className="w-4 h-4 text-accent" size={16} />
@@ -219,6 +219,9 @@ export function CloudAccountCard() {
         )}
         <h2>{t("settings.cloud.title")}</h2>
       </div>
+      {!me && (
+        <p className="text-sm font-medium text-foreground">{t("settings.cloud.signInEntry")}</p>
+      )}
 
       {loading && (
         <p className="settings-page-card-body flex items-center gap-2">
@@ -310,6 +313,9 @@ export function CloudAccountCard() {
         <>
           <p className="settings-page-card-body font-medium text-foreground">
             {t("settings.cloud.signedIn", { email: me.email })}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {t("settings.cloud.planSync")}
           </p>
           <p className="text-[11px] text-muted-foreground mt-1">
             {t("settings.cloud.region", { region: me.dataRegion })}

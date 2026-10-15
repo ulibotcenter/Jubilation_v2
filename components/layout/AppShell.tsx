@@ -10,6 +10,7 @@ import { FloatingNav } from "@/components/layout/FloatingNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { LegalFooter } from "@/components/legal/LegalFooter";
+import { AccountSync } from "@/components/account/AccountSync";
 import { BillingSync } from "@/components/billing/BillingSync";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
 import { navIdFromPathname } from "@/hooks/useAppNavigation";
@@ -138,6 +139,7 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
       <CommandPalette />
       <RetirementCoach />
       <BillingSync />
+      <AccountSync />
       {!privacyRoute && <OnboardingModal />}
     </div>
   );

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/common/Logo";
 import { LocaleThemeControls } from "@/components/platform/LocaleThemeControls";
 import { exportRetirementReport } from "@/lib/exportReport";
+import { canUseAdvancedExport } from "@/lib/plans";
 import { getCrossRate } from "@/lib/fx/convert";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -83,8 +84,11 @@ export function Topbar() {
   };
 
   const handleUpgrade = () => {
-    // TODO: Stripe + Supabase — open pricing modal / checkout
     router.push("/upgrade");
+  };
+
+  const handleSignIn = () => {
+    router.push("/settings#cloud-account");
   };
 
   const handleExport = useCallback(async () => {
@@ -92,21 +96,27 @@ export function Topbar() {
     try {
       await new Promise((r) => setTimeout(r, 350));
       const state = useAppStore.getState();
-      const { csvFilename, jsonFilename } = exportRetirementReport({
-        kpis: state.kpis,
-        currency: state.currency,
-        projections: state.projections,
-        portfolio: state.portfolio,
-        simulationIncludedAssetIds: state.simulationIncludedAssetIds,
-        monteCarlo: state.monteCarlo,
-        stressTestResults: state.stressTestResults,
-        user: state.user,
-      });
+      const advanced = canUseAdvancedExport(state.planTier);
+      const { csvFilename, jsonFilename } = exportRetirementReport(
+        {
+          kpis: state.kpis,
+          currency: state.currency,
+          projections: state.projections,
+          portfolio: state.portfolio,
+          simulationIncludedAssetIds: state.simulationIncludedAssetIds,
+          monteCarlo: state.monteCarlo,
+          stressTestResults: state.stressTestResults,
+          user: state.user,
+        },
+        { advanced }
+      );
       toast.success(t("toast.export.success"), {
-        description: t("toast.export.successDesc", {
-          csv: csvFilename,
-          json: jsonFilename,
-        }),
+        description: jsonFilename
+          ? t("toast.export.successDesc", {
+              csv: csvFilename,
+              json: jsonFilename,
+            })
+          : t("toast.export.successBasic", { csv: csvFilename }),
       });
     } catch {
       toast.error(t("toast.export.error"), {
@@ -269,6 +279,18 @@ export function Topbar() {
                 >
                   <Download className="w-4 h-4" size={16} />
                   {t("export.report")}
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  data-login-entry="menu"
+                  onClick={() => {
+                    setAvatarOpen(false);
+                    handleSignIn();
+                  }}
+                >
+                  <User className="w-4 h-4" size={16} />
+                  {t("nav.signIn")}
                 </button>
                 <button
                   type="button"

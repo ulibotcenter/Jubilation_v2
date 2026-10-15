@@ -6,6 +6,7 @@ import { verifyStripeSignature } from "@/lib/billing/signature";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const preferredRegion = "fra1";
 
 export async function POST(request: NextRequest) {
   const cfg = billingConfig();

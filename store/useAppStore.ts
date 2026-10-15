@@ -519,6 +519,14 @@ export interface AppStore {
   runStressTestById: (testId: StressTestId) => void;
   setExporting: (exporting: boolean) => void;
   restoreFromBackup: (slice: Record<string, unknown>) => void;
+  /** Apply a server plan without letting the document grant a paid tier. */
+  applyServerPlan: (slice: Record<string, unknown>) => void;
+  syncSignedInEmail: (email: string) => void;
+  applyAccountPreferences: (prefs: {
+    country: Country;
+    locale: AppLocale;
+    currency: Currency;
+  }) => void;
   copyPortfolioToSimulation: () => void;
   ensureSimPlayground: () => void;
   setSimKPI: (field: KPIField, value: number) => void;
@@ -2069,6 +2077,38 @@ export const useAppStore = create<AppStore>()(
 
       restoreFromBackup: (slice) => {
         set((current) => mergePersistedAppState(slice, current));
+      },
+
+      applyServerPlan: (slice) => {
+        set((current) => {
+          const merged = mergePersistedAppState(slice, current);
+          return {
+            ...merged,
+            planTier: current.planTier,
+            billingLive: current.billingLive,
+            user: {
+              ...merged.user,
+              email: current.user.email || merged.user.email,
+              plan: current.planTier,
+              subscriptionStatus: current.user.subscriptionStatus,
+            },
+          };
+        });
+      },
+
+      syncSignedInEmail: (email) => {
+        const trimmed = email.trim();
+        if (!trimmed) return;
+        set((state) => ({
+          user: { ...state.user, email: trimmed },
+        }));
+      },
+
+      applyAccountPreferences: ({ country, locale, currency }) => {
+        set({ country, locale, currency });
+        if (typeof document !== "undefined") {
+          document.documentElement.lang = htmlLang(locale);
+        }
       },
 
       ensureSimPlayground: () => {

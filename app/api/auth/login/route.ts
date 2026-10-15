@@ -10,6 +10,7 @@ import {
 import { verifyPassword } from "@/lib/cloud/passwords";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 export async function POST(request: NextRequest) {
   if (!allowRequest(rateLimitKey(request), 8)) {

@@ -16,6 +16,7 @@ import {
   type PublicBillingStatus,
 } from "@/lib/billing/config";
 import { formatPlanAmount } from "@/lib/billing/display";
+import { planTierAfterBrowserReturn } from "@/lib/plans";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
@@ -51,7 +52,7 @@ function checkoutParam(): string | null {
 
 export function UpgradePageContent() {
   const { t, locale } = useTranslation();
-  const planTier = useAppStore((s) => s.planTier);
+  const storedPlan = useAppStore((s) => s.planTier);
   const billingLive = useAppStore((s) => s.billingLive);
   const currencyCode = useAppStore((s) => s.currency) as Currency;
   const billingCurrency =
@@ -60,6 +61,7 @@ export function UpgradePageContent() {
   const [signedIn, setSignedIn] = useState(false);
   const [busyOffer, setBusyOffer] = useState<string | null>(null);
   const checkout = useSyncExternalStore(subscribeSearch, checkoutParam, () => null);
+  const planTier = planTierAfterBrowserReturn(storedPlan, checkout);
 
   useEffect(() => {
     let cancelled = false;

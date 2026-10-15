@@ -3,6 +3,8 @@
 import { Briefcase } from "lucide-react";
 import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ConnectorsSection } from "@/components/connectors/ConnectorsSection";
+import { B3ConsentCard } from "@/components/settings/B3ConsentCard";
 import { ImportFilesCard } from "@/components/settings/ImportFilesCard";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -24,7 +26,10 @@ export function PortfolioPageContent() {
       </section>
 
       <div className="mt-4">
-        <ImportFilesCard />
+        <ConnectorsSection>
+          <ImportFilesCard />
+          <B3ConsentCard />
+        </ConnectorsSection>
       </div>
     </div>
   );
