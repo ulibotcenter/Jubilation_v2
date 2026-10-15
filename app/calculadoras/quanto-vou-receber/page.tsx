@@ -134,7 +134,7 @@ export default async function QuantoVouReceberPage({
       </section>
 
       <DisclaimerBlock variant="short" />
-      <AppCta extra="No app, o mesmo solve aparece no painel — e você pode somar INSS, imóvel e o cônjuge." />
+      <AppCta extra="No Básico o mesmo número entra no plano. O cônjuge é do Completo." />
       <RelatedCalculators current="retirementIncome" />
     </article>
   );

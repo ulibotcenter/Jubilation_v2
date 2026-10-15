@@ -5,6 +5,7 @@ import {
   PUBLIC_DISCLAIMER_FOOTER,
   PUBLIC_ENGINE_NOTE,
 } from "@/lib/calculators/copy";
+import { TERMS_PATH } from "@/lib/legal/terms";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
 
 export function PublicChrome({ children }: { children: ReactNode }) {
@@ -25,8 +26,8 @@ export function PublicChrome({ children }: { children: ReactNode }) {
             <span>Calculadoras públicas</span>
           </span>
         </Link>
-        <Link href="/" className="btn-primary public-header-cta">
-          Abrir o app
+        <Link href="/upgrade" className="btn-primary public-header-cta">
+          Ver planos
         </Link>
       </header>
       <main className="public-main">{children}</main>
@@ -38,7 +39,11 @@ export function PublicChrome({ children }: { children: ReactNode }) {
           {" · "}
           <Link href={PRIVACY_PATH}>O que é guardado</Link>
           {" · "}
-          <Link href="/">App — diagnóstico grátis, sem cadastro</Link>
+          <Link href={TERMS_PATH}>Termos — planejamento, não consultoria</Link>
+          {" · "}
+          <Link href="/upgrade">Básico e Completo</Link>
+          {" · "}
+          <Link href="/settings#cloud-account">Criar conta</Link>
         </p>
       </footer>
     </div>

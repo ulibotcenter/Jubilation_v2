@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 
 const SECTIONS = [
+  { title: "privacy.terms.title", body: "privacy.terms.body" },
   { title: "privacy.collected.title", body: "privacy.collected.body" },
   { title: "privacy.notCollected.title", body: "privacy.notCollected.body" },
   { title: "privacy.basis.title", body: "privacy.basis.body" },
@@ -47,6 +48,7 @@ export function PrivacyPageContent() {
       <div className="settings-page-grid">
         {SECTIONS.map((section) => (
           <section
+            id={section.title === "privacy.terms.title" ? "termos" : undefined}
             key={section.title}
             className="settings-page-card settings-page-card--featured"
           >

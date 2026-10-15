@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ConnectorsSection } from "@/components/connectors/ConnectorsSection";
 import { exportRetirementReport } from "@/lib/exportReport";
-import { canUseAdvancedExport } from "@/lib/plans";
+import { canUseAdvancedExport, canUseBasicExport } from "@/lib/plans";
 import { getCrossRate } from "@/lib/fx/convert";
 import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -90,6 +90,7 @@ export function SettingsPageContent() {
     }
   };
 
+  const basicExport = canUseBasicExport(planTier);
   const advancedExport = canUseAdvancedExport(planTier);
 
   const handleExport = async (advanced: boolean) => {
@@ -336,14 +337,19 @@ export function SettingsPageContent() {
             <button
               type="button"
               className="btn-secondary gap-1.5"
-              onClick={() => void handleExport(false)}
-              disabled={isExporting}
+              onClick={() => {
+                if (basicExport) void handleExport(false);
+              }}
+              disabled={isExporting || !basicExport}
               data-export="basic"
+              data-locked={basicExport ? "false" : "true"}
             >
               <Download className="w-4 h-4" size={16} />
               {isExporting
                 ? t("settings.export.exporting")
-                : t("settings.export.basic")}
+                : basicExport
+                  ? t("settings.export.basic")
+                  : t("settings.export.basicLocked")}
             </button>
             <button
               type="button"

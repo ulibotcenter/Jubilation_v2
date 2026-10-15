@@ -6,6 +6,7 @@ import {
   sanitizePlanDocument,
 } from "@/lib/accounts/planDocument";
 import { partializePersistedState } from "@/lib/persist/partialize";
+import { canSaveFullPlan } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
 
 /**
@@ -32,6 +33,7 @@ export function AccountSync() {
 
     const push = async () => {
       if (cancelled || !ready) return;
+      if (!canSaveFullPlan(useAppStore.getState().planTier)) return;
       const state = useAppStore.getState();
       const document = sanitizePlanDocument(partializePersistedState(state));
       if (!document) return;

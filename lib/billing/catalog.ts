@@ -5,8 +5,10 @@
  * STRIPE_PRICE_*_AMOUNT / *_USD_AMOUNT / *_EUR_AMOUNT override these
  * placeholders on screen.
  *
- * Two products, not nine: Individual (Premium) and Couple (Horizon).
- * Free has no Stripe product. Monthly Individual is a decoy on the same SKU.
+ * Two products, not three: Individual prices are Básico (`premium`),
+ * Couple prices are Completo (`horizon`). Free has no Stripe product.
+ * Monthly Básico is a decoy on the same SKU. Couple modeling is a
+ * Completo feature, not another product.
  */
 export const BILLING_CURRENCIES = ["brl", "usd", "eur"] as const;
 

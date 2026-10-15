@@ -19,14 +19,19 @@ export function AppCta({
 }) {
   return (
     <section className="public-cta" aria-label="Continuar no app">
-      <h2>Quer o plano completo?</h2>
+      <h2>Quer guardar o plano?</h2>
       <p>
         {extra ??
-          "O diagnóstico no app é grátis e fica neste aparelho. Sem cadastro, sem paywall no número."}
+          "A calculadora pública para neste número. O gráfico, os campos manuais e os três blocos começam no Básico."}
       </p>
-      <Link href="/" className="btn-primary">
-        Abrir meu plano
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <Link href="/upgrade" className="btn-primary">
+          Ver Básico e Completo
+        </Link>
+        <Link href="/settings#cloud-account" className="btn-secondary">
+          Criar conta
+        </Link>
+      </div>
     </section>
   );
 }

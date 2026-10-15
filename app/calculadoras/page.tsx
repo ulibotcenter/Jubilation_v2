@@ -68,10 +68,8 @@ export default function CalculadorasIndexPage() {
         <h2>Por que isso é público</h2>
         <p>
           O número que muda a conversa — quando o dinheiro chega, quanto ele
-          paga, se a carência fecha — não deveria ficar atrás de cadastro. O
-          app entra depois, se você quiser guardar o plano, incluir CNIS, imóvel
-          ou o cônjuge. Aqui a conta já fecha, com as premissas escritas na
-          tela.
+          paga, se a carência fecha — fica aqui, sem cadastro. Guardar o plano,
+          o gráfico e os três blocos é o Básico. O casal entra no Completo.
         </p>
         <p>
           As regras brasileiras mudam. Estas páginas usam o pacote legal de
@@ -81,7 +79,7 @@ export default function CalculadorasIndexPage() {
       </section>
 
       <DisclaimerBlock variant="short" />
-      <AppCta extra="Quatro números no onboarding geram o mesmo tipo de resposta, com o plano salvo neste aparelho." />
+      <AppCta extra="Este número é grátis. Salvar o plano e ver o gráfico é o Básico." />
     </article>
   );
 }

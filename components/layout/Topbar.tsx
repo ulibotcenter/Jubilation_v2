@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/common/Logo";
 import { LocaleThemeControls } from "@/components/platform/LocaleThemeControls";
 import { exportRetirementReport } from "@/lib/exportReport";
-import { canUseAdvancedExport } from "@/lib/plans";
+import { canUseAdvancedExport, canUseBasicExport } from "@/lib/plans";
 import { getCrossRate } from "@/lib/fx/convert";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -31,6 +31,7 @@ export function Topbar() {
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
   const user = useAppStore((s) => s.user);
   const planTier = useAppStore((s) => s.planTier);
+  const basicExport = canUseBasicExport(planTier);
   const presentationMode = useAppStore((s) => s.presentationMode);
   const togglePresentationMode = useAppStore((s) => s.togglePresentationMode);
   const isExporting = useAppStore((s) => s.isExporting);
@@ -210,19 +211,21 @@ export function Topbar() {
           </span>
         </button>
 
-        {/* Export — desktop */}
+        {basicExport ? (
         <button
           type="button"
           onClick={handleExport}
           disabled={isExporting}
           className="btn-ghost hidden sm:inline-flex gap-1.5"
           aria-label={t("export.report")}
+          data-export="topbar"
         >
           <Download className="w-4 h-4" size={16} />
           <span>
             {isExporting ? t("settings.export.exporting") : t("export.label")}
           </span>
         </button>
+        ) : null}
 
         {/* Upgrade — TODO: Stripe + Supabase */}
         <button
@@ -269,6 +272,7 @@ export function Topbar() {
                     })}
                   </span>
                 </div>
+                {basicExport ? (
                 <button
                   type="button"
                   className="dropdown-item sm:hidden"
@@ -280,6 +284,7 @@ export function Topbar() {
                   <Download className="w-4 h-4" size={16} />
                   {t("export.report")}
                 </button>
+                ) : null}
                 <button
                   type="button"
                   className="dropdown-item"

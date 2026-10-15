@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { allowRequest, rateLimitKey } from "@/lib/api/rateLimit";
 import { getRetirementPlan, upsertRetirementPlan } from "@/lib/cloud/db";
 import { isAuthUser, requireUser } from "@/lib/cloud/http";
+import { canSaveFullPlan } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
@@ -25,6 +26,9 @@ export async function PUT(request: NextRequest) {
   }
   const user = await requireUser(request);
   if (!isAuthUser(user)) return user;
+  if (!canSaveFullPlan(user.planTier)) {
+    return NextResponse.json({ error: "plan_requires_paid" }, { status: 403 });
+  }
 
   let body: unknown;
   try {

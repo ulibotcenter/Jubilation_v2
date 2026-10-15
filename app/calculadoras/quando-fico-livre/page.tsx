@@ -139,7 +139,7 @@ export default async function QuandoFicoLivrePage({
       </section>
 
       <DisclaimerBlock variant="short" />
-      <AppCta extra="No app você troca o aporte, inclui a carteira e vê o mesmo solve no painel." />
+      <AppCta extra="No Básico você troca o aporte, inclui a carteira e vê o mesmo número no gráfico." />
       <RelatedCalculators current="freedomDate" />
     </article>
   );

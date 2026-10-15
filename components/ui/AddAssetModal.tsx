@@ -39,6 +39,10 @@ import {
 import { createId } from "@/lib/engine/ids";
 import { todayIsoDate } from "@/lib/engine/provenance";
 import { defaultCagrForAssetClass } from "@/lib/portfolioCagr";
+import {
+  BASICO_LISTED_CAP,
+  listedCapCount,
+} from "@/lib/plans/holdingCap";
 import { useAppStore } from "@/store/useAppStore";
 import {
   type AssetClass,
@@ -78,9 +82,9 @@ export function AddAssetModal({
   const realPortfolio = useAppStore((s) => s.portfolio);
   const simPortfolio = useAppStore((s) => s.simPlayground.portfolio);
   const portfolio = mode === "playground" ? simPortfolio : realPortfolio;
+  const planTier = useAppStore((s) => s.planTier);
   const addPortfolioAsset = useAppStore((s) => s.addPortfolioAsset);
   const addSimPortfolioAsset = useAppStore((s) => s.addSimPortfolioAsset);
-  const addAsset = mode === "playground" ? addSimPortfolioAsset : addPortfolioAsset;
 
   const [tab, setTab] = useState<TabId>("physical");
   const [query, setQuery] = useState("");
@@ -191,7 +195,17 @@ export function AddAssetModal({
       ownership,
     };
 
-    addAsset(asset);
+    if (mode === "real") {
+      const added = addPortfolioAsset(asset);
+      if (!added.ok) {
+        toast.error(t("portfolio.cap.title"), {
+          description: t("portfolio.cap.body"),
+        });
+        return;
+      }
+    } else {
+      addSimPortfolioAsset(asset);
+    }
     toast.success(t("toast.portfolio.added", { ticker: asset.ticker }), {
       description: t("toast.portfolio.addedDesc", {
         name: asset.name,
@@ -330,7 +344,17 @@ export function AddAssetModal({
       idPrefix: mode === "playground" ? "sim" : "asset",
     });
 
-    addAsset(asset);
+    if (mode === "real") {
+      const added = addPortfolioAsset(asset);
+      if (!added.ok) {
+        toast.error(t("portfolio.cap.title"), {
+          description: t("portfolio.cap.body"),
+        });
+        return;
+      }
+    } else {
+      addSimPortfolioAsset(asset);
+    }
     toast.success(t("toast.portfolio.added", { ticker: asset.ticker }), {
       description: t("toast.portfolio.addedDesc", {
         name: asset.name,
@@ -379,6 +403,14 @@ export function AddAssetModal({
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {t("portfolio.add.subtitle")}
                 </p>
+                {mode === "real" && planTier === "premium" ? (
+                  <p className="text-xs text-muted-foreground mt-1" data-holding-cap="basico">
+                    {t("portfolio.cap.meter", {
+                      used: listedCapCount(portfolio),
+                      max: BASICO_LISTED_CAP,
+                    })}
+                  </p>
+                ) : null}
               </div>
               <button
                 type="button"

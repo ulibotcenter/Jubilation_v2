@@ -126,7 +126,15 @@ describe("plan persist", () => {
     expect(directory.getUser(user.id)?.preferredCurrency).toBe("EUR");
     expect(directory.getUser(user.id)?.planTier).toBe("free");
 
-    const stored = directory.savePlan(user.id, {
+    expect(directory.savePlan(user.id, PLAN_BODY)).toBeNull();
+    expect(directory.getPlan(user.id)).toBeNull();
+    expect(directory.getUser(user.id)?.planTier).toBe("free");
+
+    const paid = directory.createUser({
+      email: "paid@example.com",
+      planTier: "premium",
+    });
+    const stored = directory.savePlan(paid.id, {
       ...PLAN_BODY,
       planTier: "horizon",
       billingLive: true,
@@ -138,7 +146,8 @@ describe("plan persist", () => {
     const userDoc = stored?.document.user as { plan?: string; name?: string };
     expect(userDoc.plan).toBeUndefined();
     expect(userDoc.name).toBe("Ada");
-    expect(directory.getPlan(user.id)?.document).toEqual(stored?.document);
+    expect(directory.getPlan(paid.id)?.document).toEqual(stored?.document);
+    expect(directory.getUser(paid.id)?.planTier).toBe("premium");
     expect(directory.getUser(user.id)?.planTier).toBe("free");
   });
 
@@ -188,13 +197,13 @@ describe("webhook activates plan", () => {
 });
 
 describe("connector and export gates", () => {
-  it("hides connectors and advanced export on free, and shows them when paid", () => {
+  it("hides connectors and advanced export except on Completo", () => {
     expect(manualPlanningOpen()).toBe(true);
     expect(canUseConnectors("free")).toBe(false);
     expect(canUseAdvancedExport("free")).toBe(false);
-    expect(canUseConnectors("premium")).toBe(true);
+    expect(canUseConnectors("premium")).toBe(false);
+    expect(canUseAdvancedExport("premium")).toBe(false);
     expect(canUseConnectors("horizon")).toBe(true);
-    expect(canUseAdvancedExport("premium")).toBe(true);
     expect(canUseAdvancedExport("horizon")).toBe(true);
   });
 

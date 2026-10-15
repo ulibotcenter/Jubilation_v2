@@ -33,16 +33,18 @@ export async function GET(request: NextRequest) {
   if (!token) {
     return NextResponse.redirect(`${settings.href}?auth=missing`);
   }
-  const email = await consumeMagicLink(token);
-  if (!email) {
+  const consumed = await consumeMagicLink(token);
+  if (!consumed) {
     return NextResponse.redirect(`${settings.href}?auth=expired`);
   }
-  let user = await findUserByEmail(email);
+  let user = await findUserByEmail(consumed.email);
   if (!user) {
     try {
       user = await createUser({
-        email,
+        email: consumed.email,
         dataRegion: cfg.defaultDataRegion,
+        leadAge: consumed.leadAge,
+        country: consumed.leadCountry,
       });
     } catch (err) {
       if (err instanceof DataRegionError) {

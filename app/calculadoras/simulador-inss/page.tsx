@@ -217,7 +217,7 @@ export default async function SimuladorInssPage({
       <aside className="public-disclaimer" aria-label="Aviso sobre o Meu INSS">
         <p>{INSS_NOT_OFFICIAL}</p>
       </aside>
-      <AppCta extra="No app você importa o CNIS que você mesmo exportou e o mesmo motor lê competências de verdade — ainda assim, simulação educativa." />
+      <AppCta extra="O CNIS que você exporta entra no Completo. Continua simulação educativa, não o Meu INSS." />
       <RelatedCalculators current="inss" />
     </article>
   );
