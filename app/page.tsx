@@ -11,6 +11,7 @@ import { KPICards } from "@/components/dashboard/KPICards";
 import { OriginTotalsStrip } from "@/components/dashboard/OriginTotalsStrip";
 import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
 import { AppShell } from "@/components/layout/AppShell";
+import { PlannerGate } from "@/components/plans/PlannerGate";
 import { NeedleDeltaCard } from "@/components/platform/NeedleDeltaCard";
 import { SensitivityPanel } from "@/components/platform/SensitivityPanel";
 import { ShareSnapshotButton } from "@/components/platform/ShareSnapshotButton";
@@ -55,6 +56,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell enableHashSync>
+      <PlannerGate>
       <RetirementHero />
 
       <OriginTotalsStrip />
@@ -90,6 +92,7 @@ export default function DashboardPage() {
           <RealPortfolio />
         </div>
       </section>
+      </PlannerGate>
     </AppShell>
   );
 }

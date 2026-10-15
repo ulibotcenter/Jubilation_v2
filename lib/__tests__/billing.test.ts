@@ -224,7 +224,8 @@ describe("canAccess", () => {
 
   it("gates only when Stripe billing is live", () => {
     expect(canAccess("free", "named_scenarios", true)).toBe(false);
-    expect(canAccess("premium", "named_scenarios", true)).toBe(true);
+    expect(canAccess("premium", "named_scenarios", true)).toBe(false);
+    expect(canAccess("horizon", "named_scenarios", true)).toBe(true);
     expect(canAccess("premium", "share_branded", true)).toBe(false);
     expect(canAccess("horizon", "share_branded", true)).toBe(true);
     expect(canAccess("horizon", "tax_preview", true)).toBe(true);

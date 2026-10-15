@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/layout/AppShell";
+import { PlannerGate } from "@/components/plans/PlannerGate";
 import { SimulationPlaygroundPage } from "@/components/simulation/SimulationPlaygroundPage";
 
 export const metadata: Metadata = {
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function SimulationPage() {
   return (
     <AppShell>
-      <SimulationPlaygroundPage />
+      <PlannerGate>
+        <SimulationPlaygroundPage />
+      </PlannerGate>
     </AppShell>
   );
 }

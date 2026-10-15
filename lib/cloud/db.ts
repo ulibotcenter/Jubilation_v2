@@ -46,6 +46,7 @@ ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT 
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS preferred_country TEXT;
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS preferred_locale TEXT;
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS preferred_currency TEXT;
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS lead_age INTEGER;
 CREATE UNIQUE INDEX IF NOT EXISTS auth_users_stripe_customer_uidx
   ON auth_users (stripe_customer_id);
 
@@ -65,6 +66,8 @@ CREATE TABLE IF NOT EXISTS auth_magic_links (
   expires_at TIMESTAMPTZ NOT NULL,
   consumed_at TIMESTAMPTZ
 );
+ALTER TABLE auth_magic_links ADD COLUMN IF NOT EXISTS lead_age INTEGER;
+ALTER TABLE auth_magic_links ADD COLUMN IF NOT EXISTS lead_country TEXT;
 
 CREATE TABLE IF NOT EXISTS vault_blobs (
   user_id TEXT PRIMARY KEY REFERENCES auth_users(id) ON DELETE CASCADE,
@@ -102,10 +105,11 @@ export interface AuthUser {
   preferredCountry: string | null;
   preferredLocale: string | null;
   preferredCurrency: string | null;
+  leadAge: number | null;
 }
 
 const USER_COLUMNS =
-  "id, email, password_hash, data_region, plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status, preferred_country, preferred_locale, preferred_currency";
+  "id, email, password_hash, data_region, plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status, preferred_country, preferred_locale, preferred_currency, lead_age";
 
 interface AuthUserRow {
   id: string;
@@ -119,6 +123,7 @@ interface AuthUserRow {
   preferred_country?: string | null;
   preferred_locale?: string | null;
   preferred_currency?: string | null;
+  lead_age?: number | null;
 }
 
 function asPlanTier(value: unknown): PlanTier {
@@ -151,6 +156,10 @@ function mapAuthUser(row: AuthUserRow): AuthUser {
     preferredCountry: row.preferred_country ?? null,
     preferredLocale: row.preferred_locale ?? null,
     preferredCurrency: row.preferred_currency ?? null,
+    leadAge:
+      typeof row.lead_age === "number" && Number.isFinite(row.lead_age)
+        ? row.lead_age
+        : null,
   };
 }
 
@@ -226,6 +235,8 @@ export async function createUser(input: {
   passwordHash?: string | null;
   dataRegion?: string;
   tenantId?: string;
+  leadAge?: number | null;
+  country?: string | null;
 }): Promise<AuthUser> {
   const id = globalThis.crypto.randomUUID();
   const email = normalizeEmail(input.email);
@@ -243,9 +254,20 @@ export async function createUser(input: {
       [tenantId, dataRegion]
     );
     await client.query(
-      `INSERT INTO auth_users (id, email, password_hash, data_region, tenant_id, plan_tier, subscription_status)
-       VALUES ($1, $2, $3, $4, $5, 'free', 'none')`,
-      [id, email, input.passwordHash ?? null, dataRegion, tenantId]
+      `INSERT INTO auth_users (
+         id, email, password_hash, data_region, tenant_id, plan_tier, subscription_status,
+         lead_age, preferred_country
+       )
+       VALUES ($1, $2, $3, $4, $5, 'free', 'none', $6, $7)`,
+      [
+        id,
+        email,
+        input.passwordHash ?? null,
+        dataRegion,
+        tenantId,
+        input.leadAge ?? null,
+        input.country ?? null,
+      ]
     );
     return {
       id,
@@ -256,9 +278,10 @@ export async function createUser(input: {
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       subscriptionStatus: "none",
-      preferredCountry: null,
+      preferredCountry: input.country ?? null,
       preferredLocale: null,
       preferredCurrency: null,
+      leadAge: input.leadAge ?? null,
     };
   });
 }
@@ -304,27 +327,41 @@ export async function deleteSession(token: string | undefined | null): Promise<v
   });
 }
 
-export async function createMagicLink(email: string, now = Date.now()): Promise<string> {
-  const issued = issueMagicLink(email, now);
+export async function createMagicLink(
+  email: string,
+  now = Date.now(),
+  lead?: { age: number; country: string } | null
+): Promise<string> {
+  const issued = issueMagicLink(email, now, lead);
   await withDb(async (client) => {
     await client.query(
-      `INSERT INTO auth_magic_links (token_hash, email, expires_at)
-       VALUES ($1, $2, $3)`,
+      `INSERT INTO auth_magic_links (token_hash, email, expires_at, lead_age, lead_country)
+       VALUES ($1, $2, $3, $4, $5)`,
       [
         issued.record.tokenHash,
         issued.record.email,
         new Date(issued.record.expiresAt).toISOString(),
+        issued.record.leadAge ?? null,
+        issued.record.leadCountry ?? null,
       ]
     );
   });
   return issued.token;
 }
 
+export interface ConsumedMagicLink {
+  email: string;
+  leadAge: number | null;
+  leadCountry: string | null;
+}
+
 /**
  * Same accept rules as `lookupMagicLink`: hash match, unused, unexpired.
  * The UPDATE is conditional so a replay cannot consume the link twice.
  */
-export async function consumeMagicLink(token: string): Promise<string | null> {
+export async function consumeMagicLink(
+  token: string
+): Promise<ConsumedMagicLink | null> {
   return withDb(async (client) => {
     const res = await client.query(
       `UPDATE auth_magic_links
@@ -332,11 +369,22 @@ export async function consumeMagicLink(token: string): Promise<string | null> {
        WHERE token_hash = $1
          AND consumed_at IS NULL
          AND expires_at > now()
-       RETURNING email`,
+       RETURNING email, lead_age, lead_country`,
       [hashToken(token)]
     );
-    const email = res.rows[0]?.email as string | undefined;
-    return email ?? null;
+    const row = res.rows[0] as
+      | { email?: string; lead_age?: number | null; lead_country?: string | null }
+      | undefined;
+    if (!row?.email) return null;
+    const leadAge =
+      typeof row.lead_age === "number" && Number.isFinite(row.lead_age)
+        ? row.lead_age
+        : null;
+    return {
+      email: row.email,
+      leadAge,
+      leadCountry: row.lead_country ?? null,
+    };
   });
 }
 

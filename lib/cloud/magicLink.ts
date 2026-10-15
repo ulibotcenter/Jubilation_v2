@@ -9,6 +9,8 @@ export interface MagicLinkRecord {
   email: string;
   expiresAt: number;
   consumedAt: number | null;
+  leadAge?: number | null;
+  leadCountry?: string | null;
 }
 
 export interface IssuedMagicLink {
@@ -29,7 +31,11 @@ export function randomToken(): string {
 }
 
 /** Issue a one-time login token. The raw token is emailed; only the hash is stored. */
-export function issueMagicLink(email: string, now = Date.now()): IssuedMagicLink {
+export function issueMagicLink(
+  email: string,
+  now = Date.now(),
+  lead?: { age?: number | null; country?: string | null } | null
+): IssuedMagicLink {
   const token = randomToken();
   return {
     token,
@@ -38,6 +44,8 @@ export function issueMagicLink(email: string, now = Date.now()): IssuedMagicLink
       email: normalizeEmail(email),
       expiresAt: now + MAGIC_LINK_TTL_MS,
       consumedAt: null,
+      leadAge: lead?.age ?? null,
+      leadCountry: lead?.country ?? null,
     },
   };
 }

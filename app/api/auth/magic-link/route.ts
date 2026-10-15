@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { allowRequest, rateLimitKey } from "@/lib/api/rateLimit";
+import { parseSignupLead } from "@/lib/accounts/signupLead";
 import { cloudAuthConfig } from "@/lib/cloud/config";
 import { createMagicLink } from "@/lib/cloud/db";
 import { cloudDisabledResponse, requireCloudConfig } from "@/lib/cloud/http";
@@ -18,18 +19,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "magic_link_disabled" }, { status: 404 });
   }
 
-  let body: { email?: string };
+  let body: unknown;
   try {
-    body = (await request.json()) as { email?: string };
+    body = await request.json();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
-  const email = body.email?.trim() ?? "";
+  const email =
+    body && typeof body === "object" && "email" in body
+      ? String((body as { email?: unknown }).email ?? "").trim()
+      : "";
   if (!email.includes("@")) {
     return NextResponse.json({ error: "invalid_email" }, { status: 400 });
   }
+  const lead = parseSignupLead(body);
+  if (!lead) {
+    return NextResponse.json({ error: "invalid_lead" }, { status: 400 });
+  }
 
-  const token = await createMagicLink(email);
+  const token = await createMagicLink(email, Date.now(), lead);
   const origin = (cloudAuthConfig().authUrl || request.nextUrl.origin).replace(
     /\/$/,
     ""

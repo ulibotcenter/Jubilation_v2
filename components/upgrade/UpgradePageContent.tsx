@@ -276,7 +276,7 @@ export function UpgradePageContent() {
 
             <article
               className="card-surface-accent p-6 space-y-3 flex flex-col"
-              data-plan="individual"
+              data-plan="basico"
               data-currency={currencyCode}
             >
               <h3 className="font-bold">{t("upgrade.plan.individual.title")}</h3>
@@ -322,7 +322,7 @@ export function UpgradePageContent() {
 
             <article
               className="card-surface p-6 space-y-3 flex flex-col"
-              data-plan="couple"
+              data-plan="completo"
               data-currency={currencyCode}
             >
               <h3 className="font-bold">{t("upgrade.plan.couple.title")}</h3>

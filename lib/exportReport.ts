@@ -175,6 +175,62 @@ export function buildRetirementReportJson(snapshot: ExportSnapshot): string {
   );
 }
 
+function pdfEscape(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E]/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
+/** One-page formatted PDF for Completo. Not a second planning engine. */
+export function buildFormattedPlanPdf(snapshot: ExportSnapshot): Uint8Array {
+  const lines = [
+    "Jubilation — planejamento, nao consultoria",
+    `Moeda: ${snapshot.currency}`,
+    `Idade: ${snapshot.kpis.currentAge}`,
+    `Aporte mensal: ${snapshot.kpis.monthlyContribution}`,
+    `Idade-alvo: ${snapshot.kpis.retirementAge}`,
+    `Posicoes: ${snapshot.portfolio.length}`,
+    ...snapshot.portfolio.slice(0, 12).map((asset) => {
+      const value = Math.round(asset.quantity * asset.currentPrice);
+      return `${asset.ticker}  ${asset.assetClass}  ${value}`;
+    }),
+    "Simulacao educativa. Nao e consultoria nem recomendacao.",
+    "Os numeros dependem das premissas que voce edita.",
+  ];
+  const commands = ["BT", "/F1 11 Tf", "48 780 Td", "14 TL"];
+  lines.forEach((line, index) => {
+    const text = pdfEscape(line).slice(0, 96);
+    commands.push(index === 0 ? `(${text}) Tj` : `T* (${text}) Tj`);
+  });
+  commands.push("ET");
+  const stream = commands.join("\n");
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let body = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(body.length);
+    body += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xref = body.length;
+  body += `xref\n0 ${objects.length + 1}\n`;
+  body += "0000000000 65535 f \n";
+  for (let index = 1; index < offsets.length; index += 1) {
+    body += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  }
+  body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new TextEncoder().encode(body);
+}
+
 export function downloadFile(
   content: string,
   filename: string,
@@ -214,7 +270,7 @@ export function exportRetirementReport(
 
   if (advanced && jsonFilename) {
     const jsonName = jsonFilename;
-    // Stagger JSON so browsers don't block dual downloads
+    // Stagger so browsers don't drop the extra downloads
     setTimeout(() => {
       downloadFile(
         buildRetirementReportJson(snapshot),
@@ -222,6 +278,13 @@ export function exportRetirementReport(
         "application/json;charset=utf-8"
       );
     }, 400);
+    setTimeout(() => {
+      downloadFile(
+        new TextDecoder().decode(buildFormattedPlanPdf(snapshot)),
+        `jubilation-plano-${stamp}.pdf`,
+        "application/pdf"
+      );
+    }, 800);
   }
 
   return { csvFilename, jsonFilename };

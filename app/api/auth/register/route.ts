@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseSignupLead } from "@/lib/accounts/signupLead";
 import { allowRequest, rateLimitKey } from "@/lib/api/rateLimit";
 import { createSession, createUser, findUserByEmail } from "@/lib/cloud/db";
 import {
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest) {
   }
   const email = body.email?.trim() ?? "";
   const password = body.password ?? "";
-  if (!email.includes("@") || password.length < 10) {
+  const lead = parseSignupLead(body);
+  if (!email.includes("@") || password.length < 10 || !lead) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
   const existing = await findUserByEmail(email);
@@ -47,6 +49,8 @@ export async function POST(request: NextRequest) {
       email,
       passwordHash,
       dataRegion: cfg.defaultDataRegion,
+      leadAge: lead.age,
+      country: lead.country,
     });
     const token = await createSession(user.id);
     const res = NextResponse.json(publicAuthUser(user));

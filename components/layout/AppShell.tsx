@@ -14,6 +14,7 @@ import { AccountSync } from "@/components/account/AccountSync";
 import { BillingSync } from "@/components/billing/BillingSync";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
 import { navIdFromPathname } from "@/hooks/useAppNavigation";
+import { canUseFullPlanner } from "@/lib/plans";
 import { isPrivacyPath } from "@/lib/privacy/local";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -61,6 +62,8 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
   const pathname = usePathname();
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const onboardingCompleted = useAppStore((s) => s.onboarding.completed);
+  const planTier = useAppStore((s) => s.planTier);
+  const billingChecked = useAppStore((s) => s.billingChecked);
   const presentationMode = useAppStore((s) => s.presentationMode);
   const theme = useAppStore((s) => s.theme);
   const setActiveNav = useAppStore((s) => s.setActiveNav);
@@ -112,7 +115,8 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
 
   const showChrome = !presentationMode;
   const privacyRoute = isPrivacyPath(pathname);
-  const showPage = onboardingCompleted || privacyRoute;
+  const fullPlanner = billingChecked && canUseFullPlanner(planTier);
+  const showPage = privacyRoute || !fullPlanner || onboardingCompleted;
 
   return (
     <div
@@ -129,7 +133,7 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
           {showPage ? (
             <>
               {children}
-              {onboardingCompleted ? <LegalFooter /> : null}
+              {onboardingCompleted || !fullPlanner ? <LegalFooter /> : null}
             </>
           ) : null}
         </main>
@@ -140,7 +144,7 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
       <RetirementCoach />
       <BillingSync />
       <AccountSync />
-      {!privacyRoute && <OnboardingModal />}
+      {fullPlanner && !privacyRoute && <OnboardingModal />}
     </div>
   );
 }

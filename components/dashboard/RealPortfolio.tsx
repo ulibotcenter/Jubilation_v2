@@ -81,6 +81,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
   const clearPortfolio = useAppStore((s) => s.clearPortfolio);
   const modelSeedActive = useAppStore((s) => s.modelSeedActive);
   const connectorsOpen = canUseConnectors(useAppStore((s) => s.planTier));
+  const holdingCapBlocked = useAppStore((s) => s.holdingCapBlocked);
 
   const refreshPortfolioPrices = useAppStore((s) => s.refreshPortfolioPrices);
   const refreshSimPortfolioPrices = useAppStore(
@@ -245,6 +246,11 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
 
   return (
     <div className="space-y-5">
+      {mode === "real" && holdingCapBlocked ? (
+        <p className="text-sm text-muted-foreground" role="alert" data-holding-cap="blocked">
+          {t("portfolio.cap.body")}
+        </p>
+      ) : null}
       {mode === "real" && modelSeedActive && portfolio.length > 0 ? (
         <div className="portfolio-model-banner" role="status">
           <p>{t("portfolio.model.banner")}</p>

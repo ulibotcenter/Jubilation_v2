@@ -9,6 +9,7 @@ import type { Person } from "@/lib/engine/household";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { fadeUp } from "@/lib/uiMotion";
+import { canModelCouple } from "@/lib/plans";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -96,6 +97,7 @@ export function HouseholdCard() {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
   const household = useAppStore((s) => s.household);
+  const coupleOpen = canModelCouple(useAppStore((s) => s.planTier));
   const addSpouse = useAppStore((s) => s.addSpouse);
   const removeSpouse = useAppStore((s) => s.removeSpouse);
   const patchHouseholdPerson = useAppStore((s) => s.patchHouseholdPerson);
@@ -130,6 +132,15 @@ export function HouseholdCard() {
       )}
 
       <h3 className="household-subtitle">{t("settings.household.spouse")}</h3>
+      {!coupleOpen ? (
+        <p className="settings-page-card-body" data-couple="locked">
+          {t("settings.household.coupleLocked")}{" "}
+          <Link href="/upgrade" className="text-accent hover:underline">
+            {t("nav.upgrade")}
+          </Link>
+        </p>
+      ) : (
+      <>
       <p className="household-notice household-notice--privacy">
         {t("settings.household.privacyNotice")}{" "}
         <Link href={PRIVACY_PATH} className="household-privacy-link">
@@ -207,6 +218,8 @@ export function HouseholdCard() {
             {t("settings.household.addSpouse")}
           </button>
         </>
+      )}
+      </>
       )}
     </motion.section>
   );

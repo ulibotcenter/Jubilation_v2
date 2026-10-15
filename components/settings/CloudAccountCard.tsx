@@ -12,11 +12,18 @@ import {
   encryptBackup,
   parseBackupEnvelope,
 } from "@/lib/backup";
+import { EmailUseModal } from "@/components/legal/EmailUseModal";
 import { publicCloudStatus, type PublicCloudStatus } from "@/lib/cloud/config";
+import { EMAIL_USE_LABEL } from "@/lib/legal/emailUse";
+import { TERMS_PATH } from "@/lib/legal/terms";
+import { COUNTRIES } from "@/lib/onboarding/country";
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { tenantMayPersistOnHost } from "@/lib/region";
 import { useAppStore } from "@/store/useAppStore";
+import type { Country } from "@/types";
+import Link from "next/link";
 
 interface Me {
   email: string;
@@ -29,6 +36,9 @@ export function CloudAccountCard() {
   const [status, setStatus] = useState<PublicCloudStatus | null>(null);
   const [me, setMe] = useState<Me | null>(null);
   const [email, setEmail] = useState("");
+  const [age, setAge] = useState("");
+  const [country, setCountry] = useState<Country>("BR");
+  const [emailUseOpen, setEmailUseOpen] = useState(false);
   const [accountPassword, setAccountPassword] = useState("");
   const [blobPassword, setBlobPassword] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -68,6 +78,8 @@ export function CloudAccountCard() {
       toast.error(t("toast.cloud.invalidInput"));
       return;
     }
+    const lead = mode === "register" ? leadReady() : { email, age: Number(age) || 0, country };
+    if (mode === "register" && !lead) return;
     setBusy(mode);
     try {
       const res = await fetch(
@@ -75,7 +87,11 @@ export function CloudAccountCard() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password: accountPassword }),
+          body: JSON.stringify(
+            mode === "register"
+              ? { email, password: accountPassword, age: lead?.age, country }
+              : { email, password: accountPassword }
+          ),
         }
       );
       const body = (await res.json()) as Me & { error?: string };
@@ -93,17 +109,24 @@ export function CloudAccountCard() {
     }
   };
 
-  const handleMagic = async () => {
-    if (!email.includes("@")) {
+  const leadReady = () => {
+    const parsedAge = Number(age);
+    if (!email.includes("@") || !Number.isInteger(parsedAge) || parsedAge < 18 || parsedAge > 120) {
       toast.error(t("toast.cloud.invalidInput"));
-      return;
+      return null;
     }
+    return { email, age: parsedAge, country };
+  };
+
+  const handleMagic = async () => {
+    const lead = leadReady();
+    if (!lead) return;
     setBusy("magic");
     try {
       const res = await fetch("/api/auth/magic-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(lead),
       });
       if (!res.ok) {
         toast.error(t("toast.cloud.error"));
@@ -206,8 +229,65 @@ export function CloudAccountCard() {
     }
   };
 
+  const handleLeadWhileOffline = () => {
+    if (!leadReady()) return;
+    toast.error(t("settings.cloud.bodySoon"));
+  };
+
   const loading = status === null;
   const enabled = Boolean(status?.enabled);
+
+  const leadFields = (
+    <>
+      <label className="household-field mt-4">
+        <span>{t("settings.cloud.email")}</span>
+        <input
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </label>
+      <label className="household-field mt-3">
+        <span>{t("onboarding.field.age")}</span>
+        <input
+          type="number"
+          min={18}
+          max={120}
+          inputMode="numeric"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+        />
+      </label>
+      <label className="household-field mt-3">
+        <span>{t("onboarding.field.country")}</span>
+        <select
+          value={country}
+          onChange={(e) => setCountry(e.target.value as Country)}
+        >
+          {COUNTRIES.map((option) => (
+            <option key={option.code} value={option.code}>
+              {t(`country.${option.code}` as MessageKey)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        className="btn-ghost text-xs mt-3"
+        data-email-use="open-button"
+        onClick={() => setEmailUseOpen(true)}
+      >
+        {EMAIL_USE_LABEL}
+      </button>
+      <p className="text-[11px] text-muted-foreground mt-2">
+        <Link href={TERMS_PATH} className="text-accent hover:underline">
+          {t("footer.link.terms")}
+        </Link>
+      </p>
+      <EmailUseModal open={emailUseOpen} onClose={() => setEmailUseOpen(false)} />
+    </>
+  );
 
   return (
     <section id="cloud-account" className="settings-page-card" data-login-entry="cloud">
@@ -242,6 +322,14 @@ export function CloudAccountCard() {
           <p className="text-[11px] text-muted-foreground mt-1">
             {t("settings.cloud.regionNote")}
           </p>
+          {leadFields}
+          <button
+            type="button"
+            className="btn-secondary text-xs mt-4"
+            onClick={handleLeadWhileOffline}
+          >
+            {t("settings.cloud.magicLink")}
+          </button>
         </>
       )}
 
@@ -254,15 +342,7 @@ export function CloudAccountCard() {
           <p className="text-[11px] text-muted-foreground mt-1">
             {t("settings.cloud.regionNote")}
           </p>
-          <label className="household-field mt-4">
-            <span>{t("settings.cloud.email")}</span>
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
+          {leadFields}
           {status?.password && (
             <label className="household-field mt-3">
               <span>{t("settings.cloud.password")}</span>

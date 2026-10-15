@@ -94,6 +94,7 @@ import {
 import type { CoachMessage } from "@/lib/ai/retirementCoach";
 import type { AppLocale } from "@/lib/i18n/messages";
 import type { PlanTier } from "@/lib/plans";
+import { holdingAddDecision, type HoldingAddResult } from "@/lib/plans/holdingCap";
 import {
   buildProjectionEngineConfig,
   runMonteCarloFromConfig,
@@ -413,6 +414,9 @@ export interface AppStore {
   household: Household;
   planTier: PlanTier;
   billingLive: boolean;
+  /** False until /api/billing/status answers. Does not grant a plan. */
+  billingChecked: boolean;
+  holdingCapBlocked: boolean;
   explainSimple: boolean;
   theme: "dark" | "light";
   presentationMode: boolean;
@@ -461,7 +465,7 @@ export interface AppStore {
   setSidebarOpen: (open: boolean) => void;
   toggleSidebarCollapsed: () => void;
   setPortfolioSearchQuery: (query: string) => void;
-  addPortfolioAsset: (asset: PortfolioAsset) => void;
+  addPortfolioAsset: (asset: PortfolioAsset) => HoldingAddResult;
   updatePortfolioAsset: (
     id: string,
     patch: Partial<
@@ -734,6 +738,8 @@ export function mergePersistedAppState(
     persistVersion: CURRENT_PERSIST_VERSION,
     planTier: "free",
     billingLive: false,
+    billingChecked: false,
+    holdingCapBlocked: false,
     user: (() => {
       const nextUser = migrated.user ?? current.user;
       return {
@@ -827,6 +833,8 @@ export const useAppStore = create<AppStore>()(
       household: seedHousehold,
       planTier: "free",
       billingLive: false,
+      billingChecked: false,
+      holdingCapBlocked: false,
       explainSimple: false,
       theme: "light",
       presentationMode: false,
@@ -863,6 +871,7 @@ export const useAppStore = create<AppStore>()(
 
       syncServerBilling: ({ live, planTier, subscriptionStatus }) =>
         set((state) => ({
+          billingChecked: true,
           billingLive: live,
           planTier: live ? planTier : "free",
           user: {
@@ -1274,6 +1283,11 @@ export const useAppStore = create<AppStore>()(
       addPortfolioAsset: (asset) => {
         const state = get();
         const incoming = migrateHolding(asset);
+        const decision = holdingAddDecision(state.planTier, state.portfolio, incoming);
+        if (!decision.ok) {
+          set({ holdingCapBlocked: true });
+          return decision;
+        }
         const portfolio = dropSeedIfUserHoldings([
           ...state.portfolio,
           incoming,
@@ -1291,12 +1305,14 @@ export const useAppStore = create<AppStore>()(
           portfolio,
           simulationIncludedAssetIds,
           modelSeedActive: isModelSeedPortfolio(portfolio),
+          holdingCapBlocked: false,
           kpis: built.kpis,
           projections: built.projections,
           chartData: built.chartData,
           projectionRevision: state.projectionRevision + 1,
           monteCarlo: markMonteCarloStale(state.monteCarlo),
         });
+        return { ok: true };
       },
 
       updatePortfolioAsset: (id, patch) => {
@@ -2429,3 +2445,9 @@ export const useAppStore = create<AppStore>()(
     }
   )
 );
+
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  (
+    window as unknown as { __jubilationStore?: typeof useAppStore }
+  ).__jubilationStore = useAppStore;
+}

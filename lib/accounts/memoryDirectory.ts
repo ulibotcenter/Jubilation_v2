@@ -7,7 +7,8 @@ import {
   type MagicLinkRecord,
 } from "@/lib/cloud/magicLink";
 import type { BillingStore } from "@/lib/billing/persist";
-import type { PlanTier } from "@/lib/plans";
+import type { SignupLead } from "@/lib/accounts/signupLead";
+import { canSaveFullPlan, type PlanTier } from "@/lib/plans";
 import {
   parseProfilePreferences,
   sanitizePlanDocument,
@@ -41,6 +42,8 @@ export function createMemoryDirectory() {
     id?: string;
     email: string;
     planTier?: PlanTier;
+    leadAge?: number | null;
+    country?: string | null;
   }): AuthUser {
     const user: AuthUser = {
       id: input.id ?? globalThis.crypto.randomUUID(),
@@ -51,9 +54,10 @@ export function createMemoryDirectory() {
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       subscriptionStatus: "none",
-      preferredCountry: null,
+      preferredCountry: input.country ?? null,
       preferredLocale: null,
       preferredCurrency: null,
+      leadAge: input.leadAge ?? null,
     };
     users.set(user.id, user);
     return user;
@@ -101,8 +105,8 @@ export function createMemoryDirectory() {
     getUser(id: string): AuthUser | null {
       return users.get(id) ?? null;
     },
-    issueMagicLink(email: string, now = Date.now()): string {
-      const issued = issueMagicLink(email, now);
+    issueMagicLink(email: string, now = Date.now(), lead?: SignupLead | null): string {
+      const issued = issueMagicLink(email, now, lead);
       links.set(issued.record.tokenHash, issued.record);
       return issued.token;
     },
@@ -111,7 +115,24 @@ export function createMemoryDirectory() {
       const decision = lookupMagicLink(record, now);
       if (!decision.ok || !record) return null;
       record.consumedAt = now;
-      return findByEmail(decision.email) ?? createUser({ email: decision.email });
+      const existing = findByEmail(decision.email);
+      if (existing) {
+        if (record.leadAge != null || record.leadCountry) {
+          const next: AuthUser = {
+            ...existing,
+            leadAge: record.leadAge ?? existing.leadAge,
+            preferredCountry: record.leadCountry ?? existing.preferredCountry,
+          };
+          users.set(existing.id, next);
+          return next;
+        }
+        return existing;
+      }
+      return createUser({
+        email: decision.email,
+        leadAge: record.leadAge ?? null,
+        country: record.leadCountry ?? null,
+      });
     },
     saveProfile(userId: string, body: unknown): ProfilePreferences | null {
       const prefs = parseProfilePreferences(body);
@@ -126,7 +147,8 @@ export function createMemoryDirectory() {
       return prefs;
     },
     savePlan(userId: string, body: unknown, now = Date.now()): StoredPlan | null {
-      if (!users.has(userId)) return null;
+      const user = users.get(userId);
+      if (!user || !canSaveFullPlan(user.planTier)) return null;
       const document = sanitizePlanDocument(body);
       if (!document) return null;
       const stored = { document, updatedAt: new Date(now).toISOString() };
