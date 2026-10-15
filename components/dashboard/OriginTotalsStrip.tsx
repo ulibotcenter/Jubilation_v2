@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ConnectB3Button } from "@/components/portfolio/ConnectB3Button";
 import { ImportIrpfButton } from "@/components/portfolio/ImportIrpfButton";
 import { buildOriginTotals } from "@/lib/holdings/origin";
+import { canUseConnectors } from "@/lib/plans";
 import { FALLBACK_FX_RATES } from "@/lib/fx/types";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -25,13 +26,15 @@ const ORIGIN_HINT: Record<HoldingOrigin, MessageKey> = {
 };
 
 export function OriginTotalsStrip() {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const country = useAppStore((s) => s.country);
   const portfolio = useAppStore((s) => s.portfolio);
   const currency = useAppStore((s) => s.currency);
   const fxRates = useAppStore((s) => s.fxSnapshot?.rates) ?? FALLBACK_FX_RATES;
   const b3AsOf = useAppStore((s) => s.connectorSync.b3?.asOf);
   const irpfAsOf = useAppStore((s) => s.connectorSync.irpf?.asOf);
+  const planTier = useAppStore((s) => s.planTier);
+  const connectorsOpen = canUseConnectors(planTier);
   const refreshPrices = useAppStore((s) => s.refreshPortfolioPrices);
   const isRefreshing = useAppStore((s) => s.isRefreshingPrices);
 
@@ -124,10 +127,17 @@ export function OriginTotalsStrip() {
               </p>
               <p className="origin-total-hint">{t(ORIGIN_HINT[origin])}</p>
               <div className="origin-total-cta">
-                {origin === "b3" ? (
+                {origin === "b3" && connectorsOpen ? (
                   <ConnectB3Button />
-                ) : origin === "irpf" ? (
+                ) : origin === "irpf" && connectorsOpen ? (
                   <ImportIrpfButton />
+                ) : origin !== "manual" ? (
+                  <p
+                    className="text-[11px] text-muted-foreground"
+                    data-connectors="locked"
+                  >
+                    {t("dashboard.origins.connectorsLocked")}
+                  </p>
                 ) : (
                   <button
                     type="button"

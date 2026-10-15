@@ -1,6 +1,12 @@
-import { createHash, randomBytes } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
+import { sanitizePlanDocument } from "@/lib/accounts/planDocument";
 import { cloudAuthConfig } from "@/lib/cloud/config";
+import {
+  hashToken,
+  issueMagicLink,
+  normalizeEmail,
+  randomToken,
+} from "@/lib/cloud/magicLink";
 import type { PlanTier } from "@/lib/plans";
 import {
   DEFAULT_DATA_REGION,
@@ -37,6 +43,9 @@ ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'none';
 ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT '${DEFAULT_TENANT_ID}';
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS preferred_country TEXT;
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS preferred_locale TEXT;
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS preferred_currency TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS auth_users_stripe_customer_uidx
   ON auth_users (stripe_customer_id);
 
@@ -71,6 +80,12 @@ CREATE TABLE IF NOT EXISTS billing_events (
   user_id TEXT REFERENCES auth_users(id) ON DELETE SET NULL,
   processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS retirement_plans (
+  user_id TEXT PRIMARY KEY REFERENCES auth_users(id) ON DELETE CASCADE,
+  document JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 export type SubscriptionStatus = "active" | "canceled" | "trialing" | "none";
@@ -84,10 +99,13 @@ export interface AuthUser {
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   subscriptionStatus: SubscriptionStatus;
+  preferredCountry: string | null;
+  preferredLocale: string | null;
+  preferredCurrency: string | null;
 }
 
 const USER_COLUMNS =
-  "id, email, password_hash, data_region, plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status";
+  "id, email, password_hash, data_region, plan_tier, stripe_customer_id, stripe_subscription_id, subscription_status, preferred_country, preferred_locale, preferred_currency";
 
 interface AuthUserRow {
   id: string;
@@ -98,6 +116,9 @@ interface AuthUserRow {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;
+  preferred_country?: string | null;
+  preferred_locale?: string | null;
+  preferred_currency?: string | null;
 }
 
 function asPlanTier(value: unknown): PlanTier {
@@ -127,6 +148,9 @@ function mapAuthUser(row: AuthUserRow): AuthUser {
     stripeCustomerId: row.stripe_customer_id ?? null,
     stripeSubscriptionId: row.stripe_subscription_id ?? null,
     subscriptionStatus: asSubscriptionStatus(row.subscription_status),
+    preferredCountry: row.preferred_country ?? null,
+    preferredLocale: row.preferred_locale ?? null,
+    preferredCurrency: row.preferred_currency ?? null,
   };
 }
 
@@ -135,19 +159,8 @@ let schemaReady: Promise<void> | null = null;
 
 export const SESSION_COOKIE = "jubilation_session";
 export const SESSION_DAYS = 30;
-export const MAGIC_LINK_MINUTES = 20;
 
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-export function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-export function randomToken(): string {
-  return randomBytes(32).toString("hex");
-}
+export { MAGIC_LINK_MINUTES, normalizeEmail } from "@/lib/cloud/magicLink";
 
 function sslOption(connectionString: string, ssl: boolean) {
   if (!ssl) return undefined;
@@ -243,6 +256,9 @@ export async function createUser(input: {
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       subscriptionStatus: "none",
+      preferredCountry: null,
+      preferredLocale: null,
+      preferredCurrency: null,
     };
   });
 }
@@ -267,7 +283,8 @@ export async function userFromSessionToken(
   return withDb(async (client) => {
     const res = await client.query(
       `SELECT u.id, u.email, u.password_hash, u.data_region,
-              u.plan_tier, u.stripe_customer_id, u.stripe_subscription_id, u.subscription_status
+              u.plan_tier, u.stripe_customer_id, u.stripe_subscription_id, u.subscription_status,
+              u.preferred_country, u.preferred_locale, u.preferred_currency
        FROM auth_sessions s
        JOIN auth_users u ON u.id = s.user_id
        WHERE s.token_hash = $1 AND s.expires_at > now()`,
@@ -287,19 +304,26 @@ export async function deleteSession(token: string | undefined | null): Promise<v
   });
 }
 
-export async function createMagicLink(email: string): Promise<string> {
-  const token = randomToken();
-  const expires = new Date(Date.now() + MAGIC_LINK_MINUTES * 60 * 1000);
+export async function createMagicLink(email: string, now = Date.now()): Promise<string> {
+  const issued = issueMagicLink(email, now);
   await withDb(async (client) => {
     await client.query(
       `INSERT INTO auth_magic_links (token_hash, email, expires_at)
        VALUES ($1, $2, $3)`,
-      [hashToken(token), normalizeEmail(email), expires.toISOString()]
+      [
+        issued.record.tokenHash,
+        issued.record.email,
+        new Date(issued.record.expiresAt).toISOString(),
+      ]
     );
   });
-  return token;
+  return issued.token;
 }
 
+/**
+ * Same accept rules as `lookupMagicLink`: hash match, unused, unexpired.
+ * The UPDATE is conditional so a replay cannot consume the link twice.
+ */
 export async function consumeMagicLink(token: string): Promise<string | null> {
   return withDb(async (client) => {
     const res = await client.query(
@@ -431,6 +455,65 @@ export async function updateUserBilling(
     );
     const row = res.rows[0] as AuthUserRow | undefined;
     return row ? mapAuthUser(row) : null;
+  });
+}
+
+export async function updateUserPreferences(
+  userId: string,
+  input: { country: string; locale: string; currency: string }
+): Promise<AuthUser | null> {
+  return withDb(async (client) => {
+    const res = await client.query(
+      `UPDATE auth_users SET
+         preferred_country = $2,
+         preferred_locale = $3,
+         preferred_currency = $4
+       WHERE id = $1
+       RETURNING ${USER_COLUMNS}`,
+      [userId, input.country, input.locale, input.currency]
+    );
+    const row = res.rows[0] as AuthUserRow | undefined;
+    return row ? mapAuthUser(row) : null;
+  });
+}
+
+export async function upsertRetirementPlan(
+  userId: string,
+  input: unknown
+): Promise<{ updatedAt: string } | null> {
+  const document = sanitizePlanDocument(input);
+  if (!document) return null;
+  return withDb(async (client) => {
+    const res = await client.query(
+      `INSERT INTO retirement_plans (user_id, document, updated_at)
+       VALUES ($1, $2::jsonb, now())
+       ON CONFLICT (user_id) DO UPDATE SET
+         document = EXCLUDED.document,
+         updated_at = now()
+       RETURNING updated_at`,
+      [userId, JSON.stringify(document)]
+    );
+    return { updatedAt: (res.rows[0].updated_at as Date).toISOString() };
+  });
+}
+
+export async function getRetirementPlan(userId: string): Promise<{
+  document: unknown;
+  updatedAt: string;
+} | null> {
+  return withDb(async (client) => {
+    const res = await client.query(
+      `SELECT document, updated_at FROM retirement_plans WHERE user_id = $1`,
+      [userId]
+    );
+    const row = res.rows[0] as
+      | { document: unknown; updated_at: Date }
+      | undefined;
+    if (!row) return null;
+    return {
+      document: row.document,
+      updatedAt: row.updated_at.toISOString(),
+    };
   });
 }
 

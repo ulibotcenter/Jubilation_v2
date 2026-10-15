@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ConnectorsSection } from "@/components/connectors/ConnectorsSection";
 import { exportRetirementReport } from "@/lib/exportReport";
+import { canUseAdvancedExport } from "@/lib/plans";
 import { getCrossRate } from "@/lib/fx/convert";
 import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -88,26 +90,33 @@ export function SettingsPageContent() {
     }
   };
 
-  const handleExport = async () => {
+  const advancedExport = canUseAdvancedExport(planTier);
+
+  const handleExport = async (advanced: boolean) => {
     setExporting(true);
     try {
       await new Promise((r) => setTimeout(r, 350));
       const state = useAppStore.getState();
-      const { csvFilename, jsonFilename } = exportRetirementReport({
-        kpis: state.kpis,
-        currency: state.currency,
-        projections: state.projections,
-        portfolio: state.portfolio,
-        simulationIncludedAssetIds: state.simulationIncludedAssetIds,
-        monteCarlo: state.monteCarlo,
-        stressTestResults: state.stressTestResults,
-        user: state.user,
-      });
+      const { csvFilename, jsonFilename } = exportRetirementReport(
+        {
+          kpis: state.kpis,
+          currency: state.currency,
+          projections: state.projections,
+          portfolio: state.portfolio,
+          simulationIncludedAssetIds: state.simulationIncludedAssetIds,
+          monteCarlo: state.monteCarlo,
+          stressTestResults: state.stressTestResults,
+          user: state.user,
+        },
+        { advanced }
+      );
       toast.success(t("toast.export.success"), {
-        description: t("toast.export.successDesc", {
-          csv: csvFilename,
-          json: jsonFilename,
-        }),
+        description: jsonFilename
+          ? t("toast.export.successDesc", {
+              csv: csvFilename,
+              json: jsonFilename,
+            })
+          : t("toast.export.successBasic", { csv: csvFilename }),
       });
     } catch {
       toast.error(t("toast.export.error"));
@@ -191,8 +200,10 @@ export function SettingsPageContent() {
         <CloudAccountCard />
 
         <HouseholdCard />
-        <ImportFilesCard />
-        <B3ConsentCard />
+        <ConnectorsSection>
+          <ImportFilesCard />
+          <B3ConsentCard />
+        </ConnectorsSection>
 
         <section className="settings-page-card">
           <div className="settings-page-card-head">
@@ -321,17 +332,35 @@ export function SettingsPageContent() {
           <p className="settings-page-card-body">
             {t("settings.export.body")}
           </p>
-          <button
-            type="button"
-            className="btn-secondary gap-1.5"
-            onClick={handleExport}
-            disabled={isExporting}
-          >
-            <Download className="w-4 h-4" size={16} />
-            {isExporting
-              ? t("settings.export.exporting")
-              : t("settings.export.button")}
-          </button>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <button
+              type="button"
+              className="btn-secondary gap-1.5"
+              onClick={() => void handleExport(false)}
+              disabled={isExporting}
+              data-export="basic"
+            >
+              <Download className="w-4 h-4" size={16} />
+              {isExporting
+                ? t("settings.export.exporting")
+                : t("settings.export.basic")}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary gap-1.5"
+              onClick={() => {
+                if (advancedExport) void handleExport(true);
+              }}
+              disabled={isExporting || !advancedExport}
+              data-export="advanced"
+              data-locked={advancedExport ? "false" : "true"}
+            >
+              <Download className="w-4 h-4" size={16} />
+              {advancedExport
+                ? t("settings.export.advanced")
+                : t("settings.export.advancedLocked")}
+            </button>
+          </div>
         </section>
 
         <section className="settings-page-card">

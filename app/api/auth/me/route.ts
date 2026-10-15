@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthUser, publicAuthUser, requireUser } from "@/lib/cloud/http";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 export async function GET(request: NextRequest) {
   const user = await requireUser(request);

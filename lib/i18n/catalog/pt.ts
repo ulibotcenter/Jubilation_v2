@@ -37,6 +37,7 @@ export const PT: Record<MessageKey, string> = {
   "nav.help": "Ajuda",
   "nav.privacy": "Privacidade",
   "nav.upgrade": "Planos",
+  "nav.signIn": "Entrar",
   "nav.collapse": "Recolher",
   "nav.mobile.home": "Início",
   "nav.mobile.sim": "Sim",
@@ -146,6 +147,7 @@ export const PT: Record<MessageKey, string> = {
   "dashboard.origins.hint.manual": "Digitado por você. Aporte mensal continua digitado.",
   "dashboard.origins.cta.importIrpf": "Importar IRPF",
   "dashboard.origins.cta.refresh": "Atualizar",
+  "dashboard.origins.connectorsLocked": "Conectores ficam no Individual e no Casal.",
   "portfolio.origin.b3": "B3",
   "portfolio.origin.irpf": "IRPF",
   "portfolio.origin.manual": "Manual",
@@ -289,7 +291,10 @@ export const PT: Record<MessageKey, string> = {
   "settings.experience": "Experiência",
   "settings.account": "Conta",
   "settings.export.title": "Exportar dados",
-  "settings.export.body": "Baixe projeções em CSV e um snapshot JSON do plano completo.",
+  "settings.export.body": "No grátis, um CSV das premissas e da projeção ano a ano. O relatório completo — posições e Monte Carlo, mais o JSON — fica no Individual e no Casal.",
+  "settings.export.basic": "Exportar plano",
+  "settings.export.advanced": "Exportação avançada",
+  "settings.export.advancedLocked": "Exportação avançada é de plano pago",
   "settings.export.button": "Exportar relatório",
   "settings.export.exporting": "Exportando…",
   "settings.backup.title": "Backup criptografado",
@@ -314,7 +319,10 @@ export const PT: Record<MessageKey, string> = {
   "settings.cloud.bodySoon":
     "Não há conta na nuvem neste ambiente. O plano vive neste navegador até você baixar um backup criptografado. O sync só liga quando houver Postgres na UE (DATABASE_URL) e AUTH_SECRET — não fingimos que já sincroniza.",
   "settings.cloud.bodyReady":
-    "Conta opcional em Postgres na UE. O servidor guarda só o ciphertext. A senha do backup não sai deste aparelho.",
+    "Entre com um link mágico quando o e-mail estiver configurado, ou com senha. O plano de aposentadoria, o país, o idioma e a moeda ficam no Postgres na UE. O plano pago só muda quando o Stripe confirma. O backup criptografado continua opcional — essa senha não sai deste aparelho.",
+  "settings.cloud.signInEntry": "Entrar",
+  "settings.cloud.planSync":
+    "Esta conta grava o plano de aposentadoria no Postgres na UE. Entrar não muda o plano pago.",
   "settings.cloud.email": "E-mail",
   "settings.cloud.password": "Senha da conta",
   "settings.cloud.blobPassword": "Senha do backup (cifra o blob)",
@@ -334,6 +342,9 @@ export const PT: Record<MessageKey, string> = {
   "settings.cloud.updatedAt": "Último envio {date}",
   "settings.cloud.backupPasswordHint":
     "A senha da conta não abre o backup. Use a mesma senha do arquivo .json local.",
+  "settings.connectors.title": "Conectores",
+  "settings.connectors.lockedBody":
+    "B3 e importação de arquivo (CNIS, IRPF) ficam no Individual e no Casal. O grátis mantém o plano manual inteiro. Nada aqui liga sem um pagamento confirmado.",
   "settings.navigation.title": "Navegação",
   "settings.navigation.body": "Menu flutuante no desktop está {state}. Use o controle no rodapé do menu à esquerda.",
   "settings.navigation.expanded": "expandido",
@@ -533,6 +544,7 @@ export const PT: Record<MessageKey, string> = {
   "toast.currency.errorDesc": "Não foi possível buscar taxas. Tente novamente.",
   "toast.export.success": "Relatório exportado",
   "toast.export.successDesc": "Baixados {csv} e {json}.",
+  "toast.export.successBasic": "Baixado {csv}.",
   "toast.export.error": "Falha na exportação",
   "toast.export.errorDesc": "Tente novamente em instantes.",
   "toast.backup.exported": "Backup criptografado baixado",
@@ -996,7 +1008,7 @@ export const PT: Record<MessageKey, string> = {
     "Em linguagem simples: o que fica neste aparelho, o que não entra, por que usamos, onde fica hospedado, e como apagar.",
   "privacy.collected.title": "O que é guardado",
   "privacy.collected.body":
-    "Neste aparelho ficam: o plano que você monta (idades, aportes, premissas), os investimentos (holdings) que você informa, o CNIS e o IRPF lidos aqui no aparelho, e a posição B3 de demonstração (fixture) se você autorizar.",
+    "Neste aparelho ficam: o plano que você monta (idades, aportes, premissas), os investimentos (holdings) que você informa, o CNIS e o IRPF lidos aqui no aparelho, e a posição B3 de demonstração (fixture) se você autorizar. Se você entrar na conta, uma cópia desse plano (sem senha de backup e sem arquivo bruto) também fica no Postgres na União Europeia.",
   "privacy.notCollected.title": "O que não entra",
   "privacy.notCollected.body":
     "O registro 26 do IRPF (médicos, clínicas e planos de saúde) é descartado antes de guardar qualquer coisa. Não pedimos, e não guardamos, a senha do gov.br.",

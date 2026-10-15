@@ -35,6 +35,7 @@ export const EN = {
   "nav.help": "Help",
   "nav.privacy": "Privacy",
   "nav.upgrade": "Plans",
+  "nav.signIn": "Sign in",
   "nav.collapse": "Collapse",
   "nav.mobile.home": "Home",
   "nav.mobile.sim": "Sim",
@@ -144,6 +145,7 @@ export const EN = {
   "dashboard.origins.hint.manual": "Typed by you. Monthly contribution stays typed.",
   "dashboard.origins.cta.importIrpf": "Import IRPF",
   "dashboard.origins.cta.refresh": "Refresh",
+  "dashboard.origins.connectorsLocked": "Connectors are on Individual and Couple.",
   "portfolio.origin.b3": "B3",
   "portfolio.origin.irpf": "IRPF",
   "portfolio.origin.manual": "Manual",
@@ -287,7 +289,10 @@ export const EN = {
   "settings.experience": "Experience",
   "settings.account": "Account",
   "settings.export.title": "Export data",
-  "settings.export.body": "Download CSV projections and a JSON snapshot of your full plan.",
+  "settings.export.body": "Free downloads a CSV of the assumptions and the year-by-year projection. The full report — holdings and Monte Carlo, plus JSON — is on Individual and Couple.",
+  "settings.export.basic": "Export plan",
+  "settings.export.advanced": "Advanced export",
+  "settings.export.advancedLocked": "Advanced export is on a paid plan",
   "settings.export.button": "Export report",
   "settings.export.exporting": "Exporting…",
   "settings.backup.title": "Encrypted backup",
@@ -312,7 +317,10 @@ export const EN = {
   "settings.cloud.bodySoon":
     "There is no cloud account on this deployment. Your plan lives in this browser until you download an encrypted backup. Sync will turn on only when Postgres in the EU (DATABASE_URL) and AUTH_SECRET are set — we will not pretend it is already syncing.",
   "settings.cloud.bodyReady":
-    "Optional account on Postgres in the EU. The server stores only ciphertext. The backup password never leaves this device.",
+    "Sign in with a magic link when email is configured, or with a password. The retirement plan, country, language, and currency are saved to Postgres in the EU. The paid plan changes only when Stripe confirms a payment. An encrypted backup is still optional — that password never leaves this device.",
+  "settings.cloud.signInEntry": "Sign in",
+  "settings.cloud.planSync":
+    "This account saves the retirement plan on Postgres in the EU. Signing in does not change the paid plan.",
   "settings.cloud.email": "Email",
   "settings.cloud.password": "Account password",
   "settings.cloud.blobPassword": "Backup password (encrypts the blob)",
@@ -332,6 +340,9 @@ export const EN = {
   "settings.cloud.updatedAt": "Last upload {date}",
   "settings.cloud.backupPasswordHint":
     "The account password is not the backup password. Use the same password as the local .json file.",
+  "settings.connectors.title": "Connectors",
+  "settings.connectors.lockedBody":
+    "B3 and file import (CNIS, IRPF) stay on Individual and Couple. Free keeps the full manual plan. Nothing here turns on without a confirmed payment.",
   "settings.navigation.title": "Navigation",
   "settings.navigation.body": "Desktop floating nav is {state}. Use the control at the bottom of the left menu to toggle.",
   "settings.navigation.expanded": "expanded",
@@ -531,6 +542,7 @@ export const EN = {
   "toast.currency.errorDesc": "Could not fetch live rates. Try again shortly.",
   "toast.export.success": "Report exported",
   "toast.export.successDesc": "Downloaded {csv} and {json}.",
+  "toast.export.successBasic": "Downloaded {csv}.",
   "toast.export.error": "Export failed",
   "toast.export.errorDesc": "Please try again in a moment.",
   "toast.backup.exported": "Encrypted backup downloaded",
@@ -994,7 +1006,7 @@ export const EN = {
     "Plain language: what stays on this device, what never enters, why we use it, where it is hosted, and how to delete it.",
   "privacy.collected.title": "What we store",
   "privacy.collected.body":
-    "On this device we keep: the plan you build (ages, contributions, assumptions), the holdings you enter, CNIS and IRPF files parsed on this device, and a B3 demo position (fixture) if you authorize it.",
+    "On this device we keep: the plan you build (ages, contributions, assumptions), the holdings you enter, CNIS and IRPF files parsed on this device, and a B3 demo position (fixture) if you authorize it. If you sign in, a copy of that plan (no backup password, no raw file) is also stored on Postgres in the European Union.",
   "privacy.notCollected.title": "What never enters",
   "privacy.notCollected.body":
     "IRPF record 26 (doctors, clinics, health plans) is dropped before anything is saved. We never ask for, and never store, your gov.br password.",

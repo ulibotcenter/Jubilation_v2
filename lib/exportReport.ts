@@ -33,7 +33,11 @@ function escapeCsv(value: string | number): string {
   return str;
 }
 
-export function buildRetirementReportCsv(snapshot: ExportSnapshot): string {
+export function buildRetirementReportCsv(
+  snapshot: ExportSnapshot,
+  options?: { advanced?: boolean }
+): string {
+  const advanced = options?.advanced === true;
   const { kpis, currency, projections, portfolio, monteCarlo, user } =
     snapshot;
   const lines: string[] = [];
@@ -78,7 +82,7 @@ export function buildRetirementReportCsv(snapshot: ExportSnapshot): string {
   }
   lines.push("");
 
-  if (snapshot.simulationIncludedAssetIds.length > 0) {
+  if (advanced && snapshot.simulationIncludedAssetIds.length > 0) {
     const scoped = portfolio.filter((a) =>
       snapshot.simulationIncludedAssetIds.includes(a.id)
     );
@@ -87,7 +91,7 @@ export function buildRetirementReportCsv(snapshot: ExportSnapshot): string {
     lines.push("");
   }
 
-  if (portfolio.length > 0) {
+  if (advanced && portfolio.length > 0) {
     lines.push("PORTFOLIO HOLDINGS");
     lines.push("Ticker,Name,Asset Class,Quantity,Price,Market Value");
     for (const asset of portfolio) {
@@ -108,7 +112,7 @@ export function buildRetirementReportCsv(snapshot: ExportSnapshot): string {
     lines.push("");
   }
 
-  if (monteCarlo.hasRun && monteCarlo.results.length > 0) {
+  if (advanced && monteCarlo.hasRun && monteCarlo.results.length > 0) {
     lines.push("MONTE CARLO RESULTS");
     lines.push(
       "Scenario,Median Value,Success Rate,P10,P90,Last Run"
@@ -188,28 +192,37 @@ export function downloadFile(
   URL.revokeObjectURL(url);
 }
 
-export function exportRetirementReport(snapshot: ExportSnapshot): {
+export function exportRetirementReport(
+  snapshot: ExportSnapshot,
+  options?: { advanced?: boolean }
+): {
   csvFilename: string;
-  jsonFilename: string;
+  jsonFilename: string | null;
 } {
+  const advanced = options?.advanced === true;
   const stamp = new Date().toISOString().slice(0, 10);
-  const csvFilename = `jubilation-report-${stamp}.csv`;
-  const jsonFilename = `jubilation-report-${stamp}.json`;
+  const csvFilename = advanced
+    ? `jubilation-report-${stamp}.csv`
+    : `jubilation-plan-${stamp}.csv`;
+  const jsonFilename = advanced ? `jubilation-report-${stamp}.json` : null;
 
   downloadFile(
-    buildRetirementReportCsv(snapshot),
+    buildRetirementReportCsv(snapshot, { advanced }),
     csvFilename,
     "text/csv;charset=utf-8"
   );
 
-  // Stagger JSON so browsers don't block dual downloads
-  setTimeout(() => {
-    downloadFile(
-      buildRetirementReportJson(snapshot),
-      jsonFilename,
-      "application/json;charset=utf-8"
-    );
-  }, 400);
+  if (advanced && jsonFilename) {
+    const jsonName = jsonFilename;
+    // Stagger JSON so browsers don't block dual downloads
+    setTimeout(() => {
+      downloadFile(
+        buildRetirementReportJson(snapshot),
+        jsonName,
+        "application/json;charset=utf-8"
+      );
+    }, 400);
+  }
 
   return { csvFilename, jsonFilename };
 }

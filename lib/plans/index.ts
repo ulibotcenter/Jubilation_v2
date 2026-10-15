@@ -68,3 +68,35 @@ export function canAccess(
 export function requiredPlan(feature: FeatureId): PlanTier {
   return FEATURE_GATES[feature];
 }
+
+/** The manual engine stays open on every tier, including while billing is off. */
+export function manualPlanningOpen(): boolean {
+  return true;
+}
+
+/**
+ * B3 and file connectors. Paid only — a missing Stripe env leaves the
+ * tier at free, so the section stays hidden. No click grants this.
+ */
+export function canUseConnectors(plan: PlanTier): boolean {
+  return plan === "premium" || plan === "horizon";
+}
+
+/** Full report (holdings + Monte Carlo + JSON). Free gets the basic CSV. */
+export function canUseAdvancedExport(plan: PlanTier): boolean {
+  return plan === "premium" || plan === "horizon";
+}
+
+/**
+ * `?checkout=success` is a return URL, not a payment. The webhook is the
+ * only writer of PlanTier, so the browser return leaves the tier as it was.
+ */
+export function planTierAfterBrowserReturn(
+  plan: PlanTier,
+  checkout: string | null
+): PlanTier {
+  if (checkout === "success" || checkout === "cancel" || checkout == null) {
+    return plan;
+  }
+  return plan;
+}

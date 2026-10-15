@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { allowRequest, rateLimitKey } from "@/lib/api/rateLimit";
+import { billingConfig } from "@/lib/billing/config";
+import { isAuthUser, requireUser } from "@/lib/cloud/http";
 import { fetchB3Canonical } from "@/lib/connectors/b3/client";
+import { canUseConnectors } from "@/lib/plans";
 import {
   b3QuotaSubject,
   consumeB3QuerySlot,
@@ -35,6 +38,16 @@ export async function POST(request: NextRequest) {
   }
   if (!isConnectorEnabled("b3")) {
     return NextResponse.json({ error: "B3 connector disabled" }, { status: 404 });
+  }
+
+  const billing = billingConfig();
+  const user = await requireUser(request);
+  if (!isAuthUser(user)) return user;
+  if (!billing.enabled || !canUseConnectors(user.planTier)) {
+    return NextResponse.json(
+      { error: "plan_required", connectors: false },
+      { status: 403 }
+    );
   }
 
   const subject = b3QuotaSubject();

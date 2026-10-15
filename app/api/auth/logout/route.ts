@@ -7,6 +7,7 @@ import {
 } from "@/lib/cloud/http";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 export async function POST(request: NextRequest) {
   if (!requireCloudConfig()) return cloudDisabledResponse();

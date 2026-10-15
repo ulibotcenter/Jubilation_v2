@@ -66,5 +66,8 @@ export function publicAuthUser(user: AuthUser) {
     dataRegion: user.dataRegion,
     planTier: user.planTier,
     subscriptionStatus: user.subscriptionStatus,
+    country: user.preferredCountry,
+    locale: user.preferredLocale,
+    currency: user.preferredCurrency,
   };
 }
