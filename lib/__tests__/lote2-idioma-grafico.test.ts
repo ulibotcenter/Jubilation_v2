@@ -105,7 +105,7 @@ describe("lote 2 locale + calculator chart", () => {
     const calc = readFileSync("components/calculators/FreedomCalculator.tsx", "utf8");
     expect(page).toContain("FreedomCalculator");
     expect(calc).toContain("freedomChartSeries");
-    expect(calc).toContain("FreedomProjectionChart");
+    expect(calc).toContain("ProjectionChart");
   });
 
   it("translates the landing headline in pt, en, and es", () => {

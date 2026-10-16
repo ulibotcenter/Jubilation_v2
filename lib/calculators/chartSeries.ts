@@ -26,6 +26,27 @@ export type FreedomChartPoint = {
   withdrawals: number;
 };
 
+/** Presentational rows for `ProjectionChart` — same numbers, Portuguese keys. */
+export type ProjectionChartPoint = {
+  age: number;
+  aportes: number;
+  rendimentos: number;
+  saques: number;
+  patrimonio: number;
+};
+
+export function toProjectionChartData(
+  series: FreedomChartPoint[]
+): ProjectionChartPoint[] {
+  return series.map((point) => ({
+    age: point.age,
+    aportes: point.contributions,
+    rendimentos: point.returns,
+    saques: point.withdrawals,
+    patrimonio: point.wealth,
+  }));
+}
+
 /**
  * Accumulation path from the public calculator engine.
  * `retirementAge` is pinned at the visible horizon so spending does not
