@@ -7,7 +7,7 @@ import {
   resolveCheckoutPrice,
 } from "@/lib/billing/config";
 import { createStripeCheckoutSession } from "@/lib/billing/checkout";
-import { isAuthUser, requireUser } from "@/lib/cloud/http";
+import { optionalUser } from "@/lib/cloud/http";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
@@ -25,8 +25,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const user = await requireUser(request);
-  if (!isAuthUser(user)) return user;
+  const user = await optionalUser(request);
 
   let body: { offerId?: string; currency?: string };
   try {
@@ -64,11 +63,11 @@ export async function POST(request: NextRequest) {
     const session = await createStripeCheckoutSession({
       secretKey: cfg.secretKey,
       offer,
-      userId: user.id,
-      email: user.email,
-      customerId: user.stripeCustomerId,
-      successUrl: `${origin}/upgrade?checkout=success`,
-      cancelUrl: `${origin}/upgrade?checkout=cancel`,
+      userId: user?.id,
+      email: user?.email,
+      customerId: user?.stripeCustomerId,
+      successUrl: `${origin}/planos?checkout=success`,
+      cancelUrl: `${origin}/planos?checkout=cancel`,
     });
     return NextResponse.json({ url: session.url, id: session.id });
   } catch {

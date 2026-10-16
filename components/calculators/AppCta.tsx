@@ -25,7 +25,7 @@ export function AppCta({
           "A calculadora pública para neste número. O gráfico, os campos manuais e os três blocos começam no Básico."}
       </p>
       <div className="flex flex-wrap gap-2">
-        <Link href="/upgrade" className="btn-primary">
+        <Link href="/planos" className="btn-primary">
           Ver Básico e Completo
         </Link>
         <Link href="/settings#cloud-account" className="btn-secondary">

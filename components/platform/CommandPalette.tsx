@@ -20,7 +20,7 @@ const ACTIONS = [
   {
     id: "upgrade",
     labelKey: "command.plansUpgrade" as MessageKey,
-    href: "/upgrade",
+    href: "/planos",
   },
   {
     id: "privacy",

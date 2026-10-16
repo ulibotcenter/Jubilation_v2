@@ -19,7 +19,7 @@ export function FreePlanGate() {
         <Link href="/calculadoras" className="btn-primary">
           {t("free.gate.calculator")}
         </Link>
-        <Link href="/upgrade" className="btn-secondary">
+        <Link href="/planos" className="btn-secondary">
           {t("free.gate.plans")}
         </Link>
         <Link href="/settings#cloud-account" className="btn-ghost text-sm">

@@ -30,7 +30,7 @@ export function ConnectorsSection({ children }: { children: ReactNode }) {
         <p className="settings-page-card-body">
           {t("settings.connectors.lockedBody")}
         </p>
-        <Link href="/upgrade" className="btn-secondary mt-4 inline-flex">
+        <Link href="/planos" className="btn-secondary mt-4 inline-flex">
           {t("nav.upgrade")}
         </Link>
       </section>

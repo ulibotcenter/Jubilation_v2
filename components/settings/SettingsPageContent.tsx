@@ -319,7 +319,7 @@ export function SettingsPageContent() {
               plan: t(`plan.${planTier}` as MessageKey),
             })}
           </span>
-          <Link href="/upgrade" className="btn-upgrade mt-4 inline-flex">
+          <Link href="/planos" className="btn-upgrade mt-4 inline-flex">
             <Sparkles className="w-3.5 h-3.5" size={14} />
             {t("nav.upgrade")}
           </Link>

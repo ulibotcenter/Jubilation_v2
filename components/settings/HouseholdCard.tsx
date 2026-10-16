@@ -135,7 +135,7 @@ export function HouseholdCard() {
       {!coupleOpen ? (
         <p className="settings-page-card-body" data-couple="locked">
           {t("settings.household.coupleLocked")}{" "}
-          <Link href="/upgrade" className="text-accent hover:underline">
+          <Link href="/planos" className="text-accent hover:underline">
             {t("nav.upgrade")}
           </Link>
         </p>

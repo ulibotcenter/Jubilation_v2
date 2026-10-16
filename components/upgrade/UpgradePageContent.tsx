@@ -59,6 +59,7 @@ export function UpgradePageContent() {
     parseBillingCurrency(currencyCode) ?? ("brl" as BillingCurrency);
   const [status, setStatus] = useState<PublicBillingStatus | null>(null);
   const [signedIn, setSignedIn] = useState(false);
+  const [accountAvailable, setAccountAvailable] = useState(false);
   const [busyOffer, setBusyOffer] = useState<string | null>(null);
   const checkout = useSyncExternalStore(subscribeSearch, checkoutParam, () => null);
   const planTier = planTierAfterBrowserReturn(storedPlan, checkout);
@@ -67,11 +68,17 @@ export function UpgradePageContent() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/billing/status");
+        const [res, authRes] = await Promise.all([
+          fetch("/api/billing/status"),
+          fetch("/api/auth/status"),
+        ]);
         const json = (await res.json()) as PublicBillingStatus;
+        const auth = (await authRes.json()) as { enabled?: boolean };
         if (cancelled) return;
         setStatus(json);
-        if (!json.enabled) {
+        const cloud = Boolean(auth.enabled);
+        setAccountAvailable(cloud);
+        if (!json.enabled || !cloud) {
           setSignedIn(false);
           return;
         }
@@ -89,10 +96,6 @@ export function UpgradePageContent() {
   }, []);
 
   const startCheckout = async (offerId: BillingOfferId) => {
-    if (!signedIn) {
-      toast.error(t("toast.billing.needAccount"));
-      return;
-    }
     setBusyOffer(offerId);
     try {
       const res = await fetch("/api/billing/checkout", {
@@ -166,8 +169,12 @@ export function UpgradePageContent() {
       <button
         type="button"
         className="btn-upgrade"
-        disabled={!signedIn || busyOffer !== null}
-        onClick={() => void startCheckout(offerId)}
+        data-checkout={offerId}
+        disabled={busyOffer !== null}
+        onClick={(event) => {
+          event.stopPropagation();
+          void startCheckout(offerId);
+        }}
       >
         {busyOffer === offerId ? t("upgrade.checkoutBusy") : t("upgrade.checkout")}
       </button>
@@ -244,7 +251,7 @@ export function UpgradePageContent() {
             </p>
           </div>
 
-          {enabled && !signedIn && (
+          {enabled && accountAvailable && !signedIn && (
             <div className="card-surface p-6 space-y-3">
               <h3 className="font-bold">{t("upgrade.signInTitle")}</h3>
               <p className="text-sm text-muted-foreground">{t("upgrade.signInBody")}</p>
@@ -275,9 +282,24 @@ export function UpgradePageContent() {
             </article>
 
             <article
-              className="card-surface-accent p-6 space-y-3 flex flex-col"
+              className={`card-surface-accent p-6 space-y-3 flex flex-col${
+                enabled && yearly.checkoutReady && !(billingLive && planTier === "premium")
+                  ? " cursor-pointer"
+                  : ""
+              }`}
               data-plan="basico"
               data-currency={currencyCode}
+              data-checkout-ready={yearly.checkoutReady ? "true" : "false"}
+              onClick={() => {
+                if (
+                  enabled &&
+                  yearly.checkoutReady &&
+                  !(billingLive && planTier === "premium") &&
+                  busyOffer === null
+                ) {
+                  void startCheckout("premium_yearly");
+                }
+              }}
             >
               <h3 className="font-bold">{t("upgrade.plan.individual.title")}</h3>
               <p className="text-sm text-muted-foreground flex-1">
@@ -310,8 +332,12 @@ export function UpgradePageContent() {
                   <button
                     type="button"
                     className="btn-ghost text-sm"
-                    disabled={!signedIn || busyOffer !== null}
-                    onClick={() => void startCheckout("premium_monthly")}
+                    data-checkout="premium_monthly"
+                    disabled={busyOffer !== null}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void startCheckout("premium_monthly");
+                    }}
                   >
                     {busyOffer === "premium_monthly"
                       ? t("upgrade.checkoutBusy")
@@ -321,9 +347,24 @@ export function UpgradePageContent() {
             </article>
 
             <article
-              className="card-surface p-6 space-y-3 flex flex-col"
+              className={`card-surface p-6 space-y-3 flex flex-col${
+                enabled && couple.checkoutReady && !(billingLive && planTier === "horizon")
+                  ? " cursor-pointer"
+                  : ""
+              }`}
               data-plan="completo"
               data-currency={currencyCode}
+              data-checkout-ready={couple.checkoutReady ? "true" : "false"}
+              onClick={() => {
+                if (
+                  enabled &&
+                  couple.checkoutReady &&
+                  !(billingLive && planTier === "horizon") &&
+                  busyOffer === null
+                ) {
+                  void startCheckout("horizon_yearly");
+                }
+              }}
             >
               <h3 className="font-bold">{t("upgrade.plan.couple.title")}</h3>
               <p className="text-sm text-muted-foreground flex-1">

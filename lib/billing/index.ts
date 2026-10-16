@@ -17,6 +17,7 @@ export {
   planFromPriceId,
   publicBillingStatus,
   resolveCheckoutPrice,
+  slotForCheckout,
   type BillingConfig,
   type BillingDisabledReason,
   type BillingOffer,
