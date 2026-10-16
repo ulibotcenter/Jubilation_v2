@@ -18,13 +18,16 @@ export type FreedomChartPoint = {
   wealth: number;
   accumulate: number | null;
   withdraw: number | null;
-  /** Cumulative contributions (seed + inflows). Plateaus after freedom. */
+  /** Remaining contributions under the wealth line. */
   contributions: number;
-  /** Cumulative returns sitting on contributions (journey band, not remaining stock). */
+  /** Remaining returns on contributions, still under the wealth line. */
   returns: number;
-  /** Cumulative withdrawals as a modest bottom band in freedom years. */
+  /** Coral bottom slice of remaining wealth in freedom years. */
   withdrawals: number;
 };
+
+/** Coral is a visual slice of remaining wealth — never a peak envelope. */
+const UNDER_LINE_CORAL_SHARE = 0.18;
 
 /** Presentational rows for `ProjectionChart` — same numbers, Portuguese keys. */
 export type ProjectionChartPoint = {
@@ -103,11 +106,37 @@ export function freedomChartSeries(input: PublicIndependenceInput): {
   freedomAge: number;
 } {
   const { years, result, freedomAge } = freedomProjection(input);
-  const series: FreedomChartPoint[] = journeyFreedomChart(years, freedomAge);
+  const series: FreedomChartPoint[] = underLineFreedomChart(years, freedomAge);
   const split = series.find((point) => point.age === freedomAge);
   if (split) split.accumulate = split.wealth;
 
   return { series, result, freedomAge };
+}
+
+/**
+ * Visual layers that fill under the wealth line. Remaining contributions +
+ * remaining returns + the coral withdrawal slice always equal current
+ * wealth, so the painted gold top is patrimonio at every age.
+ * Does not call the solver and does not change engine wealth.
+ */
+export function underLineFreedomChart(
+  years: ProjectionYear[],
+  freedomAge: number
+): FreedomChartPoint[] {
+  return stackFreedomChart(years, freedomAge).map((point) => {
+    const wealth = Math.max(0, point.wealth);
+    const withdrawing = point.age >= freedomAge;
+    if (wealth === 0) {
+      return { ...point, contributions: 0, returns: 0, withdrawals: 0 };
+    }
+    const contribShare =
+      Math.min(Math.max(0, point.contributions), wealth) / wealth;
+    const coral = withdrawing ? wealth * UNDER_LINE_CORAL_SHARE : 0;
+    const leftover = wealth - coral;
+    const contributions = leftover * contribShare;
+    const returns = leftover - contributions;
+    return { ...point, contributions, returns, withdrawals: coral };
+  });
 }
 
 /**
