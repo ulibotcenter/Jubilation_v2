@@ -17,13 +17,10 @@ describe("lote 2 area + line freedom chart", () => {
   });
 
   it("uses petrol teal, soft blue, gold, and coral", () => {
-    expect(FREEDOM_AREA_COLORS).toEqual({
-      line: "#0D4F56",
-      contributions: "#CDE4F4",
-      returns: "#F3E0A6",
-      withdrawals: "#F6CBC8",
-      cursor: "rgba(13, 79, 86, 0.16)",
-    });
+    expect(FREEDOM_AREA_COLORS.line).toBe("#0F766E");
+    expect(FREEDOM_AREA_COLORS.contributions).toBe("#93C5FD");
+    expect(FREEDOM_AREA_COLORS.returns).toBe("#FCD34D");
+    expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#FCA5A5");
   });
 
   it("does not use stacked bars on the freedom calculator chart", () => {

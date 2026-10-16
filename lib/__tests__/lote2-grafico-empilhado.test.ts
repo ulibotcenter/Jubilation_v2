@@ -93,10 +93,10 @@ describe("lote 2 stacked freedom chart", () => {
   });
 
   it("paints the public chart as stacked areas under a wealth line", () => {
-    expect(FREEDOM_AREA_COLORS.line).toBe("#0D4F56");
-    expect(FREEDOM_AREA_COLORS.contributions).toBe("#CDE4F4");
-    expect(FREEDOM_AREA_COLORS.returns).toBe("#F3E0A6");
-    expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#F6CBC8");
+    expect(FREEDOM_AREA_COLORS.line).toBe("#0F766E");
+    expect(FREEDOM_AREA_COLORS.contributions).toBe("#93C5FD");
+    expect(FREEDOM_AREA_COLORS.returns).toBe("#FCD34D");
+    expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#FCA5A5");
 
     const chart = readFileSync(
       "components/calculators/FreedomProjectionChart.tsx",
@@ -104,9 +104,8 @@ describe("lote 2 stacked freedom chart", () => {
     );
     expect(chart).toContain("ComposedChart");
     expect(chart).toContain("type=\"monotone\"");
-    expect(chart).toContain('dataKey="contributions"');
-    expect(chart).toContain('dataKey="remaining"');
-    expect(chart).toContain('dataKey="envelope"');
+    expect(chart).toContain('dataKey="blueTop"');
+    expect(chart).toContain('dataKey="goldTop"');
     expect(chart).toContain('dataKey="wealth"');
     expect(chart).toContain(
       'data-chart-area="contributions-returns-withdrawals"'
