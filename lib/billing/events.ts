@@ -59,6 +59,49 @@ function paidCheckout(object: Record<string, unknown>): boolean {
   return payment === "paid" || payment === "no_payment_required";
 }
 
+function trialDaysFromMetadata(
+  metadata: Record<string, unknown> | null
+): number {
+  if (!metadata) return 0;
+  const raw = metadata.trialPeriodDays;
+  if (typeof raw === "number" && Number.isFinite(raw)) return Math.trunc(raw);
+  if (typeof raw === "string") {
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function priceIdFromSubscription(
+  object: Record<string, unknown>
+): string | null {
+  const items = asRecord(object.items);
+  const data = Array.isArray(items?.data) ? items.data : [];
+  const first = asRecord(data[0]);
+  if (!first) return null;
+  const price = first.price;
+  if (typeof price === "string") return asString(price);
+  return asString(asRecord(price)?.id);
+}
+
+function subscriptionPlan(
+  object: Record<string, unknown>,
+  offers: BillingOffer[]
+): Exclude<PlanTier, "free"> | null {
+  const metadata = asRecord(object.metadata);
+  const fromItem = planFromPriceId(offers, priceIdFromSubscription(object));
+  if (fromItem) return fromItem;
+  return metadataPlan(metadata, offers);
+}
+
+function endedStripeStatus(status: string | null): boolean {
+  return (
+    status === "canceled" ||
+    status === "unpaid" ||
+    status === "incomplete_expired"
+  );
+}
+
 export function commandFromStripeEvent(
   event: StripeLikeEvent,
   offers: BillingOffer[]
@@ -82,6 +125,7 @@ export function commandFromStripeEvent(
     if (!plan) {
       return { action: "ignore", reason: "unknown_price" };
     }
+    const trial = plan === "premium" && trialDaysFromMetadata(metadata) > 0;
     return {
       action: "set_plan",
       eventId,
@@ -90,7 +134,43 @@ export function commandFromStripeEvent(
       customerId: asString(object.customer),
       subscriptionId: asString(object.subscription),
       plan,
-      status: "active",
+      status: trial ? "trialing" : "active",
+    };
+  }
+
+  if (
+    eventType === "customer.subscription.updated" ||
+    eventType === "customer.subscription.created"
+  ) {
+    const metadata = asRecord(object.metadata);
+    const stripeStatus = asString(object.status);
+    if (endedStripeStatus(stripeStatus)) {
+      return {
+        action: "set_plan",
+        eventId,
+        eventType,
+        userId: asString(metadata?.userId),
+        customerId: asString(object.customer),
+        subscriptionId: asString(object.id),
+        plan: "free",
+        status: "canceled",
+      };
+    }
+    const plan = subscriptionPlan(object, offers);
+    if (!plan) {
+      return { action: "ignore", reason: "unknown_price" };
+    }
+    const status: SubscriptionStatus =
+      stripeStatus === "trialing" && plan === "premium" ? "trialing" : "active";
+    return {
+      action: "set_plan",
+      eventId,
+      eventType,
+      userId: asString(metadata?.userId),
+      customerId: asString(object.customer),
+      subscriptionId: asString(object.id),
+      plan,
+      status,
     };
   }
 

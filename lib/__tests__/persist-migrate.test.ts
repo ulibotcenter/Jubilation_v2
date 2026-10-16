@@ -52,6 +52,9 @@ describe("persist migrate", () => {
       "horizon"
     );
     expect(migratePersistedState({ planTier: "free" }, 0).planTier).toBe("free");
+    expect(migratePersistedState({ planTier: "couple" }, 0).planTier).toBe(
+      "couple"
+    );
   });
 
   it("does not invent a manual tax rate when none was persisted", () => {

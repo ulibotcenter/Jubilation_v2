@@ -4,9 +4,10 @@ import {
   billingConfig,
   isBillingOfferId,
   parseBillingCurrency,
-  resolveCheckoutPrice,
+  resolveMatchedCheckoutPrice,
 } from "@/lib/billing/config";
 import { createStripeCheckoutSession } from "@/lib/billing/checkout";
+import { basicoTrialDaysForCheckout } from "@/lib/billing/trial";
 import { optionalUser } from "@/lib/cloud/http";
 
 export const dynamic = "force-dynamic";
@@ -44,10 +45,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_currency" }, { status: 400 });
   }
 
-  const offer = resolveCheckoutPrice(cfg.offers, offerId, currency);
+  const offer = await resolveMatchedCheckoutPrice(
+    process.env,
+    offerId,
+    currency
+  );
   if (!offer) {
     return NextResponse.json(
-      { error: "price_unavailable_for_currency", currency },
+      { error: "price_unavailable_for_currency", currency, offerId },
       { status: 400 }
     );
   }
@@ -68,6 +73,7 @@ export async function POST(request: NextRequest) {
       customerId: user?.stripeCustomerId,
       successUrl: `${origin}/planos?checkout=success`,
       cancelUrl: `${origin}/planos?checkout=cancel`,
+      trialPeriodDays: basicoTrialDaysForCheckout(offer.plan, user?.planTier),
     });
     return NextResponse.json({ url: session.url, id: session.id });
   } catch {

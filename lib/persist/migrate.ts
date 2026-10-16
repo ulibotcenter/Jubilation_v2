@@ -1,4 +1,4 @@
-import type { PlanTier } from "@/lib/plans";
+import { parsePlanTier, type PlanTier } from "@/lib/plans";
 import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
 import { dropSeedIfUserHoldings } from "@/lib/onboarding/seed";
 import { normalizePortfolioCagr } from "@/lib/portfolioCagr";
@@ -28,12 +28,7 @@ interface LooseState {
 }
 
 function unifyPlanTier(value: unknown): PlanTier {
-  if (value === "premium" || value === "horizon" || value === "free") {
-    return value;
-  }
-  if (value === "monthly") return "premium";
-  if (value === "yearly") return "horizon";
-  return "free";
+  return parsePlanTier(value);
 }
 
 /**

@@ -14,6 +14,7 @@ import {
 } from "@/lib/plans/holdingCap";
 import {
   PLAN_LABELS,
+  canModelCouple,
   canSaveFullPlan,
   canUseAdvancedExport,
   canUseBasicExport,
@@ -90,6 +91,16 @@ describe("tier gates", () => {
     expect(canUseConnectors("horizon")).toBe(true);
     expect(canUseMultipleScenarios("horizon")).toBe(true);
     expect(canUseAdvancedExport("horizon")).toBe(true);
+    expect(canModelCouple("horizon")).toBe(false);
+  });
+
+  it("gives Completo+Cônjuge Completo features plus couple modeling, not spouse B3", () => {
+    expect(PLAN_LABELS.couple).toBe("Completo+Cônjuge");
+    expect(canUseConnectors("couple")).toBe(true);
+    expect(canUseMultipleScenarios("couple")).toBe(true);
+    expect(canUseAdvancedExport("couple")).toBe(true);
+    expect(canModelCouple("couple")).toBe(true);
+    expect(canModelCouple("premium")).toBe(false);
   });
 });
 

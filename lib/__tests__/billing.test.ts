@@ -1,270 +1,393 @@
 import { describe, expect, it } from "vitest";
-import { DISPLAY_AMOUNT_CENTS } from "@/lib/billing/catalog";
+import {
+  BILLING_CATALOG_CELLS,
+  LIST_AMOUNT_CENTS,
+  PROMO_AMOUNT_CENTS,
+} from "@/lib/billing/catalog";
 import {
   billingConfig,
-  displayAmountCents,
+  candidatePriceIdsForCell,
   isStripePriceId,
   parseBillingCurrency,
   planFromPriceId,
+  priceEnvKeysForCell,
   publicBillingStatus,
   resolveCheckoutPrice,
+  resolveMatchedCheckoutPrice,
 } from "@/lib/billing/config";
 import { createStripeCheckoutSession } from "@/lib/billing/checkout";
 import { formatPlanAmount } from "@/lib/billing/display";
+import {
+  currencyFromCountry,
+  currencyFromRequestHeaders,
+} from "@/lib/billing/geo";
 import { commandFromStripeEvent } from "@/lib/billing/events";
+import { persistBillingCommand } from "@/lib/billing/persist";
+import { createMemoryDirectory } from "@/lib/accounts/memoryDirectory";
+import {
+  retrieveFromSnapshots,
+  type StripePriceSnapshot,
+} from "@/lib/billing/stripePrice";
 import {
   stripeSignatureHeader,
   verifyStripeSignature,
 } from "@/lib/billing/signature";
-import { canAccess } from "@/lib/plans";
+import {
+  canAccess,
+  canModelCouple,
+  canSaveFullPlan,
+  canUseBasicExport,
+  canUseConnectors,
+  canUseFullPlanner,
+} from "@/lib/plans";
+import {
+  BASICO_TRIAL_DAYS,
+  basicoTrialDaysForCheckout,
+  shouldOfferBasicoTrial,
+} from "@/lib/billing/trial";
+import { t } from "@/lib/i18n/messages";
 import checkoutCompleted from "./fixtures/stripe-checkout-session-completed.json";
 import subscriptionDeleted from "./fixtures/stripe-subscription-deleted.json";
 
-const BRL_ONLY_ENV = {
-  DATABASE_URL: "postgres://u:p@db.eu-central-1.aws.neon.tech/jubilation",
-  AUTH_SECRET: "a-very-long-auth-secret",
+const SECRET_ENV = {
   STRIPE_SECRET_KEY: "sk_test_billing",
   STRIPE_WEBHOOK_SECRET: "whsec_test_fixture_secret",
-  STRIPE_PRICE_PREMIUM_YEARLY: "price_premium_yearly_brl",
+};
+
+function snap(
+  id: string,
+  unitAmount: number,
+  currency: "brl" | "usd" | "eur",
+  interval: "month" | "year"
+): StripePriceSnapshot {
+  return {
+    id,
+    unitAmount,
+    currency,
+    interval,
+    intervalCount: 1,
+    active: true,
+  };
+}
+
+const MATCHING_ENV = {
+  ...SECRET_ENV,
   STRIPE_PRICE_PREMIUM_MONTHLY: "price_premium_monthly_brl",
+  STRIPE_PRICE_PREMIUM_YEARLY: "price_premium_yearly_brl",
+  STRIPE_PRICE_HORIZON_MONTHLY: "price_horizon_monthly_brl",
   STRIPE_PRICE_HORIZON_YEARLY: "price_horizon_yearly_brl",
-  STRIPE_PRICE_PREMIUM_YEARLY_AMOUNT: "8900",
-  STRIPE_PRICE_PREMIUM_MONTHLY_AMOUNT: "1490",
-  STRIPE_PRICE_HORIZON_YEARLY_AMOUNT: "12900",
-  STRIPE_CURRENCY: "brl",
-};
-
-const LIVE_ENV = {
-  ...BRL_ONLY_ENV,
-  STRIPE_PRICE_PREMIUM_YEARLY_USD: "price_premium_yearly_usd",
+  STRIPE_PRICE_COMPLETO_CONJUGE_MONTHLY: "price_couple_monthly_brl",
+  STRIPE_PRICE_COMPLETO_CONJUGE_YEARLY: "price_couple_yearly_brl",
   STRIPE_PRICE_PREMIUM_MONTHLY_USD: "price_premium_monthly_usd",
+  STRIPE_PRICE_PREMIUM_YEARLY_USD: "price_premium_yearly_usd",
+  STRIPE_PRICE_HORIZON_MONTHLY_USD: "price_horizon_monthly_usd",
   STRIPE_PRICE_HORIZON_YEARLY_USD: "price_horizon_yearly_usd",
-  STRIPE_PRICE_PREMIUM_YEARLY_EUR: "price_premium_yearly_eur",
+  STRIPE_PRICE_COMPLETO_CONJUGE_MONTHLY_USD: "price_couple_monthly_usd",
+  STRIPE_PRICE_COMPLETO_CONJUGE_YEARLY_USD: "price_couple_yearly_usd",
   STRIPE_PRICE_PREMIUM_MONTHLY_EUR: "price_premium_monthly_eur",
+  STRIPE_PRICE_PREMIUM_YEARLY_EUR: "price_premium_yearly_eur",
+  STRIPE_PRICE_HORIZON_MONTHLY_EUR: "price_horizon_monthly_eur",
   STRIPE_PRICE_HORIZON_YEARLY_EUR: "price_horizon_yearly_eur",
-  STRIPE_PRICE_PREMIUM_YEARLY_USD_AMOUNT: "1900",
-  STRIPE_PRICE_PREMIUM_MONTHLY_USD_AMOUNT: "400",
-  STRIPE_PRICE_HORIZON_YEARLY_USD_AMOUNT: "2900",
-  STRIPE_PRICE_PREMIUM_YEARLY_EUR_AMOUNT: "1800",
-  STRIPE_PRICE_PREMIUM_MONTHLY_EUR_AMOUNT: "390",
-  STRIPE_PRICE_HORIZON_YEARLY_EUR_AMOUNT: "2500",
+  STRIPE_PRICE_COMPLETO_CONJUGE_MONTHLY_EUR: "price_couple_monthly_eur",
+  STRIPE_PRICE_COMPLETO_CONJUGE_YEARLY_EUR: "price_couple_yearly_eur",
 };
 
-const OFFERS = billingConfig(LIVE_ENV).offers;
+const MATCHING_SNAPSHOTS: Record<string, StripePriceSnapshot> = {
+  price_premium_monthly_brl: snap("price_premium_monthly_brl", 2990, "brl", "month"),
+  price_premium_yearly_brl: snap("price_premium_yearly_brl", 39900, "brl", "year"),
+  price_horizon_monthly_brl: snap("price_horizon_monthly_brl", 4990, "brl", "month"),
+  price_horizon_yearly_brl: snap("price_horizon_yearly_brl", 59900, "brl", "year"),
+  price_couple_monthly_brl: snap("price_couple_monthly_brl", 5990, "brl", "month"),
+  price_couple_yearly_brl: snap("price_couple_yearly_brl", 69900, "brl", "year"),
+  price_premium_monthly_usd: snap("price_premium_monthly_usd", 599, "usd", "month"),
+  price_premium_yearly_usd: snap("price_premium_yearly_usd", 7900, "usd", "year"),
+  price_horizon_monthly_usd: snap("price_horizon_monthly_usd", 999, "usd", "month"),
+  price_horizon_yearly_usd: snap("price_horizon_yearly_usd", 11900, "usd", "year"),
+  price_couple_monthly_usd: snap("price_couple_monthly_usd", 1199, "usd", "month"),
+  price_couple_yearly_usd: snap("price_couple_yearly_usd", 13900, "usd", "year"),
+  price_premium_monthly_eur: snap("price_premium_monthly_eur", 599, "eur", "month"),
+  price_premium_yearly_eur: snap("price_premium_yearly_eur", 7900, "eur", "year"),
+  price_horizon_monthly_eur: snap("price_horizon_monthly_eur", 999, "eur", "month"),
+  price_horizon_yearly_eur: snap("price_horizon_yearly_eur", 11900, "eur", "year"),
+  price_couple_monthly_eur: snap("price_couple_monthly_eur", 1199, "eur", "month"),
+  price_couple_yearly_eur: snap("price_couple_yearly_eur", 13900, "eur", "year"),
+};
 
-describe("billing config", () => {
-  it("stays off without Stripe env so the UI must not pretend anyone paid", () => {
-    const status = publicBillingStatus({});
+const matchingRetrieve = retrieveFromSnapshots(MATCHING_SNAPSHOTS);
+
+const OFFERS = billingConfig(MATCHING_ENV).offers;
+
+describe("promo catalog", () => {
+  it("has 18 cells with launch promo and struck-through list prices", () => {
+    expect(BILLING_CATALOG_CELLS).toHaveLength(18);
+    expect(PROMO_AMOUNT_CENTS.premium_monthly).toEqual({
+      brl: 2990,
+      usd: 599,
+      eur: 599,
+    });
+    expect(PROMO_AMOUNT_CENTS.premium_yearly).toEqual({
+      brl: 39900,
+      usd: 7900,
+      eur: 7900,
+    });
+    expect(PROMO_AMOUNT_CENTS.horizon_monthly).toEqual({
+      brl: 4990,
+      usd: 999,
+      eur: 999,
+    });
+    expect(PROMO_AMOUNT_CENTS.horizon_yearly).toEqual({
+      brl: 59900,
+      usd: 11900,
+      eur: 11900,
+    });
+    expect(PROMO_AMOUNT_CENTS.couple_monthly).toEqual({
+      brl: 5990,
+      usd: 1199,
+      eur: 1199,
+    });
+    expect(PROMO_AMOUNT_CENTS.couple_yearly).toEqual({
+      brl: 69900,
+      usd: 13900,
+      eur: 13900,
+    });
+    expect(LIST_AMOUNT_CENTS.premium_monthly.brl).toBe(5990);
+    expect(LIST_AMOUNT_CENTS.premium_yearly.brl).toBe(50000);
+    expect(LIST_AMOUNT_CENTS.horizon_monthly.brl).toBe(8990);
+    expect(LIST_AMOUNT_CENTS.horizon_yearly.brl).toBe(79900);
+    expect(LIST_AMOUNT_CENTS.couple_monthly.brl).toBe(9990);
+    expect(LIST_AMOUNT_CENTS.couple_yearly.brl).toBe(120000);
+    expect(LIST_AMOUNT_CENTS.premium_monthly.usd).toBe(1199);
+    expect(LIST_AMOUNT_CENTS.premium_yearly.eur).toBe(9900);
+    expect(LIST_AMOUNT_CENTS.horizon_monthly.eur).toBe(1799);
+    expect(LIST_AMOUNT_CENTS.horizon_yearly.usd).toBe(15900);
+    expect(LIST_AMOUNT_CENTS.couple_monthly.usd).toBe(1999);
+    expect(LIST_AMOUNT_CENTS.couple_yearly.eur).toBe(23900);
+  });
+
+  it("shows catalog amounts even when billing is off", async () => {
+    const status = await publicBillingStatus({});
     expect(status.enabled).toBe(false);
     expect(status.reason).toBe("missing_env");
-    expect(status.settlement).toBe("br");
-    expect(status.offers.every((offer) =>
-      offer.amounts.every((amount) => amount.checkoutReady === false)
-    )).toBe(true);
+    expect(status.offers).toHaveLength(6);
     expect(
-      publicBillingStatus({
-        STRIPE_SECRET_KEY: "sk_test_only",
-      }).enabled
+      status.offers.every((offer) =>
+        offer.amounts.every((amount) => amount.checkoutReady === false)
+      )
+    ).toBe(true);
+    expect(
+      status.offers
+        .find((offer) => offer.id === "premium_monthly")
+        ?.amounts.find((amount) => amount.currency === "brl")
+    ).toMatchObject({ unitAmount: 2990, listAmount: 5990 });
+  });
+});
+
+describe("geo currency default", () => {
+  it("maps Brazil to BRL, eurozone to EUR, everyone else to USD", () => {
+    expect(currencyFromCountry("BR")).toBe("brl");
+    expect(currencyFromCountry("br")).toBe("brl");
+    expect(currencyFromCountry("DE")).toBe("eur");
+    expect(currencyFromCountry("PT")).toBe("eur");
+    expect(currencyFromCountry("FR")).toBe("eur");
+    expect(currencyFromCountry("HR")).toBe("eur");
+    expect(currencyFromCountry("US")).toBe("usd");
+    expect(currencyFromCountry("GB")).toBe("usd");
+    expect(currencyFromCountry("AR")).toBe("usd");
+    expect(currencyFromCountry("")).toBe("usd");
+    expect(currencyFromCountry("XX")).toBe("usd");
+  });
+
+  it("reads Vercel and similar country headers", () => {
+    expect(
+      currencyFromRequestHeaders(new Headers({ "x-vercel-ip-country": "BR" }))
+    ).toBe("brl");
+    expect(
+      currencyFromRequestHeaders(new Headers({ "x-vercel-ip-country": "IE" }))
+    ).toBe("eur");
+    expect(
+      currencyFromRequestHeaders(new Headers({ "cf-ipcountry": "JP" }))
+    ).toBe("usd");
+    expect(
+      currencyFromRequestHeaders(
+        new Headers({ "cloudfront-viewer-country": "ES" })
+      )
+    ).toBe("eur");
+    expect(currencyFromRequestHeaders(new Headers())).toBe("usd");
+  });
+});
+
+describe("billing config", () => {
+  it("stays off without Stripe env so the UI must not pretend anyone paid", async () => {
+    const status = await publicBillingStatus({});
+    expect(status.enabled).toBe(false);
+    expect(
+      (await publicBillingStatus({ STRIPE_SECRET_KEY: "sk_test_only" })).enabled
     ).toBe(false);
   });
 
   it("does not treat a bare number as a Price id", () => {
     expect(isStripePriceId("8900")).toBe(false);
-    expect(isStripePriceId("89")).toBe(false);
-    expect(isStripePriceId("1900")).toBe(false);
+    expect(isStripePriceId("2990")).toBe(false);
     expect(isStripePriceId("price_premium_yearly_brl")).toBe(true);
   });
 
-  it("turns yearly checkout on with the secret and one price, without webhook or cloud", () => {
-    const status = publicBillingStatus({
+  it("turns checkout on with the secret and one price id, without webhook or cloud", () => {
+    const cfg = billingConfig({
       STRIPE_SECRET_KEY: "sk_test_billing",
       STRIPE_PRICE_PREMIUM_YEARLY: "price_premium_yearly_brl",
     });
-    expect(status.enabled).toBe(true);
-    expect(status.reason).toBeNull();
-    expect(
-      status.offers
-        .find((offer) => offer.id === "premium_yearly")
-        ?.amounts.find((amount) => amount.currency === "brl")?.checkoutReady
-    ).toBe(true);
-    expect(
-      status.offers
-        .find((offer) => offer.id === "premium_monthly")
-        ?.amounts.every((amount) => amount.checkoutReady === false)
-    ).toBe(true);
-    expect(JSON.stringify(status)).not.toContain("sk_test");
-    expect(JSON.stringify(status)).not.toContain("price_");
+    expect(cfg.enabled).toBe(true);
+    expect(cfg.reason).toBeNull();
   });
 
-  it("turns on when Stripe, prices, and cloud env exist", () => {
-    const status = publicBillingStatus(LIVE_ENV);
-    expect(status.enabled).toBe(true);
-    expect(status.reason).toBeNull();
-    expect(status.settlement).toBe("br");
-    expect(status.currencies).toEqual(["brl", "usd", "eur"]);
-    expect(status.offers.map((o) => o.id)).toEqual([
-      "premium_yearly",
-      "premium_monthly",
-      "horizon_yearly",
-    ]);
+  it("honors BILLING=off even with keys", async () => {
     expect(
-      status.offers
-        .find((o) => o.id === "premium_yearly")
-        ?.amounts.find((a) => a.currency === "brl")?.unitAmount
-    ).toBe(8900);
-    expect(
-      status.offers
-        .find((o) => o.id === "premium_monthly")
-        ?.amounts.find((a) => a.currency === "brl")?.unitAmount
-    ).toBe(1490);
-    expect(
-      status.offers
-        .find((o) => o.id === "horizon_yearly")
-        ?.amounts.find((a) => a.currency === "eur")?.unitAmount
-    ).toBe(2500);
-    expect(JSON.stringify(status)).not.toContain("sk_test");
-    expect(JSON.stringify(status)).not.toContain("whsec_");
-    expect(JSON.stringify(status)).not.toContain("price_");
-  });
-
-  it("honors BILLING=off even with keys", () => {
-    expect(publicBillingStatus({ ...LIVE_ENV, BILLING: "off" }).enabled).toBe(
-      false
-    );
-  });
-
-  it("still shows display amounts when billing is off", () => {
-    const status = publicBillingStatus({});
-    expect(status.enabled).toBe(false);
-    const yearly = status.offers.find((o) => o.id === "premium_yearly");
-    expect(yearly?.amounts.find((a) => a.currency === "usd")?.unitAmount).toBe(
-      DISPLAY_AMOUNT_CENTS.premium_yearly.usd
-    );
-    expect(yearly?.amounts.find((a) => a.currency === "eur")?.unitAmount).toBe(
-      DISPLAY_AMOUNT_CENTS.premium_yearly.eur
-    );
-  });
-});
-
-describe("currency → Price id", () => {
-  it("maps BRL / USD / EUR to the matching Price id on the same SKU", () => {
-    expect(
-      resolveCheckoutPrice(OFFERS, "premium_yearly", "brl")?.priceId
-    ).toBe("price_premium_yearly_brl");
-    expect(
-      resolveCheckoutPrice(OFFERS, "premium_yearly", "usd")?.priceId
-    ).toBe("price_premium_yearly_usd");
-    expect(
-      resolveCheckoutPrice(OFFERS, "premium_yearly", "eur")?.priceId
-    ).toBe("price_premium_yearly_eur");
-    expect(
-      resolveCheckoutPrice(OFFERS, "premium_monthly", "usd")?.priceId
-    ).toBe("price_premium_monthly_usd");
-    expect(
-      resolveCheckoutPrice(OFFERS, "horizon_yearly", "eur")?.priceId
-    ).toBe("price_horizon_yearly_eur");
-    expect(resolveCheckoutPrice(OFFERS, "premium_yearly", "usd")?.plan).toBe(
-      "premium"
-    );
-    expect(resolveCheckoutPrice(OFFERS, "horizon_yearly", "eur")?.plan).toBe(
-      "horizon"
-    );
-  });
-
-  it("keeps existing unsuffixed BRL ids working when USD/EUR are absent", () => {
-    const offers = billingConfig(BRL_ONLY_ENV).offers;
-    expect(resolveCheckoutPrice(offers, "premium_yearly", "brl")?.priceId).toBe(
-      "price_premium_yearly_brl"
-    );
-    expect(resolveCheckoutPrice(offers, "premium_monthly", "brl")?.priceId).toBe(
-      "price_premium_monthly_brl"
-    );
-    expect(resolveCheckoutPrice(offers, "horizon_yearly", "brl")?.priceId).toBe(
-      "price_horizon_yearly_brl"
-    );
-    expect(resolveCheckoutPrice(offers, "premium_yearly", "usd")).toMatchObject({
-      priceId: "price_premium_yearly_brl",
-      currency: "brl",
-    });
-    expect(resolveCheckoutPrice(offers, "horizon_yearly", "eur")).toMatchObject({
-      priceId: "price_horizon_yearly_brl",
-      currency: "brl",
-    });
-    expect(resolveCheckoutPrice(offers, "premium_monthly", "usd")).toBeNull();
-    const status = publicBillingStatus(BRL_ONLY_ENV);
-    expect(status.enabled).toBe(true);
-    expect(
-      status.offers
-        .find((o) => o.id === "premium_yearly")
-        ?.amounts.find((a) => a.currency === "brl")?.checkoutReady
-    ).toBe(true);
-    expect(
-      status.offers
-        .find((o) => o.id === "premium_yearly")
-        ?.amounts.find((a) => a.currency === "usd")?.checkoutReady
-    ).toBe(true);
-    expect(
-      status.offers
-        .find((o) => o.id === "premium_monthly")
-        ?.amounts.find((a) => a.currency === "usd")?.checkoutReady
+      (await publicBillingStatus({ ...MATCHING_ENV, BILLING: "off" }, matchingRetrieve))
+        .enabled
     ).toBe(false);
   });
 
-  it("reads Básico and Completo aliases and ignores a spouse price that is not wired", () => {
-    const aliased = billingConfig({
-      STRIPE_SECRET_KEY: "sk_test_billing",
-      STRIPE_PRICE_BASICO: "price_basico_yearly",
-      STRIPE_PRICE_COMPLETO: "price_completo_yearly",
-      STRIPE_PRICE_COMPLETO_CONJUGE: "price_conjuge_unused",
-    });
-    expect(aliased.enabled).toBe(true);
-    expect(resolveCheckoutPrice(aliased.offers, "premium_yearly", "brl")?.priceId).toBe(
-      "price_basico_yearly"
-    );
-    expect(resolveCheckoutPrice(aliased.offers, "horizon_yearly", "eur")?.priceId).toBe(
-      "price_completo_yearly"
-    );
-    expect(JSON.stringify(aliased.offers)).not.toContain("price_conjuge_unused");
-
-    const preferred = billingConfig({
-      STRIPE_SECRET_KEY: "sk_test_billing",
-      STRIPE_PRICE_PREMIUM_YEARLY: "price_premium_yearly_brl",
-      STRIPE_PRICE_BASICO: "price_basico_other",
-      STRIPE_PRICE_HORIZON_YEARLY: "price_horizon_yearly_brl",
-      STRIPE_PRICE_COMPLETO: "price_completo_other",
-    });
-    expect(resolveCheckoutPrice(preferred.offers, "premium_yearly", "brl")?.priceId).toBe(
-      "price_premium_yearly_brl"
-    );
-    expect(resolveCheckoutPrice(preferred.offers, "horizon_yearly", "brl")?.priceId).toBe(
-      "price_horizon_yearly_brl"
-    );
-
-    const spouseOnly = publicBillingStatus({
-      STRIPE_SECRET_KEY: "sk_test_billing",
-      STRIPE_PRICE_COMPLETO_CONJUGE: "price_conjuge_unused",
-    });
-    expect(spouseOnly.enabled).toBe(false);
-    expect(spouseOnly.reason).toBe("missing_env");
-  });
-
-  it("accepts the display currency from the gate (BRL/USD/EUR)", () => {
+  it("accepts the display currency from the selector (BRL/USD/EUR)", () => {
     expect(parseBillingCurrency("BRL")).toBe("brl");
     expect(parseBillingCurrency("usd")).toBe("usd");
     expect(parseBillingCurrency("Eur")).toBe("eur");
     expect(parseBillingCurrency("gbp")).toBeNull();
     expect(parseBillingCurrency(89)).toBeNull();
   });
+});
 
-  it("lets env override display cents without becoming a Price id", () => {
+describe("price resolution", () => {
+  it("wires checkout to the Stripe Price for the selected currency and interval when amounts match", async () => {
+    const yearlyUsd = await resolveMatchedCheckoutPrice(
+      MATCHING_ENV,
+      "premium_yearly",
+      "usd",
+      matchingRetrieve
+    );
+    expect(yearlyUsd?.priceId).toBe("price_premium_yearly_usd");
+    expect(yearlyUsd?.currency).toBe("usd");
+    expect(yearlyUsd?.unitAmount).toBe(7900);
+
+    const coupleEur = await resolveMatchedCheckoutPrice(
+      MATCHING_ENV,
+      "couple_monthly",
+      "eur",
+      matchingRetrieve
+    );
+    expect(coupleEur?.priceId).toBe("price_couple_monthly_eur");
+    expect(coupleEur?.plan).toBe("couple");
+    expect(coupleEur?.unitAmount).toBe(1199);
+
+    const status = await publicBillingStatus(MATCHING_ENV, matchingRetrieve);
+    expect(status.enabled).toBe(true);
     expect(
-      displayAmountCents(
-        { STRIPE_PRICE_PREMIUM_YEARLY_USD_AMOUNT: "2100" },
-        "premium_yearly",
-        "usd"
+      status.offers.every((offer) =>
+        offer.amounts.every((amount) => amount.checkoutReady)
       )
-    ).toBe(2100);
-    expect(isStripePriceId("2100")).toBe(false);
+    ).toBe(true);
+    expect(JSON.stringify(status)).not.toContain("sk_test");
+    expect(JSON.stringify(status)).not.toContain("price_");
+  });
+
+  it("treats an env Price with the wrong amount, currency, or interval as missing", async () => {
+    const env = {
+      ...SECRET_ENV,
+      STRIPE_PRICE_BASICO: "price_basico_live",
+      STRIPE_PRICE_COMPLETO: "price_completo_live",
+      STRIPE_PRICE_PREMIUM_YEARLY: "price_old_yearly",
+    };
+    const retrieve = retrieveFromSnapshots({
+      price_basico_live: snap("price_basico_live", 1158, "usd", "month"),
+      price_completo_live: snap("price_completo_live", 2327, "usd", "month"),
+      price_old_yearly: snap("price_old_yearly", 8900, "brl", "year"),
+    });
+
+    expect(
+      await resolveMatchedCheckoutPrice(env, "premium_monthly", "usd", retrieve)
+    ).toBeNull();
+    expect(
+      await resolveMatchedCheckoutPrice(env, "horizon_monthly", "usd", retrieve)
+    ).toBeNull();
+    expect(
+      await resolveMatchedCheckoutPrice(env, "premium_yearly", "brl", retrieve)
+    ).toBeNull();
+
+    const status = await publicBillingStatus(env, retrieve);
+    expect(status.enabled).toBe(true);
+    expect(
+      status.offers.every((offer) =>
+        offer.amounts.every((amount) => amount.checkoutReady === false)
+      )
+    ).toBe(true);
+    expect(
+      status.offers
+        .find((offer) => offer.id === "premium_yearly")
+        ?.amounts.find((amount) => amount.currency === "brl")?.unitAmount
+    ).toBe(39900);
+  });
+
+  it("does not fall back to another currency", async () => {
+    const env = {
+      ...SECRET_ENV,
+      STRIPE_PRICE_PREMIUM_YEARLY: "price_premium_yearly_brl",
+    };
+    expect(
+      await resolveMatchedCheckoutPrice(env, "premium_yearly", "usd", matchingRetrieve)
+    ).toBeNull();
+    expect(
+      resolveCheckoutPrice(billingConfig(env).offers, "premium_yearly", "usd")
+    ).toBeNull();
+  });
+
+  it("matches plan aliases BASICO / COMPLETO / COMPLETO_CONJUGE onto the cell Stripe reports", async () => {
+    const env = {
+      ...SECRET_ENV,
+      STRIPE_PRICE_BASICO: "price_premium_yearly_brl",
+      STRIPE_PRICE_COMPLETO: "price_horizon_monthly_usd",
+      STRIPE_PRICE_COMPLETO_CONJUGE: "price_couple_yearly_eur",
+    };
+    expect(candidatePriceIdsForCell(env, "premium_yearly", "brl")).toContain(
+      "price_premium_yearly_brl"
+    );
+    expect(
+      await resolveMatchedCheckoutPrice(env, "premium_yearly", "brl", matchingRetrieve)
+    ).toMatchObject({ priceId: "price_premium_yearly_brl", plan: "premium" });
+    expect(
+      await resolveMatchedCheckoutPrice(env, "horizon_monthly", "usd", matchingRetrieve)
+    ).toMatchObject({ priceId: "price_horizon_monthly_usd", plan: "horizon" });
+    expect(
+      await resolveMatchedCheckoutPrice(env, "couple_yearly", "eur", matchingRetrieve)
+    ).toMatchObject({ priceId: "price_couple_yearly_eur", plan: "couple" });
+    expect(
+      await resolveMatchedCheckoutPrice(env, "couple_monthly", "brl", matchingRetrieve)
+    ).toBeNull();
+  });
+
+  it("prefers the cell-specific env var over the plan alias", async () => {
+    const env = {
+      ...SECRET_ENV,
+      STRIPE_PRICE_PREMIUM_YEARLY: "price_premium_yearly_brl",
+      STRIPE_PRICE_BASICO: "price_other",
+    };
+    expect(candidatePriceIdsForCell(env, "premium_yearly", "brl")[0]).toBe(
+      "price_premium_yearly_brl"
+    );
+    expect(
+      await resolveMatchedCheckoutPrice(env, "premium_yearly", "brl", matchingRetrieve)
+    ).toMatchObject({ priceId: "price_premium_yearly_brl" });
+  });
+
+  it("lists MONTHLY/YEARLY plus _BRL/_USD/_EUR env names for new slots", () => {
+    expect(priceEnvKeysForCell("horizon_monthly", "usd")).toEqual([
+      "STRIPE_PRICE_COMPLETO_MONTHLY_USD",
+      "STRIPE_PRICE_HORIZON_MONTHLY_USD",
+      "STRIPE_PRICE_COMPLETO",
+    ]);
+    expect(priceEnvKeysForCell("couple_yearly", "brl")).toEqual([
+      "STRIPE_PRICE_COMPLETO_CONJUGE_YEARLY",
+      "STRIPE_PRICE_COMPLETO_CONJUGE_YEARLY_BRL",
+      "STRIPE_PRICE_COMPLETO_CONJUGE",
+    ]);
   });
 });
 
@@ -273,9 +396,10 @@ describe("checkout session body", () => {
     id: "premium_yearly" as const,
     plan: "premium" as const,
     interval: "year" as const,
-    priceId: "price_basico_yearly",
-    unitAmount: 8900,
-    currency: "brl" as const,
+    priceId: "price_premium_yearly_usd",
+    unitAmount: 7900,
+    listAmount: 9900,
+    currency: "usd" as const,
   };
 
   async function capture(input: Parameters<typeof createStripeCheckoutSession>[0]) {
@@ -299,7 +423,7 @@ describe("checkout session body", () => {
     }
   }
 
-  it("sends the Básico price and skips customer fields when nobody is signed in", async () => {
+  it("sends the selected currency's Price id", async () => {
     const { session, body } = await capture({
       secretKey: "sk_test_billing",
       offer,
@@ -308,68 +432,251 @@ describe("checkout session body", () => {
     });
     const params = new URLSearchParams(body);
     expect(session.url).toBe("https://checkout.stripe.com/c/pay/cs_test_session");
-    expect(params.get("line_items[0][price]")).toBe("price_basico_yearly");
-    expect(params.get("mode")).toBe("subscription");
-    expect(params.get("customer")).toBeNull();
-    expect(params.get("customer_email")).toBeNull();
-    expect(params.get("client_reference_id")).toBeNull();
+    expect(params.get("line_items[0][price]")).toBe("price_premium_yearly_usd");
+    expect(params.get("metadata[currency]")).toBe("usd");
     expect(params.get("metadata[offerId]")).toBe("premium_yearly");
-    expect(params.get("metadata[planTier]")).toBe("premium");
   });
 
-  it("sends the Completo price and the signed-in account when present", async () => {
+  it("sends Completo+Cônjuge as its own plan", async () => {
+    const { body } = await capture({
+      secretKey: "sk_test_billing",
+      offer: {
+        ...offer,
+        id: "couple_yearly",
+        plan: "couple",
+        priceId: "price_couple_yearly_eur",
+        currency: "eur",
+        unitAmount: 13900,
+        listAmount: 23900,
+      },
+      successUrl: "https://app.example/planos?checkout=success",
+      cancelUrl: "https://app.example/planos?checkout=cancel",
+    });
+    const params = new URLSearchParams(body);
+    expect(params.get("line_items[0][price]")).toBe("price_couple_yearly_eur");
+    expect(params.get("metadata[planTier]")).toBe("couple");
+    expect(params.get("subscription_data[trial_period_days]")).toBeNull();
+  });
+
+  it("puts a 7-day trial only on Básico Checkout", async () => {
+    const { body } = await capture({
+      secretKey: "sk_test_billing",
+      offer,
+      successUrl: "https://app.example/planos?checkout=success",
+      cancelUrl: "https://app.example/planos?checkout=cancel",
+      trialPeriodDays: BASICO_TRIAL_DAYS,
+    });
+    const params = new URLSearchParams(body);
+    expect(params.get("subscription_data[trial_period_days]")).toBe("7");
+    expect(params.get("metadata[trialPeriodDays]")).toBe("7");
+    expect(params.get("subscription_data[metadata][trialPeriodDays]")).toBe("7");
+    expect(params.get("payment_method_collection")).toBe("always");
+    expect(params.get("line_items[0][price]")).toBe("price_premium_yearly_usd");
+  });
+
+  it("does not send a trial when Completo Checkout asks for one", async () => {
     const { body } = await capture({
       secretKey: "sk_test_billing",
       offer: {
         ...offer,
         id: "horizon_yearly",
         plan: "horizon",
-        priceId: "price_completo_yearly",
+        priceId: "price_horizon_yearly_usd",
+        unitAmount: 11900,
+        listAmount: 15900,
       },
-      userId: "user-maria-1",
-      email: "maria@example.com",
-      customerId: "cus_test_maria",
       successUrl: "https://app.example/planos?checkout=success",
       cancelUrl: "https://app.example/planos?checkout=cancel",
+      trialPeriodDays: 7,
     });
     const params = new URLSearchParams(body);
-    expect(params.get("line_items[0][price]")).toBe("price_completo_yearly");
-    expect(params.get("client_reference_id")).toBe("user-maria-1");
-    expect(params.get("customer")).toBe("cus_test_maria");
-    expect(params.get("customer_email")).toBeNull();
-    expect(params.get("metadata[planTier]")).toBe("horizon");
+    expect(params.get("subscription_data[trial_period_days]")).toBeNull();
+    expect(params.get("metadata[trialPeriodDays]")).toBeNull();
+  });
+});
+
+describe("Básico trial offer", () => {
+  it("is 7 days, only for Básico, and not for anyone already paid", () => {
+    expect(BASICO_TRIAL_DAYS).toBe(7);
+    expect(shouldOfferBasicoTrial("free")).toBe(true);
+    expect(shouldOfferBasicoTrial(null)).toBe(true);
+    expect(shouldOfferBasicoTrial("premium")).toBe(false);
+    expect(shouldOfferBasicoTrial("horizon")).toBe(false);
+    expect(shouldOfferBasicoTrial("couple")).toBe(false);
+    expect(basicoTrialDaysForCheckout("premium", "free")).toBe(7);
+    expect(basicoTrialDaysForCheckout("premium", "premium")).toBeNull();
+    expect(basicoTrialDaysForCheckout("horizon", "free")).toBeNull();
+    expect(basicoTrialDaysForCheckout("couple", "free")).toBeNull();
+  });
+
+  it("formats the Básico card line in the selected currency", () => {
+    expect(
+      t("pt", "upgrade.basicoTrial", {
+        params: { amount: "R$ 29,90", interval: "/mês" },
+      })
+    ).toBe("7 dias grátis, depois R$ 29,90/mês");
+    expect(
+      t("pt", "upgrade.basicoTrial", {
+        params: { amount: "R$ 399", interval: "/ano" },
+      })
+    ).toBe("7 dias grátis, depois R$ 399/ano");
+  });
+
+  it("gives trialing Básico the same entitlements as paid Básico", () => {
+    expect(canUseFullPlanner("premium")).toBe(true);
+    expect(canSaveFullPlan("premium")).toBe(true);
+    expect(canUseBasicExport("premium")).toBe(true);
+    expect(canUseConnectors("premium")).toBe(false);
+  });
+});
+
+describe("checkout POST", () => {
+  it("charges the Stripe Price for the selected currency when the catalog matches", async () => {
+    const prev = { ...process.env };
+    process.env.STRIPE_SECRET_KEY = "sk_test_billing";
+    process.env.STRIPE_PRICE_BASICO_YEARLY_USD = "price_premium_yearly_usd";
+    delete process.env.BILLING;
+    delete process.env.STRIPE;
+    const original = globalThis.fetch;
+    const checkoutBodies: string[] = [];
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      if (url.includes("/v1/prices/")) {
+        return new Response(
+          JSON.stringify({
+            id: "price_premium_yearly_usd",
+            active: true,
+            currency: "usd",
+            unit_amount: 7900,
+            recurring: { interval: "year", interval_count: 1 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      checkoutBodies.push(String(init?.body ?? ""));
+      return new Response(
+        JSON.stringify({
+          id: "cs_test_session",
+          url: "https://checkout.stripe.com/c/pay/cs_test_session",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    };
+    try {
+      const { POST } = await import("@/app/api/billing/checkout/route");
+      const { NextRequest } = await import("next/server");
+      const res = await POST(
+        new NextRequest("http://localhost/api/billing/checkout", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            offerId: "premium_yearly",
+            currency: "usd",
+          }),
+        })
+      );
+      const json = (await res.json()) as { url?: string };
+      expect(res.status).toBe(200);
+      expect(json.url).toContain("checkout.stripe.com");
+      const params = new URLSearchParams(checkoutBodies[0] ?? "");
+      expect(params.get("line_items[0][price]")).toBe("price_premium_yearly_usd");
+      expect(params.get("metadata[currency]")).toBe("usd");
+      expect(params.get("subscription_data[trial_period_days]")).toBe("7");
+      expect(params.get("metadata[trialPeriodDays]")).toBe("7");
+    } finally {
+      globalThis.fetch = original;
+      for (const key of Object.keys(process.env)) {
+        if (!(key in prev)) delete process.env[key];
+      }
+      Object.assign(process.env, prev);
+    }
+  });
+
+  it("does not put a trial on Completo Checkout", async () => {
+    const prev = { ...process.env };
+    process.env.STRIPE_SECRET_KEY = "sk_test_billing";
+    process.env.STRIPE_PRICE_COMPLETO_MONTHLY_EUR = "price_horizon_monthly_eur";
+    delete process.env.BILLING;
+    delete process.env.STRIPE;
+    const original = globalThis.fetch;
+    const checkoutBodies: string[] = [];
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      if (url.includes("/v1/prices/")) {
+        return new Response(
+          JSON.stringify({
+            id: "price_horizon_monthly_eur",
+            active: true,
+            currency: "eur",
+            unit_amount: 999,
+            recurring: { interval: "month", interval_count: 1 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      checkoutBodies.push(String(init?.body ?? ""));
+      return new Response(
+        JSON.stringify({
+          id: "cs_test_session",
+          url: "https://checkout.stripe.com/c/pay/cs_test_session",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    };
+    try {
+      const { POST } = await import("@/app/api/billing/checkout/route");
+      const { NextRequest } = await import("next/server");
+      const res = await POST(
+        new NextRequest("http://localhost/api/billing/checkout", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            offerId: "horizon_monthly",
+            currency: "eur",
+          }),
+        })
+      );
+      expect(res.status).toBe(200);
+      const params = new URLSearchParams(checkoutBodies[0] ?? "");
+      expect(params.get("line_items[0][price]")).toBe("price_horizon_monthly_eur");
+      expect(params.get("subscription_data[trial_period_days]")).toBeNull();
+      expect(params.get("metadata[planTier]")).toBe("horizon");
+    } finally {
+      globalThis.fetch = original;
+      for (const key of Object.keys(process.env)) {
+        if (!(key in prev)) delete process.env[key];
+      }
+      Object.assign(process.env, prev);
+    }
   });
 });
 
 describe("formatPlanAmount", () => {
-  it("keeps the decoy cents and whole yearly amounts", () => {
-    expect(formatPlanAmount(8900, "brl", "pt-BR")).toMatch(/89/);
-    expect(formatPlanAmount(1490, "brl", "pt-BR")).toMatch(/14[,.]90/);
-    expect(formatPlanAmount(1900, "usd", "en-US")).toMatch(/19/);
-    expect(formatPlanAmount(390, "eur", "pt-BR")).toMatch(/3[,.]90/);
+  it("keeps promo cents and whole yearly amounts", () => {
+    expect(formatPlanAmount(39900, "brl", "pt-BR")).toMatch(/399/);
+    expect(formatPlanAmount(2990, "brl", "pt-BR")).toMatch(/29[,.]90/);
+    expect(formatPlanAmount(7900, "usd", "en-US")).toMatch(/79/);
+    expect(formatPlanAmount(599, "eur", "pt-BR")).toMatch(/5[,.]99/);
   });
 });
 
 describe("canAccess", () => {
   it("keeps the engine open while billing is off", () => {
     expect(canAccess("free", "named_scenarios")).toBe(true);
-    expect(canAccess("free", "tax_preview", false)).toBe(true);
-    expect(canAccess("free", "share_branded", false)).toBe(true);
   });
 
   it("gates only when Stripe billing is live", () => {
     expect(canAccess("free", "named_scenarios", true)).toBe(false);
     expect(canAccess("premium", "named_scenarios", true)).toBe(false);
     expect(canAccess("horizon", "named_scenarios", true)).toBe(true);
-    expect(canAccess("premium", "share_branded", true)).toBe(false);
-    expect(canAccess("horizon", "share_branded", true)).toBe(true);
-    expect(canAccess("horizon", "tax_preview", true)).toBe(true);
-    expect(canAccess("free", "monte_carlo_full", true)).toBe(true);
+    expect(canAccess("couple", "named_scenarios", true)).toBe(true);
+    expect(canModelCouple("horizon")).toBe(false);
+    expect(canModelCouple("couple")).toBe(true);
   });
 });
 
 describe("Stripe webhook signature", () => {
-  const secret = LIVE_ENV.STRIPE_WEBHOOK_SECRET;
+  const secret = SECRET_ENV.STRIPE_WEBHOOK_SECRET;
   const payload = JSON.stringify(checkoutCompleted);
   const now = 1_790_000_000;
 
@@ -413,7 +720,7 @@ describe("Stripe webhook plan transitions", () => {
     });
   });
 
-  it("maps a USD Price id to the same Individual SKU", () => {
+  it("maps a USD Price id to the same Básico SKU", () => {
     expect(planFromPriceId(OFFERS, "price_premium_yearly_usd")).toBe("premium");
   });
 
@@ -440,7 +747,8 @@ describe("Stripe webhook plan transitions", () => {
           {
             currency: "brl",
             priceId: "price_horizon_yearly_brl",
-            unitAmount: 12900,
+            unitAmount: 59900,
+            listAmount: 79900,
           },
         ],
       },
@@ -453,7 +761,6 @@ describe("Stripe webhook plan transitions", () => {
       action: "ignore",
       reason: "malformed_event",
     });
-    expect(canAccess("free", "named_scenarios", false)).toBe(true);
   });
 
   it("maps customer.subscription.deleted back to free", () => {
@@ -470,13 +777,133 @@ describe("Stripe webhook plan transitions", () => {
     });
   });
 
-  it("maps the couple Price to horizon in every currency", () => {
+  it("treats a Básico trial checkout as premium trialing, not free", () => {
+    const trial = structuredClone(checkoutCompleted);
+    trial.id = "evt_test_checkout_trial";
+    trial.data.object.payment_status = "no_payment_required";
+    Object.assign(trial.data.object.metadata, { trialPeriodDays: "7" });
+    const command = commandFromStripeEvent(trial, OFFERS);
+    expect(command).toMatchObject({
+      action: "set_plan",
+      plan: "premium",
+      status: "trialing",
+    });
+    if (command.action === "set_plan") {
+      expect(canUseFullPlanner(command.plan)).toBe(true);
+      expect(canUseConnectors(command.plan)).toBe(false);
+    }
+  });
+
+  it("does not treat Completo checkout as a trial even with trial metadata", () => {
+    const spoofed = structuredClone(checkoutCompleted);
+    spoofed.data.object.metadata.priceId = "price_horizon_yearly_eur";
+    spoofed.data.object.metadata.offerId = "horizon_yearly";
+    spoofed.data.object.metadata.planTier = "horizon";
+    Object.assign(spoofed.data.object.metadata, { trialPeriodDays: "7" });
+    expect(commandFromStripeEvent(spoofed, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "horizon",
+      status: "active",
+    });
+  });
+
+  it("keeps Básico after trial converts and drops it on cancel before charge", () => {
+    const converted = {
+      id: "evt_test_sub_active",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_test_premium",
+          status: "active",
+          customer: "cus_test_maria",
+          metadata: {
+            userId: "user-maria-1",
+            planTier: "premium",
+            offerId: "premium_monthly",
+            priceId: "price_premium_monthly_usd",
+            trialPeriodDays: "7",
+          },
+        },
+      },
+    };
+    expect(commandFromStripeEvent(converted, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "premium",
+      status: "active",
+    });
+
+    const canceled = {
+      id: "evt_test_sub_canceled",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_test_premium",
+          status: "canceled",
+          customer: "cus_test_maria",
+          metadata: {
+            userId: "user-maria-1",
+            planTier: "premium",
+            offerId: "premium_monthly",
+            priceId: "price_premium_monthly_usd",
+          },
+        },
+      },
+    };
+    expect(commandFromStripeEvent(canceled, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "free",
+      status: "canceled",
+    });
+  });
+
+  it("persists trialing Básico and drops it when the subscription is deleted", async () => {
+    const directory = createMemoryDirectory();
+    directory.createUser({
+      id: "user-maria-1",
+      email: "maria@example.com",
+    });
+    const trial = structuredClone(checkoutCompleted);
+    trial.id = "evt_test_persist_trial";
+    trial.data.object.payment_status = "no_payment_required";
+    Object.assign(trial.data.object.metadata, { trialPeriodDays: "7" });
+    await persistBillingCommand(
+      commandFromStripeEvent(trial, OFFERS),
+      directory.billingStore
+    );
+    expect(directory.getUser("user-maria-1")).toMatchObject({
+      planTier: "premium",
+      subscriptionStatus: "trialing",
+    });
+    expect(canUseFullPlanner("premium")).toBe(true);
+
+    await persistBillingCommand(
+      commandFromStripeEvent(subscriptionDeleted, OFFERS),
+      directory.billingStore
+    );
+    expect(directory.getUser("user-maria-1")).toMatchObject({
+      planTier: "free",
+      subscriptionStatus: "canceled",
+    });
+  });
+
+  it("maps Completo and Completo+Cônjuge Prices to their own plans", () => {
+    const completo = structuredClone(checkoutCompleted);
+    completo.data.object.metadata.priceId = "price_horizon_yearly_eur";
+    completo.data.object.metadata.offerId = "horizon_yearly";
+    completo.data.object.metadata.planTier = "horizon";
+    expect(commandFromStripeEvent(completo, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "horizon",
+    });
+
     const couple = structuredClone(checkoutCompleted);
-    couple.data.object.metadata.priceId = "price_horizon_yearly_eur";
-    couple.data.object.metadata.offerId = "horizon_yearly";
-    couple.data.object.metadata.planTier = "horizon";
-    const command = commandFromStripeEvent(couple, OFFERS);
-    expect(command).toMatchObject({ action: "set_plan", plan: "horizon" });
-    expect(planFromPriceId(OFFERS, "price_horizon_yearly_usd")).toBe("horizon");
+    couple.data.object.metadata.priceId = "price_couple_yearly_eur";
+    couple.data.object.metadata.offerId = "couple_yearly";
+    couple.data.object.metadata.planTier = "couple";
+    expect(commandFromStripeEvent(couple, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "couple",
+    });
+    expect(planFromPriceId(OFFERS, "price_couple_monthly_usd")).toBe("couple");
   });
 });

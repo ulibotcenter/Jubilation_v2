@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { billingConfig } from "@/lib/billing/config";
+import { billingConfig, billingConfigMatched } from "@/lib/billing/config";
 import { commandFromStripeEvent } from "@/lib/billing/events";
 import { persistBillingCommand } from "@/lib/billing/persist";
 import { verifyStripeSignature } from "@/lib/billing/signature";
@@ -36,9 +36,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
+  const matched = await billingConfigMatched();
   const command = commandFromStripeEvent(
     event as { id?: unknown; type?: unknown; data?: { object?: Record<string, unknown> } },
-    cfg.offers
+    matched.offers
   );
 
   try {

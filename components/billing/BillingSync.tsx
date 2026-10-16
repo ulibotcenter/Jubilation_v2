@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import type { PlanTier } from "@/lib/plans";
+import { parsePlanTier, type PlanTier } from "@/lib/plans";
 import { useAppStore } from "@/store/useAppStore";
 import type { UserProfile } from "@/types";
 
 function asPlanTier(value: unknown): PlanTier {
-  if (value === "premium" || value === "horizon" || value === "free") return value;
-  return "free";
+  return parsePlanTier(value);
 }
 
 function asStatus(value: unknown): UserProfile["subscriptionStatus"] {
