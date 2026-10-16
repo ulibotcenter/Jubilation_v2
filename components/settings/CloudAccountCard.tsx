@@ -21,6 +21,7 @@ import { partializePersistedState } from "@/lib/persist/partialize";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { tenantMayPersistOnHost } from "@/lib/region";
+import { safeReturnPath } from "@/lib/cloud/returnPath";
 import { useAppStore } from "@/store/useAppStore";
 import type { Country } from "@/types";
 import Link from "next/link";
@@ -102,6 +103,13 @@ export function CloudAccountCard() {
       setMe({ email: body.email, dataRegion: body.dataRegion });
       setAccountPassword("");
       toast.success(t("toast.cloud.loggedIn"));
+      const next = safeReturnPath(
+        new URLSearchParams(window.location.search).get("next")
+      );
+      if (next) {
+        window.location.assign(next);
+        return;
+      }
     } catch {
       toast.error(t("toast.cloud.error"));
     } finally {
