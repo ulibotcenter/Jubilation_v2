@@ -1073,9 +1073,15 @@ export const PT: Record<MessageKey, string> = {
   "calc.freedom.horizonHint":
     "Padrão 90. Premissa de alto impacto — empurra o horizonte.",
   "calc.freedom.rateHint": "Padrão 4%. Não é uma recomendação de investimento.",
+  "calc.freedom.withdrawRate": "Rendimento real esperado na fase de saque",
+  "calc.freedom.withdrawRateHint":
+    "Padrão 2% ao ano. O patrimônio continua rendendo depois que você para de aportar.",
   "calc.freedom.chart.kicker": "A sua projeção",
   "calc.freedom.chart.peak": "Aos {age}, {amount}",
-  "calc.freedom.chart.note": "Patrimônio em {unit} de hoje · juro real {rate}% · motor do app",
+  "calc.freedom.chart.note":
+    "Patrimônio em {unit} de hoje · {rate}% enquanto guarda · {withdraw}% no saque · motor do app",
+  "calc.freedom.chart.accumulate": "Acumulação",
+  "calc.freedom.chart.withdraw": "Liberdade",
   "calc.freedom.resultLabel": "Com esses números, você fica livre",
   "calc.freedom.resultAge": "aos {n} anos",
   "calc.freedom.resultNow": "Pelo motor, o patamar já se sustenta a partir de agora.",

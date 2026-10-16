@@ -6,6 +6,7 @@ import {
   publicIndependencePlan,
   solveFreedomDate,
   solveRetirementIncome,
+  twoPhaseReturnOptions,
 } from "@/lib/calculators/independence";
 import {
   INSS_DEFAULTS,
@@ -83,7 +84,9 @@ describe("public solve wrappers call the engine", () => {
     const publicResult = solveFreedomDate(FREEDOM_DEFAULTS);
     const engineResult = solvePlan(
       publicIndependencePlan(FREEDOM_DEFAULTS),
-      "date"
+      "date",
+      (trial) =>
+        twoPhaseReturnOptions(trial, FREEDOM_DEFAULTS.withdrawalRealReturn)
     );
     expect(publicResult).toEqual(engineResult);
     expect(publicResult.feasible).toBe(true);

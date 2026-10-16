@@ -104,9 +104,8 @@ describe("lote 2 locale + calculator chart", () => {
     const page = readFileSync("app/calculadoras/quando-fico-livre/page.tsx", "utf8");
     const calc = readFileSync("components/calculators/FreedomCalculator.tsx", "utf8");
     expect(page).toContain("FreedomCalculator");
-    expect(calc).toContain("independenceChartSeries");
-    expect(calc).toContain("solveFreedomDate");
-    expect(calc).toContain("LandingHeroChart");
+    expect(calc).toContain("freedomChartSeries");
+    expect(calc).toContain("FreedomProjectionChart");
   });
 
   it("translates the landing headline in pt, en, and es", () => {

@@ -77,6 +77,13 @@ function parseIndependence(
       )
     ),
     realReturn: realPct / 100,
+    withdrawalRealReturn:
+      parseClampedNumber(
+        q.saque,
+        (defaults.withdrawalRealReturn ?? 0.02) * 100,
+        ASSUMPTIONS.realReturn.min,
+        ASSUMPTIONS.realReturn.max
+      ) / 100,
   };
 }
 

@@ -3,8 +3,13 @@ import {
   DEFAULT_PORTFOLIO_REAL_RETURN,
 } from "@/lib/engine/assumptions";
 import { defaultPlan, type EnginePlan } from "@/lib/engine/plan";
+import { annualToMonthly } from "@/lib/engine/rates";
+import type { ProjectOptions } from "@/lib/engine/project";
 import { solvePlan, type SolveResult } from "@/lib/engine/solve";
 import { PUBLIC_CALCULATOR_AS_OF } from "@/lib/calculators/seo";
+
+/** Real return after contributions stop. Public calculator default. */
+export const DEFAULT_WITHDRAWAL_REAL_RETURN = 0.02;
 
 export interface PublicIndependenceInput {
   currentAge: number;
@@ -14,6 +19,8 @@ export interface PublicIndependenceInput {
   retirementAge: number;
   lifeExpectancy: number;
   realReturn: number;
+  /** Real return while drawing down. Defaults to 2% on the freedom calculator. */
+  withdrawalRealReturn: number;
 }
 
 export const FREEDOM_DEFAULTS: PublicIndependenceInput = {
@@ -24,6 +31,7 @@ export const FREEDOM_DEFAULTS: PublicIndependenceInput = {
   retirementAge: 65,
   lifeExpectancy: DEFAULT_LIFE_EXPECTANCY_AGE,
   realReturn: DEFAULT_PORTFOLIO_REAL_RETURN,
+  withdrawalRealReturn: DEFAULT_WITHDRAWAL_REAL_RETURN,
 };
 
 export const INCOME_DEFAULTS: PublicIndependenceInput = {
@@ -34,6 +42,7 @@ export const INCOME_DEFAULTS: PublicIndependenceInput = {
   retirementAge: 65,
   lifeExpectancy: DEFAULT_LIFE_EXPECTANCY_AGE,
   realReturn: DEFAULT_PORTFOLIO_REAL_RETURN,
+  withdrawalRealReturn: DEFAULT_WITHDRAWAL_REAL_RETURN,
 };
 
 function toCents(reais: number): number {
@@ -59,9 +68,27 @@ export function publicIndependencePlan(
   });
 }
 
+/** Accumulation yield until retirementAge, withdrawal yield after. Same engine. */
+export function twoPhaseReturnOptions(
+  plan: EnginePlan,
+  withdrawalRealReturn = DEFAULT_WITHDRAWAL_REAL_RETURN
+): ProjectOptions {
+  const accum = annualToMonthly(plan.liquidRealReturn);
+  const withdraw = annualToMonthly(withdrawalRealReturn);
+  return {
+    liquidMonthlyReturnAt: (month) => {
+      const ageAtEnd = plan.currentAge + Math.ceil(month / 12);
+      return ageAtEnd >= plan.retirementAge ? withdraw : accum;
+    },
+  };
+}
+
 /** Contribution and lifestyle fixed; solve the earliest feasible retirement age. */
 export function solveFreedomDate(input: PublicIndependenceInput): SolveResult {
-  return solvePlan(publicIndependencePlan(input), "date");
+  const withdraw = input.withdrawalRealReturn;
+  return solvePlan(publicIndependencePlan(input), "date", (trial) =>
+    twoPhaseReturnOptions(trial, withdraw)
+  );
 }
 
 /** Retirement date fixed; solve the largest sustainable monthly spending. */

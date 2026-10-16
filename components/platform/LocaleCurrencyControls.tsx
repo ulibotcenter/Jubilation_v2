@@ -76,7 +76,7 @@ export function LocaleCurrencyControls({
               void applyCurrency(option.code);
             }}
           >
-            <span className="prefs-chip-label">{option.code}</span>
+            <span className="prefs-chip-label">{option.symbol}</span>
           </button>
         ))}
       </div>

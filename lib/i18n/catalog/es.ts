@@ -1073,9 +1073,15 @@ export const ES: Record<MessageKey, string> = {
   "calc.freedom.horizonHint":
     "Por defecto 90. Premisa de alto impacto — alarga el horizonte.",
   "calc.freedom.rateHint": "Por defecto 4%. No es una recomendación de inversión.",
+  "calc.freedom.withdrawRate": "Rendimiento real esperado en la fase de retiro",
+  "calc.freedom.withdrawRateHint":
+    "Por defecto 2% al año. El patrimonio sigue rindiendo cuando dejas de aportar.",
   "calc.freedom.chart.kicker": "Tu proyección",
   "calc.freedom.chart.peak": "A los {age}, {amount}",
-  "calc.freedom.chart.note": "Patrimonio en {unit} de hoy · interés real {rate}% · motor de la app",
+  "calc.freedom.chart.note":
+    "Patrimonio en {unit} de hoy · {rate}% mientras ahorras · {withdraw}% en el retiro · motor de la app",
+  "calc.freedom.chart.accumulate": "Acumulación",
+  "calc.freedom.chart.withdraw": "Libertad",
   "calc.freedom.resultLabel": "Con estos números, quedas libre",
   "calc.freedom.resultAge": "a los {n} años",
   "calc.freedom.resultNow": "Según el motor, el nivel ya se sostiene desde ahora.",

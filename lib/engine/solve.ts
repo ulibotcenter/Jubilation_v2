@@ -1,5 +1,9 @@
-import { projectPlan } from "@/lib/engine/project";
+import { projectPlan, type ProjectOptions } from "@/lib/engine/project";
 import type { EnginePlan } from "@/lib/engine/plan";
+
+export type SolveProjectOptions =
+  | ProjectOptions
+  | ((trial: EnginePlan) => ProjectOptions | undefined);
 
 export type SolveUnknown = "income" | "date" | "contribution";
 
@@ -10,8 +14,15 @@ export interface SolveResult {
   feasible: boolean;
 }
 
-function survives(plan: EnginePlan): boolean {
-  return projectPlan(plan).ruinAge == null;
+function projectOptions(
+  plan: EnginePlan,
+  options?: SolveProjectOptions
+): ProjectOptions | undefined {
+  return typeof options === "function" ? options(plan) : options;
+}
+
+function survives(plan: EnginePlan, options?: SolveProjectOptions): boolean {
+  return projectPlan(plan, projectOptions(plan, options)).ruinAge == null;
 }
 
 /** Smallest feasible x in [lo, hi]. Used for contribution. */
@@ -62,7 +73,11 @@ function bisectMax(
  * - date: earliest retirement age with contribution fixed
  * - contribution: monthly deposit needed with date and income fixed
  */
-export function solvePlan(plan: EnginePlan, unknown: SolveUnknown): SolveResult {
+export function solvePlan(
+  plan: EnginePlan,
+  unknown: SolveUnknown,
+  options?: SolveProjectOptions
+): SolveResult {
   if (unknown === "income") {
     const hi = Math.max(
       50_000_00,
@@ -73,11 +88,14 @@ export function solvePlan(plan: EnginePlan, unknown: SolveUnknown): SolveResult 
     // Spending of 0 falls through to lifestyle / 4% inside projectPlan.
     // Zero lifestyle and start at 1 cent so the search is the actual spend.
     const trial = (cents: number) =>
-      survives({
-        ...plan,
-        monthlySpendingCents: Math.round(cents),
-        monthlyLifestyleCents: 0,
-      });
+      survives(
+        {
+          ...plan,
+          monthlySpendingCents: Math.round(cents),
+          monthlyLifestyleCents: 0,
+        },
+        options
+      );
     const found = bisectMax(1, hi, trial);
     return {
       unknown,
@@ -90,7 +108,10 @@ export function solvePlan(plan: EnginePlan, unknown: SolveUnknown): SolveResult 
   if (unknown === "contribution") {
     const hi = Math.max(50_000_00, plan.monthlyContributionCents * 20, 1_000_00);
     const found = bisectMin(0, hi, (cents) =>
-      survives({ ...plan, monthlyContributionCents: Math.round(cents) })
+      survives(
+        { ...plan, monthlyContributionCents: Math.round(cents) },
+        options
+      )
     );
     return {
       unknown,
@@ -105,7 +126,7 @@ export function solvePlan(plan: EnginePlan, unknown: SolveUnknown): SolveResult 
   if (lo >= hi) {
     return { unknown, value: plan.retirementAge, iterations: 0, feasible: false };
   }
-  if (!survives({ ...plan, retirementAge: hi })) {
+  if (!survives({ ...plan, retirementAge: hi }, options)) {
     return { unknown, value: hi, iterations: 0, feasible: false };
   }
   let a = lo;
@@ -113,7 +134,7 @@ export function solvePlan(plan: EnginePlan, unknown: SolveUnknown): SolveResult 
   let i = 0;
   for (; i < 40; i++) {
     const mid = Math.floor((a + b) / 2);
-    if (survives({ ...plan, retirementAge: mid })) b = mid;
+    if (survives({ ...plan, retirementAge: mid }, options)) b = mid;
     else a = mid + 1;
     if (a >= b) break;
   }
