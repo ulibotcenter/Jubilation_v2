@@ -29,6 +29,14 @@ export const FREEDOM_PHASE_COLORS = {
   cursor: "rgba(15, 118, 110, 0.35)",
 } as const;
 
+/** Public freedom calculator stacked wealth: money in, compounding, draws. */
+export const FREEDOM_STACK_COLORS = {
+  contributions: "#2563eb",
+  returns: "#f59e0b",
+  withdrawals: "#e11d48",
+  cursor: "rgba(37, 99, 235, 0.12)",
+} as const;
+
 export const PROJECTION_COLORS = {
   base: "#ff7040",
   baseFill: "rgba(255, 112, 64, 0.28)",

@@ -1,17 +1,16 @@
 "use client";
 
-import { useId } from "react";
 import { useReducedMotion } from "framer-motion";
 import {
-  Area,
+  Bar,
+  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  AreaChart,
 } from "recharts";
-import { FREEDOM_PHASE_COLORS } from "@/lib/chartColors";
+import { FREEDOM_STACK_COLORS } from "@/lib/chartColors";
 import type { FreedomChartPoint } from "@/lib/calculators/chartSeries";
 import { htmlLang } from "@/lib/i18n/htmlLang";
 import type { AppLocale } from "@/lib/i18n/messages";
@@ -22,37 +21,73 @@ function formatAxis(value: number, currency: Currency, intlLocale: string) {
   return formatCurrencyValue(value, currency, true, intlLocale);
 }
 
-function PhaseTooltip({
+function StackTooltip({
   active,
   payload,
   label,
   currency,
   intlLocale,
   ageLabel,
-  accumulateLabel,
-  withdrawLabel,
+  contributionsLabel,
+  returnsLabel,
+  withdrawalsLabel,
+  wealthLabel,
 }: {
   active?: boolean;
-  payload?: Array<{ value?: number; dataKey?: string }>;
+  payload?: Array<{ value?: number; dataKey?: string; color?: string }>;
   label?: number;
   currency: Currency;
   intlLocale: string;
   ageLabel: (age: number) => string;
-  accumulateLabel: string;
-  withdrawLabel: string;
+  contributionsLabel: string;
+  returnsLabel: string;
+  withdrawalsLabel: string;
+  wealthLabel: string;
 }) {
-  if (!active || label == null) return null;
-  const accumulate = payload?.find((item) => item.dataKey === "accumulate");
-  const withdraw = payload?.find((item) => item.dataKey === "withdraw");
-  const value = withdraw?.value ?? accumulate?.value;
-  if (value == null) return null;
-  const phase = withdraw?.value != null ? withdrawLabel : accumulateLabel;
+  if (!active || label == null || !payload?.length) return null;
+  const valueOf = (key: string) =>
+    payload.find((item) => item.dataKey === key)?.value ?? 0;
+  const contributions = valueOf("contributions");
+  const returns = valueOf("returns");
+  const withdrawals = valueOf("withdrawals");
+  const wealth = contributions + returns;
+  const rows = [
+    {
+      key: "contributions",
+      label: contributionsLabel,
+      value: contributions,
+      color: FREEDOM_STACK_COLORS.contributions,
+    },
+    {
+      key: "returns",
+      label: returnsLabel,
+      value: returns,
+      color: FREEDOM_STACK_COLORS.returns,
+    },
+    {
+      key: "withdrawals",
+      label: withdrawalsLabel,
+      value: withdrawals,
+      color: FREEDOM_STACK_COLORS.withdrawals,
+    },
+  ];
   return (
     <div className="landing-chart-tooltip">
       <p className="landing-chart-tooltip-label">{ageLabel(label)}</p>
-      <p className="landing-chart-tooltip-phase">{phase}</p>
+      {rows.map((row) => (
+        <p key={row.key} className="landing-chart-tooltip-row">
+          <span
+            className="landing-chart-tooltip-swatch"
+            style={{ background: row.color }}
+            aria-hidden="true"
+          />
+          <span>{row.label}</span>
+          <span>{formatCurrencyValue(row.value, currency, false, intlLocale)}</span>
+        </p>
+      ))}
       <p className="landing-chart-tooltip-value">
-        {formatCurrencyValue(value, currency, false, intlLocale)}
+        {wealthLabel}{" "}
+        {formatCurrencyValue(wealth, currency, false, intlLocale)}
       </p>
     </div>
   );
@@ -66,8 +101,10 @@ export function FreedomProjectionChart({
   peakLabel,
   note,
   ageLabel,
-  accumulateLabel,
-  withdrawLabel,
+  contributionsLabel,
+  returnsLabel,
+  withdrawalsLabel,
+  wealthLabel,
 }: {
   series: FreedomChartPoint[];
   currency: Currency;
@@ -76,21 +113,21 @@ export function FreedomProjectionChart({
   peakLabel: string;
   note: string;
   ageLabel: (age: number) => string;
-  accumulateLabel: string;
-  withdrawLabel: string;
+  contributionsLabel: string;
+  returnsLabel: string;
+  withdrawalsLabel: string;
+  wealthLabel: string;
 }) {
   const reduced = useReducedMotion();
   const motion = chartMotion(reduced);
   const intlLocale = htmlLang(locale);
-  const fillRaw = useId();
-  const accFill = `freedomAccFill-${fillRaw.replace(/:/g, "")}`;
-  const wdFill = `freedomWdFill-${fillRaw.replace(/:/g, "")}`;
+  const c = FREEDOM_STACK_COLORS;
 
   return (
     <figure
-      className="landing-chart landing-chart--compact landing-chart--phases"
+      className="landing-chart landing-chart--compact landing-chart--stack"
       data-landing-chart="projection"
-      data-chart-phases="accumulate-withdraw"
+      data-chart-stack="contributions-returns-withdrawals"
     >
       <div className="landing-chart-head">
         <figcaption>
@@ -100,47 +137,27 @@ export function FreedomProjectionChart({
         <p className="landing-chart-note">{note}</p>
       </div>
       <ul className="landing-chart-legend">
-        <li data-phase="accumulate">
+        <li data-stack="contributions">
           <span className="landing-chart-swatch" aria-hidden="true" />
-          {accumulateLabel}
+          {contributionsLabel}
         </li>
-        <li data-phase="withdraw">
+        <li data-stack="returns">
           <span className="landing-chart-swatch" aria-hidden="true" />
-          {withdrawLabel}
+          {returnsLabel}
+        </li>
+        <li data-stack="withdrawals">
+          <span className="landing-chart-swatch" aria-hidden="true" />
+          {withdrawalsLabel}
         </li>
       </ul>
       <div className="landing-chart-plot" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
+          <BarChart
             data={series}
             margin={{ top: 12, right: 8, left: 4, bottom: 4 }}
+            barCategoryGap="18%"
+            barGap={0}
           >
-            <defs>
-              <linearGradient id={accFill} x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor={FREEDOM_PHASE_COLORS.accumulate}
-                  stopOpacity={0.38}
-                />
-                <stop
-                  offset="100%"
-                  stopColor={FREEDOM_PHASE_COLORS.accumulate}
-                  stopOpacity={0}
-                />
-              </linearGradient>
-              <linearGradient id={wdFill} x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor={FREEDOM_PHASE_COLORS.withdraw}
-                  stopOpacity={0.34}
-                />
-                <stop
-                  offset="100%"
-                  stopColor={FREEDOM_PHASE_COLORS.withdraw}
-                  stopOpacity={0}
-                />
-              </linearGradient>
-            </defs>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--chart-grid)"
@@ -165,41 +182,50 @@ export function FreedomProjectionChart({
             />
             <Tooltip
               content={
-                <PhaseTooltip
+                <StackTooltip
                   currency={currency}
                   intlLocale={intlLocale}
                   ageLabel={ageLabel}
-                  accumulateLabel={accumulateLabel}
-                  withdrawLabel={withdrawLabel}
+                  contributionsLabel={contributionsLabel}
+                  returnsLabel={returnsLabel}
+                  withdrawalsLabel={withdrawalsLabel}
+                  wealthLabel={wealthLabel}
                 />
               }
-              cursor={{ stroke: FREEDOM_PHASE_COLORS.cursor, strokeWidth: 1 }}
+              cursor={{ fill: c.cursor }}
             />
-            <Area
-              type="monotone"
-              dataKey="accumulate"
-              name={accumulateLabel}
-              stroke={FREEDOM_PHASE_COLORS.accumulate}
-              strokeWidth={2.5}
-              fill={`url(#${accFill})`}
-              connectNulls={false}
+            <Bar
+              dataKey="contributions"
+              name={contributionsLabel}
+              stackId="wealth"
+              fill={c.contributions}
+              maxBarSize={22}
               isAnimationActive={motion.isAnimationActive}
-              animationDuration={reduced ? 0 : 900}
+              animationDuration={reduced ? 0 : 280}
               animationEasing={motion.animationEasing}
             />
-            <Area
-              type="monotone"
-              dataKey="withdraw"
-              name={withdrawLabel}
-              stroke={FREEDOM_PHASE_COLORS.withdraw}
-              strokeWidth={2.5}
-              fill={`url(#${wdFill})`}
-              connectNulls={false}
+            <Bar
+              dataKey="returns"
+              name={returnsLabel}
+              stackId="wealth"
+              fill={c.returns}
+              maxBarSize={22}
               isAnimationActive={motion.isAnimationActive}
-              animationDuration={reduced ? 0 : 900}
+              animationDuration={reduced ? 0 : 280}
               animationEasing={motion.animationEasing}
             />
-          </AreaChart>
+            <Bar
+              dataKey="withdrawals"
+              name={withdrawalsLabel}
+              stackId="wealth"
+              fill={c.withdrawals}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={22}
+              isAnimationActive={motion.isAnimationActive}
+              animationDuration={reduced ? 0 : 280}
+              animationEasing={motion.animationEasing}
+            />
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </figure>
