@@ -8,7 +8,7 @@ import {
 import { projectPlan, projectYears } from "@/lib/engine/project";
 import { convertAmount } from "@/lib/fx/convert";
 import type { FxRates } from "@/lib/fx/types";
-import type { Currency } from "@/types";
+import type { Currency, ProjectionYear } from "@/types";
 import type { SolveResult } from "@/lib/engine/solve";
 
 export type IndependenceChartPoint = { age: number; wealth: number };
@@ -18,6 +18,12 @@ export type FreedomChartPoint = {
   wealth: number;
   accumulate: number | null;
   withdraw: number | null;
+  /** Remaining money in (seed + contributions), scaled to current wealth. */
+  contributions: number;
+  /** Remaining compound interest, scaled to current wealth. */
+  returns: number;
+  /** Cumulative freedom-phase portfolio draws (0 while contributing). */
+  withdrawals: number;
 };
 
 /**
@@ -67,20 +73,79 @@ export function freedomChartSeries(input: PublicIndependenceInput): {
     )
   ).years;
 
-  const series: FreedomChartPoint[] = years.map((row) => {
-    const withdrawing = row.age >= freedomAge;
+  const series: FreedomChartPoint[] = stackFreedomChart(years, freedomAge);
+  const split = series.find((point) => point.age === freedomAge);
+  if (split) split.accumulate = split.wealth;
+
+  return { series, result, freedomAge };
+}
+
+/**
+ * Visual layers from an already-solved yearly projection.
+ * Does not call the solver. Remaining contributions + remaining returns
+ * always equal current wealth; withdrawals accumulate only after freedom.
+ */
+export function stackFreedomChart(
+  years: ProjectionYear[],
+  freedomAge: number
+): FreedomChartPoint[] {
+  let contribPool = 0;
+  let returnPool = 0;
+  let cumWithdrawals = 0;
+  let prevWealth = 0;
+
+  return years.map((row, index) => {
     const wealth = row.portfolioValue;
+    const withdrawing = row.age >= freedomAge;
+
+    if (index === 0) {
+      contribPool = Math.max(0, wealth);
+      returnPool = 0;
+      prevWealth = wealth;
+      return {
+        age: row.age,
+        wealth,
+        accumulate: wealth,
+        withdraw: withdrawing ? wealth : null,
+        contributions: contribPool,
+        returns: 0,
+        withdrawals: 0,
+      };
+    }
+
+    contribPool += Math.max(0, row.contributions);
+    returnPool += row.returns;
+
+    const expected = prevWealth + row.contributions + row.returns;
+    const drawn = Math.max(0, expected - wealth);
+    if (withdrawing) cumWithdrawals += drawn;
+
+    const pool = contribPool + returnPool;
+    if (pool > 0 && wealth > 0) {
+      const scale = wealth / pool;
+      contribPool *= scale;
+      returnPool *= scale;
+    } else if (wealth <= 0) {
+      contribPool = 0;
+      returnPool = 0;
+    }
+
+    const contributions = Math.max(0, contribPool);
+    const returns = Math.max(0, wealth - contributions);
+    contribPool = contributions;
+    returnPool = returns;
+    prevWealth = wealth;
+
     return {
       age: row.age,
       wealth,
       accumulate: withdrawing ? null : wealth,
       withdraw: withdrawing ? wealth : null,
+      contributions,
+      returns,
+      withdrawals: withdrawing ? cumWithdrawals : 0,
     };
   });
-  const split = series.find((point) => point.age === freedomAge);
-  if (split) split.accumulate = split.wealth;
-
-  return { series, result, freedomAge };
 }
 
 export function convertChartSeries(

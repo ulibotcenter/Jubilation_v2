@@ -193,8 +193,10 @@ export function FreedomCalculator({
           withdraw: withdrawPct,
         })}
         ageLabel={(age) => t("landing.chart.tooltipAge", { age })}
-        accumulateLabel={t("calc.freedom.chart.accumulate")}
-        withdrawLabel={t("calc.freedom.chart.withdraw")}
+        contributionsLabel={t("calc.freedom.chart.contributions")}
+        returnsLabel={t("calc.freedom.chart.returns")}
+        withdrawalsLabel={t("calc.freedom.chart.withdrawals")}
+        wealthLabel={t("calc.freedom.chart.remaining")}
       />
 
       <section className="public-result card-surface" aria-live="polite">
