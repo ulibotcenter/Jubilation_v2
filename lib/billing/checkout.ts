@@ -9,8 +9,8 @@ const STRIPE_LOCALE: Record<BillingCurrency, string> = {
 export interface CreateCheckoutInput {
   secretKey: string;
   offer: CheckoutPrice;
-  userId: string;
-  email: string;
+  userId?: string | null;
+  email?: string | null;
   customerId?: string | null;
   successUrl: string;
   cancelUrl: string;
@@ -25,22 +25,26 @@ export async function createStripeCheckoutSession(
   body.set("line_items[0][quantity]", "1");
   body.set("success_url", input.successUrl);
   body.set("cancel_url", input.cancelUrl);
-  body.set("client_reference_id", input.userId);
   body.set("locale", STRIPE_LOCALE[input.offer.currency]);
-  body.set("metadata[userId]", input.userId);
+  const userId = input.userId?.trim() ?? "";
+  if (userId) {
+    body.set("client_reference_id", userId);
+    body.set("metadata[userId]", userId);
+    body.set("subscription_data[metadata][userId]", userId);
+  }
   body.set("metadata[planTier]", input.offer.plan);
   body.set("metadata[offerId]", input.offer.id);
   body.set("metadata[priceId]", input.offer.priceId);
   body.set("metadata[currency]", input.offer.currency);
-  body.set("subscription_data[metadata][userId]", input.userId);
   body.set("subscription_data[metadata][planTier]", input.offer.plan);
   body.set("subscription_data[metadata][offerId]", input.offer.id);
   body.set("subscription_data[metadata][priceId]", input.offer.priceId);
   body.set("subscription_data[metadata][currency]", input.offer.currency);
+  const email = input.email?.trim() ?? "";
   if (input.customerId) {
     body.set("customer", input.customerId);
-  } else {
-    body.set("customer_email", input.email);
+  } else if (email) {
+    body.set("customer_email", email);
   }
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {

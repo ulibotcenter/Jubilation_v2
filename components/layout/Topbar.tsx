@@ -85,7 +85,7 @@ export function Topbar() {
   };
 
   const handleUpgrade = () => {
-    router.push("/upgrade");
+    router.push("/planos");
   };
 
   const handleSignIn = () => {

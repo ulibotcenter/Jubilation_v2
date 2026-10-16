@@ -4,23 +4,25 @@ import {
   type BillingCurrency,
   type BillingOfferId,
 } from "@/lib/billing/catalog";
-import { cloudAuthConfig } from "@/lib/cloud/config";
 import type { PlanTier } from "@/lib/plans";
 
 export type { BillingCurrency, BillingOfferId };
 
 /**
- * Optional Stripe billing. Off unless the secret, webhook secret, and at least
- * one STRIPE_PRICE_* id exist — and the cloud account (Postgres) is on, because
- * PlanTier is stored on the server, not in the browser.
+ * Optional Stripe billing. Checkout is on when STRIPE_SECRET_KEY is set and at
+ * least one Stripe Price id below is set. STRIPE_WEBHOOK_SECRET, monthly
+ * prices, USD/EUR prices, and the cloud account are not required for the two
+ * yearly cards to open Checkout. The webhook still refuses to grant a plan
+ * without its own secret. PlanTier changes only after that webhook, on the
+ * server.
  *
- * Prefer a Stripe account in Brazil. The same two products (Individual,
- * Couple) hold Price objects in BRL, USD, and EUR. Do not require a US entity.
- * Do not create nine products.
+ * Prefer a Stripe account in Brazil. The same two products (Básico / premium,
+ * Completo / horizon) hold Price objects. Do not require a US entity. Do not
+ * create a third product. STRIPE_PRICE_COMPLETO_CONJUGE is not an offer.
  *
  * Amounts in STRIPE_PRICE_*_AMOUNT (and *_USD_AMOUNT / *_EUR_AMOUNT) are
- * display placeholders. Checkout always charges the Stripe Price object
- * that matches the user's display currency.
+ * display placeholders. Checkout charges the Price for the display currency
+ * when that id exists, and otherwise the BRL yearly Price.
  */
 export type BillingDisabledReason = "missing_env" | "cloud_required" | "disabled";
 
@@ -89,14 +91,21 @@ export const BILLING_OFFER_IDS = Object.keys(OFFER_META) as BillingOfferId[];
 
 /**
  * First non-empty wins. Unsuffixed names stay the BRL slots so existing
- * deployments keep working. `_BRL` is accepted as an explicit alias.
+ * deployments keep working. `_BRL` is an explicit alias.
+ * `STRIPE_PRICE_BASICO` is the Básico / premium yearly alias.
+ * `STRIPE_PRICE_COMPLETO` is the Completo / horizon yearly alias.
+ * `STRIPE_PRICE_COMPLETO_CONJUGE` is not read.
  */
 const PRICE_ENV: Record<
   BillingOfferId,
   Record<BillingCurrency, readonly string[]>
 > = {
   premium_yearly: {
-    brl: ["STRIPE_PRICE_PREMIUM_YEARLY", "STRIPE_PRICE_PREMIUM_YEARLY_BRL"],
+    brl: [
+      "STRIPE_PRICE_PREMIUM_YEARLY",
+      "STRIPE_PRICE_PREMIUM_YEARLY_BRL",
+      "STRIPE_PRICE_BASICO",
+    ],
     usd: ["STRIPE_PRICE_PREMIUM_YEARLY_USD"],
     eur: ["STRIPE_PRICE_PREMIUM_YEARLY_EUR"],
   },
@@ -106,7 +115,11 @@ const PRICE_ENV: Record<
     eur: ["STRIPE_PRICE_PREMIUM_MONTHLY_EUR"],
   },
   horizon_yearly: {
-    brl: ["STRIPE_PRICE_HORIZON_YEARLY", "STRIPE_PRICE_HORIZON_YEARLY_BRL"],
+    brl: [
+      "STRIPE_PRICE_HORIZON_YEARLY",
+      "STRIPE_PRICE_HORIZON_YEARLY_BRL",
+      "STRIPE_PRICE_COMPLETO",
+    ],
     usd: ["STRIPE_PRICE_HORIZON_YEARLY_USD"],
     eur: ["STRIPE_PRICE_HORIZON_YEARLY_EUR"],
   },
@@ -222,6 +235,21 @@ export function parseBillingOffers(
   return offers;
 }
 
+/**
+ * Exact currency first. Yearly Básico and Completo fall back to the BRL Price
+ * (then any configured Price) so those cards stay clickable without USD/EUR ids.
+ * Monthly has no fallback.
+ */
+export function slotForCheckout(
+  offer: BillingOffer,
+  currency: BillingCurrency
+): BillingPriceSlot | undefined {
+  const exact = offer.prices.find((item) => item.currency === currency);
+  if (exact) return exact;
+  if (offer.interval !== "year") return undefined;
+  return offer.prices.find((item) => item.currency === "brl") ?? offer.prices[0];
+}
+
 export function resolveCheckoutPrice(
   offers: BillingOffer[],
   offerId: string,
@@ -229,7 +257,7 @@ export function resolveCheckoutPrice(
 ): CheckoutPrice | null {
   const offer = offers.find((item) => item.id === offerId);
   if (!offer) return null;
-  const slot = offer.prices.find((item) => item.currency === currency);
+  const slot = slotForCheckout(offer, currency);
   if (!slot) return null;
   return {
     id: offer.id,
@@ -249,8 +277,7 @@ export function billingConfig(
   const currency = (env.STRIPE_CURRENCY ?? "brl").trim().toLowerCase() || "brl";
   const offers = parseBillingOffers(env);
   const killed = flagOff(env.BILLING) || flagOff(env.STRIPE);
-  const hasStripe =
-    secretKey.length > 0 && webhookSecret.length > 0 && offers.length > 0;
+  const hasStripe = secretKey.length > 0 && offers.length > 0;
 
   if (killed) {
     return {
@@ -267,17 +294,6 @@ export function billingConfig(
     return {
       enabled: false,
       reason: "missing_env",
-      secretKey: "",
-      webhookSecret: "",
-      currency,
-      offers,
-    };
-  }
-
-  if (!cloudAuthConfig(env).enabled) {
-    return {
-      enabled: false,
-      reason: "cloud_required",
       secretKey: "",
       webhookSecret: "",
       currency,
@@ -315,8 +331,7 @@ export function publicBillingStatus(
           currency,
           unitAmount: displayAmountCents(env, id, currency),
           checkoutReady: Boolean(
-            cfg.enabled &&
-              live?.prices.some((slot) => slot.currency === currency)
+            cfg.enabled && live && slotForCheckout(live, currency)
           ),
         })),
       };

@@ -16,6 +16,12 @@ export async function POST(request: NextRequest) {
       { status: 503 }
     );
   }
+  if (!cfg.webhookSecret) {
+    return NextResponse.json(
+      { error: "webhook_unconfigured", enabled: true },
+      { status: 503 }
+    );
+  }
 
   const payload = await request.text();
   const signature = request.headers.get("stripe-signature");

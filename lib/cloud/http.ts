@@ -56,6 +56,18 @@ export async function requireUser(
   return user;
 }
 
+/** Signed-in account when cloud auth is on. Checkout still runs without one. */
+export async function optionalUser(request: NextRequest): Promise<AuthUser | null> {
+  if (!requireCloudConfig()) return null;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    return await userFromSessionToken(token);
+  } catch {
+    return null;
+  }
+}
+
 export function isAuthUser(value: AuthUser | NextResponse): value is AuthUser {
   return !(value instanceof NextResponse);
 }

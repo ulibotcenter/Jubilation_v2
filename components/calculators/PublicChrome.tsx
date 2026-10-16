@@ -26,7 +26,7 @@ export function PublicChrome({ children }: { children: ReactNode }) {
             <span>Calculadoras públicas</span>
           </span>
         </Link>
-        <Link href="/upgrade" className="btn-primary public-header-cta">
+        <Link href="/planos" className="btn-primary public-header-cta">
           Ver planos
         </Link>
       </header>
@@ -41,7 +41,7 @@ export function PublicChrome({ children }: { children: ReactNode }) {
           {" · "}
           <Link href={TERMS_PATH}>Termos — planejamento, não consultoria</Link>
           {" · "}
-          <Link href="/upgrade">Básico e Completo</Link>
+          <Link href="/planos">Básico e Completo</Link>
           {" · "}
           <Link href="/settings#cloud-account">Criar conta</Link>
         </p>
