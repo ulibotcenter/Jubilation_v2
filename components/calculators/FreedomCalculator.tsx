@@ -7,10 +7,11 @@ import {
   NumberField,
 } from "@/components/calculators/CalculatorForm";
 import { RelatedCalculators } from "@/components/calculators/RelatedCalculators";
-import { FreedomProjectionChart } from "@/components/calculators/FreedomProjectionChart";
+import { ProjectionChart } from "@/components/ProjectionChart";
 import {
   chartPeakWealth,
   freedomChartSeries,
+  toProjectionChartData,
 } from "@/lib/calculators/chartSeries";
 import { PUBLIC_ENGINE_NOTE } from "@/lib/calculators/copy";
 import { parseFreedomInput } from "@/lib/calculators/parse";
@@ -75,6 +76,7 @@ export function FreedomCalculator({
     () => freedomChartSeries(input),
     [input]
   );
+  const data = useMemo(() => toProjectionChartData(series), [series]);
   const intlLocale = htmlLang(locale);
   const symbol = CURRENCY_SYMBOLS[currency];
   const unit = t(
@@ -178,8 +180,8 @@ export function FreedomCalculator({
         />
       </CalculatorForm>
 
-      <FreedomProjectionChart
-        series={series}
+      <ProjectionChart
+        data={data}
         currency={currency}
         locale={locale}
         kicker={t("calc.freedom.chart.kicker")}
@@ -193,10 +195,10 @@ export function FreedomCalculator({
           withdraw: withdrawPct,
         })}
         ageLabel={(age) => t("landing.chart.tooltipAge", { age })}
-        contributionsLabel={t("calc.freedom.chart.contributions")}
-        returnsLabel={t("calc.freedom.chart.returns")}
-        withdrawalsLabel={t("calc.freedom.chart.withdrawals")}
-        wealthLabel={t("calc.freedom.chart.remaining")}
+        aportesLabel={t("calc.freedom.chart.contributions")}
+        rendimentosLabel={t("calc.freedom.chart.returns")}
+        saquesLabel={t("calc.freedom.chart.withdrawals")}
+        patrimonioLabel={t("calc.freedom.chart.remaining")}
       />
 
       <section className="public-result card-surface" aria-live="polite">

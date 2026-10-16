@@ -34,7 +34,7 @@ describe("lote 2 area + line freedom chart", () => {
     expect(chart).not.toContain("BarChart");
     expect(chart).not.toContain("<Bar");
     const calc = readFileSync("components/calculators/FreedomCalculator.tsx", "utf8");
-    expect(calc).toContain("FreedomProjectionChart");
+    expect(calc).toContain("ProjectionChart");
     const form = readFileSync("components/calculators/CalculatorForm.tsx", "utf8");
     expect(form).toContain("NumberField");
   });

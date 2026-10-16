@@ -94,7 +94,7 @@ describe("lote 2 premium monotone freedom chart", () => {
 
     const calc = readFileSync("components/calculators/FreedomCalculator.tsx", "utf8");
     expect(calc).toContain("useMemo(\n    () => freedomChartSeries(input)");
-    expect(calc).toContain("FreedomProjectionChart");
+    expect(calc).toContain("ProjectionChart");
     const form = readFileSync("components/calculators/CalculatorForm.tsx", "utf8");
     expect(form).toContain("NumberField");
   });
