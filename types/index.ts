@@ -48,6 +48,7 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
 // this alias exists so UserProfile and the store share one enum.
 
 import type { PlanTier } from "@/lib/plans";
+import { DASHBOARD_PATH, DASHBOARD_PORTFOLIO_PATH } from "@/lib/routes";
 export type { PlanTier };
 
 // ─── Navigation ────────────────────────────────────────────
@@ -73,14 +74,14 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "dashboard",
     label: "Dashboard",
-    href: "/",
+    href: DASHBOARD_PATH,
     icon: "LayoutDashboard",
     showInSidebar: true,
   },
   {
     id: "portfolio",
     label: "Portfolio",
-    href: "/#portfolio",
+    href: DASHBOARD_PORTFOLIO_PATH,
     icon: "Briefcase",
     showInSidebar: true,
   },

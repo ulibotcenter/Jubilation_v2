@@ -1,98 +1,110 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { FIMilestonesCard } from "@/components/dashboard/FIMilestonesCard";
-import { NetWorthHistoryCard } from "@/components/dashboard/NetWorthHistoryCard";
-import { ProjectionChartCard } from "@/components/dashboard/ProjectionChartCard";
-import { RebalanceCard } from "@/components/dashboard/RebalanceCard";
-import { RetirementHero } from "@/components/dashboard/RetirementHero";
-import { KPICards } from "@/components/dashboard/KPICards";
-import { OriginTotalsStrip } from "@/components/dashboard/OriginTotalsStrip";
-import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
-import { AppShell } from "@/components/layout/AppShell";
-import { PlannerGate } from "@/components/plans/PlannerGate";
-import { NeedleDeltaCard } from "@/components/platform/NeedleDeltaCard";
-import { SensitivityPanel } from "@/components/platform/SensitivityPanel";
-import { ShareSnapshotButton } from "@/components/platform/ShareSnapshotButton";
-import { TaxPreviewCard } from "@/components/tax/TaxPreviewCard";
-import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useAppStore } from "@/store/useAppStore";
+import { LandingHeroChart } from "@/components/landing/LandingHeroChart";
+import { CALCULATOR_PATHS, SITE_URL } from "@/lib/calculators/seo";
+import {
+  LANDING_HORIZON_AGE,
+  LANDING_SAMPLE_SERIES,
+  LANDING_WEALTH_AT_HORIZON,
+  landingCalculatorHref,
+} from "@/lib/landing/sampleProjection";
+import { PRIVACY_PATH } from "@/lib/privacy/local";
+import { DASHBOARD_PATH, PLANS_PATH } from "@/lib/routes";
 
-function RealProjectionSection() {
-  const { t } = useTranslation();
-  const chartData = useAppStore((s) => s.chartData);
-  const projections = useAppStore((s) => s.projections);
-  const kpis = useAppStore((s) => s.kpis);
-  const currency = useAppStore((s) => s.currency);
-  const projectionRevision = useAppStore((s) => s.projectionRevision);
+const TITLE = "Simule sua liberdade";
+const DESCRIPTION =
+  "Clareza e escolha sobre o futuro: veja o patrimônio crescer e personalize o plano com o motor do Jubilation.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: SITE_URL,
+    siteName: "Jubilation",
+    title: `${TITLE} — Jubilation`,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${TITLE} — Jubilation`,
+    description: DESCRIPTION,
+  },
+};
+
+export default function LandingPage() {
+  const calculatorHref = landingCalculatorHref();
 
   return (
-    <section className="mb-5 sm:mb-6" id="projection">
-      <ProjectionChartCard
-        mode="real"
-        title={t("dashboard.projection.title")}
-        subtitle={t("dashboard.projection.subtitle")}
-        chartData={chartData}
-        projections={projections}
-        kpis={kpis}
-        currency={currency}
-        projectionRevision={projectionRevision}
-        compact
-      />
-      <div className="flex flex-wrap justify-end gap-2 mt-3">
-        <ShareSnapshotButton />
-        <Link href="/simulation" className="dashboard-cta-link">
-          {t("dashboard.cta.simulation")}
-          <ArrowRight className="w-3.5 h-3.5" size={14} />
+    <div className="landing-page">
+      <header className="landing-header">
+        <Link href="/" className="landing-brand">
+          <span className="landing-brand-mark" aria-hidden="true">
+            J
+          </span>
+          <span className="landing-brand-text">
+            <strong>Jubilation</strong>
+            <span>Simule sua liberdade</span>
+          </span>
         </Link>
-      </div>
-    </section>
-  );
-}
+        <nav className="landing-nav" aria-label="Principal">
+          <Link href={DASHBOARD_PATH} data-landing-nav="painel">
+            Painel
+          </Link>
+          <Link href={CALCULATOR_PATHS.index} data-landing-nav="calculadoras">
+            Calculadoras
+          </Link>
+          <Link href={PLANS_PATH} data-landing-nav="planos">
+            Planos
+          </Link>
+        </nav>
+      </header>
 
-export default function DashboardPage() {
-  const { t } = useTranslation();
-
-  return (
-    <AppShell enableHashSync>
-      <PlannerGate>
-      <RetirementHero />
-
-      <OriginTotalsStrip />
-
-      <section className="mb-5 sm:mb-6" id="dashboard">
-        <KPICards mode="real" />
-      </section>
-
-      <section className="mb-5 sm:mb-6">
-        <NeedleDeltaCard />
-      </section>
-
-      <section className="mb-5 sm:mb-6">
-        <FIMilestonesCard />
-      </section>
-
-      <section className="mb-5 sm:mb-6 dashboard-insights-grid">
-        <SensitivityPanel />
-        <TaxPreviewCard />
-        <NetWorthHistoryCard />
-        <RebalanceCard />
-      </section>
-
-      <RealProjectionSection />
-
-      <section id="portfolio" className="scroll-mt-6 mb-6">
-        <div className="flex items-center justify-between mb-3 px-0.5">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            {t("portfolio.section.title")}
-          </h2>
+      <main className="landing-hero">
+        <div className="landing-copy">
+          <p className="landing-kicker">Planejamento em reais de hoje</p>
+          <h1 className="landing-headline">{TITLE}</h1>
+          <p className="landing-subhead">
+            Clareza sobre o que você constrói, e a escolha de como chegar lá.
+            Veja o patrimônio crescer — e personalize até o plano ser seu.
+          </p>
+          <div className="landing-cta-row">
+            <Link
+              href={calculatorHref}
+              className="btn-primary"
+              data-landing-cta="personalizar"
+            >
+              Personalizar o meu
+            </Link>
+            <Link
+              href={PLANS_PATH}
+              className="btn-secondary"
+              data-landing-cta="planos"
+            >
+              Ver os planos
+            </Link>
+          </div>
         </div>
-        <div className="card-surface p-4 sm:p-6">
-          <RealPortfolio />
-        </div>
-      </section>
-      </PlannerGate>
-    </AppShell>
+
+        <LandingHeroChart
+          series={LANDING_SAMPLE_SERIES}
+          horizonAge={LANDING_HORIZON_AGE}
+          peakWealth={LANDING_WEALTH_AT_HORIZON}
+        />
+      </main>
+
+      <footer className="landing-footer">
+        <p>Jubilation · planejamento, não consultoria</p>
+        <p className="landing-footer-links">
+          <Link href={CALCULATOR_PATHS.index}>Calculadoras</Link>
+          {" · "}
+          <Link href={PLANS_PATH}>Planos</Link>
+          {" · "}
+          <Link href={PRIVACY_PATH}>O que é guardado</Link>
+        </p>
+      </footer>
+    </div>
   );
 }

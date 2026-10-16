@@ -1,3 +1,4 @@
+import { DASHBOARD_PATH } from "@/lib/routes";
 import type { DashboardTab, NavItemId } from "@/types";
 
 export interface NavigationActions {
@@ -34,4 +35,13 @@ export function syncNavFromHash(
     return true;
   }
   return false;
+}
+
+export function navIdFromPathname(pathname: string): NavItemId {
+  if (pathname.startsWith("/simulation")) return "simulation";
+  if (pathname.startsWith("/cash-flow")) return "cashflow";
+  if (pathname.startsWith("/settings")) return "settings";
+  if (pathname.startsWith("/help")) return "help";
+  if (pathname.startsWith(DASHBOARD_PATH)) return "dashboard";
+  return "dashboard";
 }
