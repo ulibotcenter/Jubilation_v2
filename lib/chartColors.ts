@@ -29,19 +29,24 @@ export const FREEDOM_PHASE_COLORS = {
   cursor: "rgba(15, 118, 110, 0.35)",
 } as const;
 
-/** Public freedom calculator: teal wealth line over gradient stacked areas. */
+/** Public freedom calculator: teal wealth line over dusty stacked journey areas. */
 export const FREEDOM_AREA_COLORS = {
   line: "#0F766E",
-  contributions: "#93C5FD",
-  returns: "#FCD34D",
-  withdrawals: "#FCA5A5",
-  contribFrom: 0.52,
-  contribTo: 0.12,
-  returnsFrom: 0.44,
-  returnsTo: 0.1,
-  withdrawFrom: 0.58,
-  withdrawTo: 0.16,
+  contributions: "#A3B9C9",
+  returns: "#D6C190",
+  withdrawals: "#DDB0AB",
+  contribFrom: 0.92,
+  contribTo: 0.78,
+  returnsFrom: 0.9,
+  returnsTo: 0.74,
+  withdrawFrom: 0.88,
+  withdrawTo: 0.7,
   cursor: "rgba(15, 118, 110, 0.18)",
+  pale: "#C5D0D8",
+  title: "#1B365D",
+  subtitle: "#8A9AA8",
+  grid: "rgba(148, 163, 175, 0.38)",
+  axis: "#9AA3A8",
 } as const;
 
 export const PROJECTION_COLORS = {

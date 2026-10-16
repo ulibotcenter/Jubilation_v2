@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { freedomChartSeries } from "@/lib/calculators/chartSeries";
+import {
+  freedomChartSeries,
+  freedomProjection,
+  stackFreedomChart,
+} from "@/lib/calculators/chartSeries";
 import {
   FREEDOM_DEFAULTS,
   solveFreedomDate,
@@ -21,23 +25,15 @@ describe("lote 2 premium monotone freedom chart", () => {
   });
 
   it("uses the requested teal line and translucent stacked fills", () => {
-    expect(FREEDOM_AREA_COLORS).toEqual({
-      line: "#0F766E",
-      contributions: "#93C5FD",
-      returns: "#FCD34D",
-      withdrawals: "#FCA5A5",
-      contribFrom: 0.52,
-      contribTo: 0.12,
-      returnsFrom: 0.44,
-      returnsTo: 0.1,
-      withdrawFrom: 0.58,
-      withdrawTo: 0.16,
-      cursor: "rgba(15, 118, 110, 0.18)",
-    });
+    expect(FREEDOM_AREA_COLORS.line).toBe("#0F766E");
+    expect(FREEDOM_AREA_COLORS.contributions).toBe("#A3B9C9");
+    expect(FREEDOM_AREA_COLORS.returns).toBe("#D6C190");
+    expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#DDB0AB");
   });
 
   it("stacks visual layers under wealth, with coral only after freedom", () => {
-    const { series, freedomAge } = freedomChartSeries(FREEDOM_DEFAULTS);
+    const { years, freedomAge } = freedomProjection(FREEDOM_DEFAULTS);
+    const series = stackFreedomChart(years, freedomAge);
     for (const point of series) {
       const layers = layersUnderWealth(point);
       expect(layers.blueTop + (layers.goldTop - layers.blueTop) + layers.coral).toBeCloseTo(
@@ -56,7 +52,8 @@ describe("lote 2 premium monotone freedom chart", () => {
   });
 
   it("densifies yearly knots into a smoother monotone path", () => {
-    const { series } = freedomChartSeries(FREEDOM_DEFAULTS);
+    const { years, freedomAge } = freedomProjection(FREEDOM_DEFAULTS);
+    const series = stackFreedomChart(years, freedomAge);
     const plot = densifyMonotone(series, 12);
     expect(plot.length).toBeGreaterThan(series.length * 8);
     for (const point of series) {
