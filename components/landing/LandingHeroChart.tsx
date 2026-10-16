@@ -73,7 +73,8 @@ export function LandingHeroChart({
   const reduced = useReducedMotion();
   const motion = chartMotion(reduced);
   const intlLocale = htmlLang(locale);
-  const fillId = `landingWealthFill-${useId().replace(/:/g, "")}`;
+  const fillRaw = useId();
+  const fillId = `landingWealthFill-${fillRaw.replace(/:/g, "")}`;
 
   return (
     <figure
