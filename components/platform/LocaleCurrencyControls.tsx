@@ -35,7 +35,7 @@ export function LocaleCurrencyControls({
       data-landing-prefs="locale-currency"
     >
       <div
-        className="prefs-segment"
+        className="prefs-segment prefs-segment--locale"
         role="radiogroup"
         aria-label={t("locale.aria.select")}
       >

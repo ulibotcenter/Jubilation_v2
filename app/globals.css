@@ -5854,7 +5854,7 @@ html.light .add-asset-modal {
 
 .landing-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
     "brand prefs"
     "nav nav";
@@ -5887,6 +5887,7 @@ html.light .add-asset-modal {
   align-items: center;
   gap: 0.7rem;
   min-width: 0;
+  flex-shrink: 0;
   text-decoration: none;
   color: inherit;
 }
@@ -5913,6 +5914,7 @@ html.light .add-asset-modal {
 
 .landing-brand-text strong {
   font-size: 1rem;
+  white-space: nowrap;
 }
 
 .landing-brand-text span {
@@ -6114,6 +6116,14 @@ html.light .add-asset-modal {
 
   .landing-brand-text span {
     display: none;
+  }
+
+  .prefs-segment--locale .prefs-chip-label {
+    display: none;
+  }
+
+  .prefs-chip {
+    padding: 0.2rem 0.32rem;
   }
 }
 

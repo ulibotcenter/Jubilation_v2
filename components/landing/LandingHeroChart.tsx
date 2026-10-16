@@ -118,7 +118,8 @@ export function LandingHeroChart({
               tick={{ fontSize: 11, fill: "var(--chart-tick)" }}
               axisLine={{ stroke: "var(--chart-axis)" }}
               tickLine={false}
-              interval="preserveStartEnd"
+              minTickGap={28}
+              interval="equidistantPreserveStart"
             />
             <YAxis
               tickFormatter={(value: number) =>
