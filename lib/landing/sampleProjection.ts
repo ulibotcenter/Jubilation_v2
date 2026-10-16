@@ -2,7 +2,10 @@ import {
   independenceChartSeries,
   type IndependenceChartPoint,
 } from "@/lib/calculators/chartSeries";
-import { type PublicIndependenceInput } from "@/lib/calculators/independence";
+import {
+  DEFAULT_WITHDRAWAL_REAL_RETURN,
+  type PublicIndependenceInput,
+} from "@/lib/calculators/independence";
 import { CALCULATOR_PATHS } from "@/lib/calculators/seo";
 import {
   DEFAULT_LIFE_EXPECTANCY_AGE,
@@ -24,6 +27,7 @@ export const LANDING_SAMPLE_INPUT: PublicIndependenceInput = {
   retirementAge: LANDING_HORIZON_AGE,
   lifeExpectancy: DEFAULT_LIFE_EXPECTANCY_AGE,
   realReturn: DEFAULT_PORTFOLIO_REAL_RETURN,
+  withdrawalRealReturn: DEFAULT_WITHDRAWAL_REAL_RETURN,
 };
 
 export type LandingChartPoint = IndependenceChartPoint;

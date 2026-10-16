@@ -11,6 +11,7 @@ interface NumberFieldProps {
   max?: number;
   step?: number;
   suffix?: string;
+  className?: string;
 }
 
 export function NumberField({
@@ -24,10 +25,13 @@ export function NumberField({
   max,
   step = 1,
   suffix,
+  className,
 }: NumberFieldProps) {
   const controlled = value != null && onValueChange != null;
   return (
-    <label className="public-field">
+    <label
+      className={`public-field${className ? ` ${className}` : ""}`}
+    >
       <span className="public-field-label">{label}</span>
       <span className="public-field-control">
         <input

@@ -5680,6 +5680,18 @@ html.light .add-asset-modal {
   font-weight: 600;
 }
 
+.public-field--emphasis {
+  grid-column: 1 / -1;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.public-field--emphasis .public-field-label {
+  font-size: 0.86rem;
+}
+
 .public-field-control {
   display: flex;
   align-items: center;
@@ -6081,6 +6093,48 @@ html.light .add-asset-modal {
   margin: 0.1rem 0 0;
   font-size: 0.9rem;
   font-weight: 650;
+}
+
+.landing-chart-tooltip-phase {
+  margin: 0.12rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.landing-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  list-style: none;
+  margin: 0 0 0.7rem;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--muted-foreground);
+}
+
+.landing-chart-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.landing-chart-swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.landing-chart-legend [data-phase="accumulate"] .landing-chart-swatch {
+  background: #ff7040;
+}
+
+.landing-chart-legend [data-phase="withdraw"] .landing-chart-swatch {
+  background: #0f766e;
 }
 
 .landing-footer {

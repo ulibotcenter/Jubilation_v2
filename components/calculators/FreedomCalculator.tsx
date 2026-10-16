@@ -7,13 +7,12 @@ import {
   NumberField,
 } from "@/components/calculators/CalculatorForm";
 import { RelatedCalculators } from "@/components/calculators/RelatedCalculators";
-import { LandingHeroChart } from "@/components/landing/LandingHeroChart";
+import { FreedomProjectionChart } from "@/components/calculators/FreedomProjectionChart";
 import {
   chartPeakWealth,
-  independenceChartSeries,
+  freedomChartSeries,
 } from "@/lib/calculators/chartSeries";
 import { PUBLIC_ENGINE_NOTE } from "@/lib/calculators/copy";
-import { solveFreedomDate } from "@/lib/calculators/independence";
 import { parseFreedomInput } from "@/lib/calculators/parse";
 import { htmlLang } from "@/lib/i18n/htmlLang";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -32,6 +31,7 @@ type Draft = {
   gasto: number;
   alvo: number;
   juro: number;
+  saque: number;
 };
 
 function draftFromInput(input: PublicIndependenceInput): Draft {
@@ -42,6 +42,7 @@ function draftFromInput(input: PublicIndependenceInput): Draft {
     gasto: input.monthlySpending,
     alvo: input.lifeExpectancy,
     juro: Math.round(input.realReturn * 1000) / 10,
+    saque: Math.round(input.withdrawalRealReturn * 1000) / 10,
   };
 }
 
@@ -53,6 +54,7 @@ function inputFromDraft(draft: Draft): PublicIndependenceInput {
     gasto: String(draft.gasto),
     alvo: String(draft.alvo),
     juro: String(draft.juro),
+    saque: String(draft.saque),
   });
 }
 
@@ -69,8 +71,10 @@ export function FreedomCalculator({
   const currency = useAppStore((s) => s.currency);
   const [draft, setDraft] = useState<Draft>(() => draftFromInput(initial));
   const input = useMemo(() => inputFromDraft(draft), [draft]);
-  const series = useMemo(() => independenceChartSeries(input), [input]);
-  const result = useMemo(() => solveFreedomDate(input), [input]);
+  const { series, result, freedomAge } = useMemo(
+    () => freedomChartSeries(input),
+    [input]
+  );
   const intlLocale = htmlLang(locale);
   const symbol = CURRENCY_SYMBOLS[currency];
   const unit = t(
@@ -81,8 +85,8 @@ export function FreedomCalculator({
         : "currency.unit.BRL"
   );
   const ratePct = Math.round(input.realReturn * 1000) / 10;
-  const horizonAge = series.at(-1)?.age ?? input.lifeExpectancy;
-  const peakWealth = chartPeakWealth(series, horizonAge);
+  const withdrawPct = Math.round(input.withdrawalRealReturn * 1000) / 10;
+  const peakWealth = chartPeakWealth(series, freedomAge);
   const yearsOut = result.feasible
     ? Math.max(0, Math.round(result.value) - input.currentAge)
     : null;
@@ -160,22 +164,37 @@ export function FreedomCalculator({
           suffix="%"
           hint={t("calc.freedom.rateHint")}
         />
+        <NumberField
+          name="saque"
+          label={t("calc.freedom.withdrawRate")}
+          value={draft.saque}
+          onValueChange={(value) => patch("saque", value)}
+          min={-5}
+          max={12}
+          step={0.1}
+          suffix="%"
+          hint={t("calc.freedom.withdrawRateHint")}
+          className="public-field--emphasis"
+        />
       </CalculatorForm>
 
-      <LandingHeroChart
+      <FreedomProjectionChart
         series={series}
-        horizonAge={horizonAge}
-        peakWealth={peakWealth}
         currency={currency}
         locale={locale}
-        compact
         kicker={t("calc.freedom.chart.kicker")}
         peakLabel={t("calc.freedom.chart.peak", {
-          age: horizonAge,
+          age: freedomAge,
           amount: formatCurrencyValue(peakWealth, currency, true, intlLocale),
         })}
-        note={t("calc.freedom.chart.note", { unit, rate: ratePct })}
+        note={t("calc.freedom.chart.note", {
+          unit,
+          rate: ratePct,
+          withdraw: withdrawPct,
+        })}
         ageLabel={(age) => t("landing.chart.tooltipAge", { age })}
+        accumulateLabel={t("calc.freedom.chart.accumulate")}
+        withdrawLabel={t("calc.freedom.chart.withdraw")}
       />
 
       <section className="public-result card-surface" aria-live="polite">

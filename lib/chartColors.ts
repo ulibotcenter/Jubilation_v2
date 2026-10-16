@@ -19,6 +19,16 @@ export const CASH_FLOW_COLORS = {
   cursor: "rgba(167, 139, 250, 0.1)",
 } as const;
 
+export const FREEDOM_PHASE_COLORS = {
+  accumulate: "#ff7040",
+  accumulateFillFrom: "rgba(255, 112, 64, 0.38)",
+  accumulateFillTo: "rgba(255, 112, 64, 0)",
+  withdraw: "#0f766e",
+  withdrawFillFrom: "rgba(15, 118, 110, 0.34)",
+  withdrawFillTo: "rgba(15, 118, 110, 0)",
+  cursor: "rgba(15, 118, 110, 0.35)",
+} as const;
+
 export const PROJECTION_COLORS = {
   base: "#ff7040",
   baseFill: "rgba(255, 112, 64, 0.28)",

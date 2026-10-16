@@ -1071,9 +1071,15 @@ export const EN = {
   "calc.freedom.horizonHint":
     "Default 90. A high-impact assumption — it pushes the horizon.",
   "calc.freedom.rateHint": "Default 4%. Not an investment recommendation.",
+  "calc.freedom.withdrawRate": "Expected real return in the withdrawal phase",
+  "calc.freedom.withdrawRateHint":
+    "Default 2% a year. Wealth keeps compounding after you stop contributing.",
   "calc.freedom.chart.kicker": "Your projection",
   "calc.freedom.chart.peak": "At {age}, {amount}",
-  "calc.freedom.chart.note": "Wealth in today's {unit} · {rate}% real · app engine",
+  "calc.freedom.chart.note":
+    "Wealth in today's {unit} · {rate}% while saving · {withdraw}% in withdrawal · app engine",
+  "calc.freedom.chart.accumulate": "Accumulation",
+  "calc.freedom.chart.withdraw": "Freedom",
   "calc.freedom.resultLabel": "With these numbers, you are free",
   "calc.freedom.resultAge": "at {n}",
   "calc.freedom.resultNow": "By the engine, the level already holds from now.",
