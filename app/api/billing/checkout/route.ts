@@ -7,6 +7,7 @@ import {
   resolveMatchedCheckoutPrice,
 } from "@/lib/billing/config";
 import { createStripeCheckoutSession } from "@/lib/billing/checkout";
+import { basicoTrialDaysForCheckout } from "@/lib/billing/trial";
 import { optionalUser } from "@/lib/cloud/http";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
       customerId: user?.stripeCustomerId,
       successUrl: `${origin}/planos?checkout=success`,
       cancelUrl: `${origin}/planos?checkout=cancel`,
+      trialPeriodDays: basicoTrialDaysForCheckout(offer.plan, user?.planTier),
     });
     return NextResponse.json({ url: session.url, id: session.id });
   } catch {

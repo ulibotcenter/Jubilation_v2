@@ -14,6 +14,8 @@ export interface CreateCheckoutInput {
   customerId?: string | null;
   successUrl: string;
   cancelUrl: string;
+  /** Básico only. Omit or 0 for Completo / Completo+Cônjuge and for paid users. */
+  trialPeriodDays?: number | null;
 }
 
 export async function createStripeCheckoutSession(
@@ -40,6 +42,13 @@ export async function createStripeCheckoutSession(
   body.set("subscription_data[metadata][offerId]", input.offer.id);
   body.set("subscription_data[metadata][priceId]", input.offer.priceId);
   body.set("subscription_data[metadata][currency]", input.offer.currency);
+  const trialDays = Math.trunc(input.trialPeriodDays ?? 0);
+  if (trialDays > 0 && input.offer.plan === "premium") {
+    body.set("subscription_data[trial_period_days]", String(trialDays));
+    body.set("metadata[trialPeriodDays]", String(trialDays));
+    body.set("subscription_data[metadata][trialPeriodDays]", String(trialDays));
+    body.set("payment_method_collection", "always");
+  }
   const email = input.email?.trim() ?? "";
   if (input.customerId) {
     body.set("customer", input.customerId);

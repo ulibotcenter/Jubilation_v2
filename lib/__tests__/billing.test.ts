@@ -22,6 +22,8 @@ import {
   currencyFromRequestHeaders,
 } from "@/lib/billing/geo";
 import { commandFromStripeEvent } from "@/lib/billing/events";
+import { persistBillingCommand } from "@/lib/billing/persist";
+import { createMemoryDirectory } from "@/lib/accounts/memoryDirectory";
 import {
   retrieveFromSnapshots,
   type StripePriceSnapshot,
@@ -30,7 +32,20 @@ import {
   stripeSignatureHeader,
   verifyStripeSignature,
 } from "@/lib/billing/signature";
-import { canAccess, canModelCouple } from "@/lib/plans";
+import {
+  canAccess,
+  canModelCouple,
+  canSaveFullPlan,
+  canUseBasicExport,
+  canUseConnectors,
+  canUseFullPlanner,
+} from "@/lib/plans";
+import {
+  BASICO_TRIAL_DAYS,
+  basicoTrialDaysForCheckout,
+  shouldOfferBasicoTrial,
+} from "@/lib/billing/trial";
+import { t } from "@/lib/i18n/messages";
 import checkoutCompleted from "./fixtures/stripe-checkout-session-completed.json";
 import subscriptionDeleted from "./fixtures/stripe-subscription-deleted.json";
 
@@ -440,6 +455,78 @@ describe("checkout session body", () => {
     const params = new URLSearchParams(body);
     expect(params.get("line_items[0][price]")).toBe("price_couple_yearly_eur");
     expect(params.get("metadata[planTier]")).toBe("couple");
+    expect(params.get("subscription_data[trial_period_days]")).toBeNull();
+  });
+
+  it("puts a 7-day trial only on Básico Checkout", async () => {
+    const { body } = await capture({
+      secretKey: "sk_test_billing",
+      offer,
+      successUrl: "https://app.example/planos?checkout=success",
+      cancelUrl: "https://app.example/planos?checkout=cancel",
+      trialPeriodDays: BASICO_TRIAL_DAYS,
+    });
+    const params = new URLSearchParams(body);
+    expect(params.get("subscription_data[trial_period_days]")).toBe("7");
+    expect(params.get("metadata[trialPeriodDays]")).toBe("7");
+    expect(params.get("subscription_data[metadata][trialPeriodDays]")).toBe("7");
+    expect(params.get("payment_method_collection")).toBe("always");
+    expect(params.get("line_items[0][price]")).toBe("price_premium_yearly_usd");
+  });
+
+  it("does not send a trial when Completo Checkout asks for one", async () => {
+    const { body } = await capture({
+      secretKey: "sk_test_billing",
+      offer: {
+        ...offer,
+        id: "horizon_yearly",
+        plan: "horizon",
+        priceId: "price_horizon_yearly_usd",
+        unitAmount: 11900,
+        listAmount: 15900,
+      },
+      successUrl: "https://app.example/planos?checkout=success",
+      cancelUrl: "https://app.example/planos?checkout=cancel",
+      trialPeriodDays: 7,
+    });
+    const params = new URLSearchParams(body);
+    expect(params.get("subscription_data[trial_period_days]")).toBeNull();
+    expect(params.get("metadata[trialPeriodDays]")).toBeNull();
+  });
+});
+
+describe("Básico trial offer", () => {
+  it("is 7 days, only for Básico, and not for anyone already paid", () => {
+    expect(BASICO_TRIAL_DAYS).toBe(7);
+    expect(shouldOfferBasicoTrial("free")).toBe(true);
+    expect(shouldOfferBasicoTrial(null)).toBe(true);
+    expect(shouldOfferBasicoTrial("premium")).toBe(false);
+    expect(shouldOfferBasicoTrial("horizon")).toBe(false);
+    expect(shouldOfferBasicoTrial("couple")).toBe(false);
+    expect(basicoTrialDaysForCheckout("premium", "free")).toBe(7);
+    expect(basicoTrialDaysForCheckout("premium", "premium")).toBeNull();
+    expect(basicoTrialDaysForCheckout("horizon", "free")).toBeNull();
+    expect(basicoTrialDaysForCheckout("couple", "free")).toBeNull();
+  });
+
+  it("formats the Básico card line in the selected currency", () => {
+    expect(
+      t("pt", "upgrade.basicoTrial", {
+        params: { amount: "R$ 29,90", interval: "/mês" },
+      })
+    ).toBe("7 dias grátis, depois R$ 29,90/mês");
+    expect(
+      t("pt", "upgrade.basicoTrial", {
+        params: { amount: "R$ 399", interval: "/ano" },
+      })
+    ).toBe("7 dias grátis, depois R$ 399/ano");
+  });
+
+  it("gives trialing Básico the same entitlements as paid Básico", () => {
+    expect(canUseFullPlanner("premium")).toBe(true);
+    expect(canSaveFullPlan("premium")).toBe(true);
+    expect(canUseBasicExport("premium")).toBe(true);
+    expect(canUseConnectors("premium")).toBe(false);
   });
 });
 
@@ -494,6 +581,66 @@ describe("checkout POST", () => {
       const params = new URLSearchParams(checkoutBodies[0] ?? "");
       expect(params.get("line_items[0][price]")).toBe("price_premium_yearly_usd");
       expect(params.get("metadata[currency]")).toBe("usd");
+      expect(params.get("subscription_data[trial_period_days]")).toBe("7");
+      expect(params.get("metadata[trialPeriodDays]")).toBe("7");
+    } finally {
+      globalThis.fetch = original;
+      for (const key of Object.keys(process.env)) {
+        if (!(key in prev)) delete process.env[key];
+      }
+      Object.assign(process.env, prev);
+    }
+  });
+
+  it("does not put a trial on Completo Checkout", async () => {
+    const prev = { ...process.env };
+    process.env.STRIPE_SECRET_KEY = "sk_test_billing";
+    process.env.STRIPE_PRICE_COMPLETO_MONTHLY_EUR = "price_horizon_monthly_eur";
+    delete process.env.BILLING;
+    delete process.env.STRIPE;
+    const original = globalThis.fetch;
+    const checkoutBodies: string[] = [];
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      if (url.includes("/v1/prices/")) {
+        return new Response(
+          JSON.stringify({
+            id: "price_horizon_monthly_eur",
+            active: true,
+            currency: "eur",
+            unit_amount: 999,
+            recurring: { interval: "month", interval_count: 1 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      checkoutBodies.push(String(init?.body ?? ""));
+      return new Response(
+        JSON.stringify({
+          id: "cs_test_session",
+          url: "https://checkout.stripe.com/c/pay/cs_test_session",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    };
+    try {
+      const { POST } = await import("@/app/api/billing/checkout/route");
+      const { NextRequest } = await import("next/server");
+      const res = await POST(
+        new NextRequest("http://localhost/api/billing/checkout", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            offerId: "horizon_monthly",
+            currency: "eur",
+          }),
+        })
+      );
+      expect(res.status).toBe(200);
+      const params = new URLSearchParams(checkoutBodies[0] ?? "");
+      expect(params.get("line_items[0][price]")).toBe("price_horizon_monthly_eur");
+      expect(params.get("subscription_data[trial_period_days]")).toBeNull();
+      expect(params.get("metadata[planTier]")).toBe("horizon");
     } finally {
       globalThis.fetch = original;
       for (const key of Object.keys(process.env)) {
@@ -627,6 +774,115 @@ describe("Stripe webhook plan transitions", () => {
       subscriptionId: "sub_test_premium",
       plan: "free",
       status: "canceled",
+    });
+  });
+
+  it("treats a Básico trial checkout as premium trialing, not free", () => {
+    const trial = structuredClone(checkoutCompleted);
+    trial.id = "evt_test_checkout_trial";
+    trial.data.object.payment_status = "no_payment_required";
+    Object.assign(trial.data.object.metadata, { trialPeriodDays: "7" });
+    const command = commandFromStripeEvent(trial, OFFERS);
+    expect(command).toMatchObject({
+      action: "set_plan",
+      plan: "premium",
+      status: "trialing",
+    });
+    if (command.action === "set_plan") {
+      expect(canUseFullPlanner(command.plan)).toBe(true);
+      expect(canUseConnectors(command.plan)).toBe(false);
+    }
+  });
+
+  it("does not treat Completo checkout as a trial even with trial metadata", () => {
+    const spoofed = structuredClone(checkoutCompleted);
+    spoofed.data.object.metadata.priceId = "price_horizon_yearly_eur";
+    spoofed.data.object.metadata.offerId = "horizon_yearly";
+    spoofed.data.object.metadata.planTier = "horizon";
+    Object.assign(spoofed.data.object.metadata, { trialPeriodDays: "7" });
+    expect(commandFromStripeEvent(spoofed, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "horizon",
+      status: "active",
+    });
+  });
+
+  it("keeps Básico after trial converts and drops it on cancel before charge", () => {
+    const converted = {
+      id: "evt_test_sub_active",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_test_premium",
+          status: "active",
+          customer: "cus_test_maria",
+          metadata: {
+            userId: "user-maria-1",
+            planTier: "premium",
+            offerId: "premium_monthly",
+            priceId: "price_premium_monthly_usd",
+            trialPeriodDays: "7",
+          },
+        },
+      },
+    };
+    expect(commandFromStripeEvent(converted, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "premium",
+      status: "active",
+    });
+
+    const canceled = {
+      id: "evt_test_sub_canceled",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_test_premium",
+          status: "canceled",
+          customer: "cus_test_maria",
+          metadata: {
+            userId: "user-maria-1",
+            planTier: "premium",
+            offerId: "premium_monthly",
+            priceId: "price_premium_monthly_usd",
+          },
+        },
+      },
+    };
+    expect(commandFromStripeEvent(canceled, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "free",
+      status: "canceled",
+    });
+  });
+
+  it("persists trialing Básico and drops it when the subscription is deleted", async () => {
+    const directory = createMemoryDirectory();
+    directory.createUser({
+      id: "user-maria-1",
+      email: "maria@example.com",
+    });
+    const trial = structuredClone(checkoutCompleted);
+    trial.id = "evt_test_persist_trial";
+    trial.data.object.payment_status = "no_payment_required";
+    Object.assign(trial.data.object.metadata, { trialPeriodDays: "7" });
+    await persistBillingCommand(
+      commandFromStripeEvent(trial, OFFERS),
+      directory.billingStore
+    );
+    expect(directory.getUser("user-maria-1")).toMatchObject({
+      planTier: "premium",
+      subscriptionStatus: "trialing",
+    });
+    expect(canUseFullPlanner("premium")).toBe(true);
+
+    await persistBillingCommand(
+      commandFromStripeEvent(subscriptionDeleted, OFFERS),
+      directory.billingStore
+    );
+    expect(directory.getUser("user-maria-1")).toMatchObject({
+      planTier: "free",
+      subscriptionStatus: "canceled",
     });
   });
 

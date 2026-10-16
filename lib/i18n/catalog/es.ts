@@ -284,6 +284,8 @@ export const ES: Record<MessageKey, string> = {
   "upgrade.intervalToggle.year": "Anual",
   "upgrade.currency.label": "Moneda",
   "upgrade.launchPromo": "Promo de lanzamiento",
+  "upgrade.basicoTrial": "7 días gratis, después {amount}{interval}",
+  "upgrade.checkoutTrial": "Empezar 7 días gratis",
   "upgrade.decoyMonthly": "o {amount} / mes",
   "upgrade.currencyFollowsGate": "La moneda sale de tu IP (Brasil BRL, eurozona EUR, el resto USD). Puedes cambiarla. El checkout solo usa un Price de Stripe que coincida con esta celda del catálogo.",
   "upgrade.priceNotInCurrency": "El checkout en {code} aún no está configurado. El importe en pantalla es el promocional de lanzamiento, no un cargo.",

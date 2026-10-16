@@ -20,6 +20,7 @@ import {
 } from "@/lib/billing/config";
 import { formatPlanAmount } from "@/lib/billing/display";
 import { planTierAfterBrowserReturn } from "@/lib/plans";
+import { shouldOfferBasicoTrial } from "@/lib/billing/trial";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
@@ -346,6 +347,17 @@ export function UpgradePageContent({
                       {intervalLabel}
                     </span>
                   </p>
+                  {card.plan === "premium" && shouldOfferBasicoTrial(planTier) ? (
+                    <p
+                      className="text-sm font-semibold"
+                      data-basico-trial="true"
+                    >
+                      {t("upgrade.basicoTrial", {
+                        amount: promoLabel,
+                        interval: intervalLabel.replace(/^\s*\/\s*/, "/"),
+                      })}
+                    </p>
+                  ) : null}
                   <p className="text-[11px] text-muted-foreground">
                     {t("upgrade.priceRecommendationNote")}
                   </p>
@@ -363,7 +375,10 @@ export function UpgradePageContent({
                     >
                       {busyOffer === offerId
                         ? t("upgrade.checkoutBusy")
-                        : t("upgrade.checkout")}
+                        : card.plan === "premium" &&
+                            shouldOfferBasicoTrial(planTier)
+                          ? t("upgrade.checkoutTrial")
+                          : t("upgrade.checkout")}
                     </button>
                   ) : (
                     <p className="text-xs text-muted-foreground" data-checkout-missing={offerId}>

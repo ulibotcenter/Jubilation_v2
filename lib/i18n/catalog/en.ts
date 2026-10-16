@@ -282,6 +282,8 @@ export const EN = {
   "upgrade.intervalToggle.year": "Yearly",
   "upgrade.currency.label": "Currency",
   "upgrade.launchPromo": "Launch promo",
+  "upgrade.basicoTrial": "7 days free, then {amount}{interval}",
+  "upgrade.checkoutTrial": "Start 7-day free trial",
   "upgrade.decoyMonthly": "or {amount} / month",
   "upgrade.currencyFollowsGate": "Currency starts from your IP (Brazil BRL, eurozone EUR, otherwise USD). You can change it. Checkout uses only a Stripe Price that matches this catalog cell.",
   "upgrade.priceNotInCurrency": "Checkout for {code} is not configured yet. The amount on screen is the launch promo, not a charge.",

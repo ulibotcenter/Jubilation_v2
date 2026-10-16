@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FREEDOM_DEFAULTS,
@@ -66,6 +67,14 @@ describe("public calculator routes", () => {
     expect(String(meta.description)).toMatch(/não é o Meu INSS/i);
     expect(CALCULATOR_SEO.freedomDate.title).toMatch(/Quando fico livre/);
     expect(CALCULATOR_SEO.retirementIncome.title).toMatch(/Quanto vou receber/);
+  });
+
+  it("keeps the public calculator free forever, outside the Básico trial", () => {
+    const layout = readFileSync("app/calculadoras/layout.tsx", "utf8");
+    expect(layout).toContain("PublicChrome");
+    expect(layout).not.toContain("PlannerGate");
+    expect(layout).not.toContain("trial");
+    expect(layout).not.toContain("AppShell");
   });
 });
 

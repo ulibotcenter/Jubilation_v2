@@ -48,6 +48,11 @@ export {
   type PublicBillingStatus,
 } from "@/lib/billing/config";
 export { createStripeCheckoutSession } from "@/lib/billing/checkout";
+export {
+  BASICO_TRIAL_DAYS,
+  basicoTrialDaysForCheckout,
+  shouldOfferBasicoTrial,
+} from "@/lib/billing/trial";
 export { formatPlanAmount } from "@/lib/billing/display";
 export {
   EUROZONE_COUNTRIES,
