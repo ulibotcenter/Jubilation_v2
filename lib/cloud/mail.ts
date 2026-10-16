@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { cloudAuthConfig, DEFAULT_RESEND_FROM } from "@/lib/cloud/config";
 
+/** Last resort only if Resend still rejects the verified jubilation.life domain. */
 export const RESEND_FALLBACK_FROM = "Jubilation <onboarding@resend.dev>";
 
 export type MagicLinkDelivery = {
@@ -85,7 +86,7 @@ async function sendViaResend(input: {
   to: string;
   url: string;
 }): Promise<MagicLinkDelivery> {
-  const preferred = input.from || DEFAULT_RESEND_FROM;
+  const preferred = DEFAULT_RESEND_FROM;
   const first = await postResendEmail({ ...input, from: preferred });
   if (first.ok) {
     return { id: first.id, from: first.from, transport: "resend" };

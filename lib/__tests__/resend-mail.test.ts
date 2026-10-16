@@ -60,7 +60,26 @@ describe("resend magic-link transport", () => {
     expect(payload.to).toEqual(["ada@example.com"]);
   });
 
-  it("falls back to onboarding@resend.dev when the domain is unverified", async () => {
+  it("sends From noreply@jubilation.life even if EMAIL_FROM is a leftover", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, { id: "email_test_2" })
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const delivered = await deliverMagicLinkEmail(
+      { to: "ada@example.com", url: "https://app.example/api/auth/callback?token=x" },
+      { ...AUTH_ENV, EMAIL_FROM: "jubilation@seudominio.com" }
+    );
+
+    expect(delivered.from).toBe(DEFAULT_RESEND_FROM);
+    expect(delivered.from).not.toContain("onboarding@resend.dev");
+    const payload = JSON.parse(
+      String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body)
+    ) as { from: string };
+    expect(payload.from).toBe("Jubilation <noreply@jubilation.life>");
+  });
+
+  it("uses onboarding@resend.dev only as last resort if the domain is still rejected", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(

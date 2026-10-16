@@ -14,7 +14,7 @@ import {
 
 export type { DataRegion };
 
-/** Preferred From when Resend is configured and EMAIL_FROM is empty. */
+/** Resend From. Domain jubilation.life is verified. */
 export const DEFAULT_RESEND_FROM = "Jubilation <noreply@jubilation.life>";
 
 export interface CloudAuthConfig {
