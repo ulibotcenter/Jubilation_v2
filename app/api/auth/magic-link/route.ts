@@ -33,10 +33,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_email" }, { status: 400 });
   }
   const lead = parseSignupLead(body);
-  if (!lead) {
-    return NextResponse.json({ error: "invalid_lead" }, { status: 400 });
-  }
-
   const token = await createMagicLink(email, Date.now(), lead);
   const origin = (cloudAuthConfig().authUrl || request.nextUrl.origin).replace(
     /\/$/,

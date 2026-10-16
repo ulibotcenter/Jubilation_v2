@@ -21,6 +21,11 @@ import { partializePersistedState } from "@/lib/persist/partialize";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { tenantMayPersistOnHost } from "@/lib/region";
+import {
+  isValidAccountEmail,
+  magicLinkRequestBody,
+  passwordMeetsAccountMinimum,
+} from "@/lib/cloud/magicLinkForm";
 import { safeReturnPath } from "@/lib/cloud/returnPath";
 import { useAppStore } from "@/store/useAppStore";
 import type { Country } from "@/types";
@@ -75,7 +80,7 @@ export function CloudAccountCard() {
   }, [t]);
 
   const handleLogin = async (mode: "login" | "register") => {
-    if (!email.includes("@") || accountPassword.length < 10) {
+    if (!isValidAccountEmail(email) || !passwordMeetsAccountMinimum(accountPassword)) {
       toast.error(t("toast.cloud.invalidInput"));
       return;
     }
@@ -127,14 +132,17 @@ export function CloudAccountCard() {
   };
 
   const handleMagic = async () => {
-    const lead = leadReady();
-    if (!lead) return;
+    const body = magicLinkRequestBody({ email, age, country });
+    if (!body) {
+      toast.error(t("toast.cloud.invalidEmail"));
+      return;
+    }
     setBusy("magic");
     try {
       const res = await fetch("/api/auth/magic-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lead),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         toast.error(t("toast.cloud.error"));
@@ -238,7 +246,10 @@ export function CloudAccountCard() {
   };
 
   const handleLeadWhileOffline = () => {
-    if (!leadReady()) return;
+    if (!isValidAccountEmail(email)) {
+      toast.error(t("toast.cloud.invalidEmail"));
+      return;
+    }
     toast.error(t("settings.cloud.bodySoon"));
   };
 
@@ -387,6 +398,7 @@ export function CloudAccountCard() {
               <button
                 type="button"
                 className="btn-ghost text-xs"
+                data-cloud-action="magic-link"
                 disabled={busy !== null}
                 onClick={() => void handleMagic()}
               >
