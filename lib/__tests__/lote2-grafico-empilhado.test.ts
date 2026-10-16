@@ -5,7 +5,7 @@ import {
   FREEDOM_DEFAULTS,
   solveFreedomDate,
 } from "@/lib/calculators/independence";
-import { FREEDOM_STACK_COLORS } from "@/lib/chartColors";
+import { FREEDOM_AREA_COLORS } from "@/lib/chartColors";
 import { t } from "@/lib/i18n/messages";
 
 describe("lote 2 stacked freedom chart", () => {
@@ -92,25 +92,28 @@ describe("lote 2 stacked freedom chart", () => {
     expect(high.series.at(-1)!.wealth).toBeGreaterThan(low.series.at(-1)!.wealth);
   });
 
-  it("paints the public chart as stacked bars with three distinct colors", () => {
-    expect(FREEDOM_STACK_COLORS.contributions).toBe("#2563eb");
-    expect(FREEDOM_STACK_COLORS.returns).toBe("#f59e0b");
-    expect(FREEDOM_STACK_COLORS.withdrawals).toBe("#e11d48");
-    expect(new Set(Object.values(FREEDOM_STACK_COLORS)).size).toBe(4);
+  it("paints the public chart as stacked areas under a wealth line", () => {
+    expect(FREEDOM_AREA_COLORS.line).toBe("#0D4F56");
+    expect(FREEDOM_AREA_COLORS.contributions).toBe("#CDE4F4");
+    expect(FREEDOM_AREA_COLORS.returns).toBe("#F3E0A6");
+    expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#F6CBC8");
 
     const chart = readFileSync(
       "components/calculators/FreedomProjectionChart.tsx",
       "utf8"
     );
-    expect(chart).toContain("BarChart");
+    expect(chart).toContain("ComposedChart");
+    expect(chart).toContain("type=\"monotone\"");
     expect(chart).toContain('dataKey="contributions"');
-    expect(chart).toContain('dataKey="returns"');
-    expect(chart).toContain('dataKey="withdrawals"');
-    expect(chart).toContain('stackId="wealth"');
+    expect(chart).toContain('dataKey="remaining"');
+    expect(chart).toContain('dataKey="envelope"');
+    expect(chart).toContain('dataKey="wealth"');
     expect(chart).toContain(
-      'data-chart-stack="contributions-returns-withdrawals"'
+      'data-chart-area="contributions-returns-withdrawals"'
     );
-    expect(chart).not.toContain("AreaChart");
+    expect(chart).not.toContain("BarChart");
+    expect(chart).not.toContain("Bar\n");
+    expect(chart).not.toContain("<Bar");
 
     expect(t("pt", "calc.freedom.chart.contributions")).toBe("Aportes");
     expect(t("en", "calc.freedom.chart.returns")).toBe("Returns");
@@ -121,6 +124,7 @@ describe("lote 2 stacked freedom chart", () => {
     const landing = readFileSync("components/landing/LandingHeroChart.tsx", "utf8");
     expect(landing).toContain("AreaChart");
     expect(landing).not.toContain("BarChart");
-    expect(landing).not.toContain("FREEDOM_STACK_COLORS");
+    expect(landing).not.toContain("FREEDOM_AREA_COLORS");
+    expect(landing).not.toContain("ComposedChart");
   });
 });

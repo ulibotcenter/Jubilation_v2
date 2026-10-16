@@ -6159,20 +6159,68 @@ html.light .add-asset-modal {
   background: #0f766e;
 }
 
+.landing-chart-legend [data-stack="wealth"] .landing-chart-swatch {
+  width: 0.9rem;
+  height: 2px;
+  border-radius: 1px;
+  background: #0d4f56;
+}
+
 .landing-chart-legend [data-stack="contributions"] .landing-chart-swatch {
-  background: #2563eb;
+  background: #cde4f4;
 }
 
 .landing-chart-legend [data-stack="returns"] .landing-chart-swatch {
-  background: #f59e0b;
+  background: #f3e0a6;
 }
 
 .landing-chart-legend [data-stack="withdrawals"] .landing-chart-swatch {
-  background: #e11d48;
+  background: #f6cbc8;
 }
 
-.landing-chart--stack .landing-chart-plot {
-  height: 16rem;
+.landing-chart--area {
+  background: #fff;
+  border: 1px solid #ece8e4;
+  box-shadow: none;
+  padding: 1.5rem 1.5rem 1.35rem;
+}
+
+.landing-chart--area .landing-chart-head {
+  align-items: flex-start;
+  margin-bottom: 1.1rem;
+}
+
+.landing-chart--area .landing-chart-peak {
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+
+.landing-chart--area .landing-chart-legend {
+  margin: 0.15rem 0 0;
+  max-width: 18rem;
+  justify-content: flex-end;
+  font-size: 0.64rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  gap: 0.4rem 0.75rem;
+}
+
+.landing-chart--area .landing-chart-plot {
+  height: 17rem;
+}
+
+.landing-chart--area .landing-chart-note {
+  margin-top: 0.95rem;
+  max-width: none;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+@media (min-width: 960px) {
+  .landing-chart--area .landing-chart-plot {
+    height: 22rem;
+  }
 }
 
 .landing-footer {
@@ -6225,6 +6273,16 @@ html.light .add-asset-modal {
 
 .landing-chart--compact .landing-chart-plot {
   height: 14.5rem;
+}
+
+.landing-chart--compact.landing-chart--area .landing-chart-plot {
+  height: 17rem;
+}
+
+@media (min-width: 960px) {
+  .landing-chart--compact.landing-chart--area .landing-chart-plot {
+    height: 22rem;
+  }
 }
 
 .prefs-controls {
