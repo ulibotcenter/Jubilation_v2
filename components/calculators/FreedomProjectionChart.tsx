@@ -2,15 +2,16 @@
 
 import { useReducedMotion } from "framer-motion";
 import {
-  Bar,
-  BarChart,
+  Area,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { FREEDOM_STACK_COLORS } from "@/lib/chartColors";
+import { FREEDOM_AREA_COLORS } from "@/lib/chartColors";
 import type { FreedomChartPoint } from "@/lib/calculators/chartSeries";
 import { htmlLang } from "@/lib/i18n/htmlLang";
 import type { AppLocale } from "@/lib/i18n/messages";
@@ -21,7 +22,7 @@ function formatAxis(value: number, currency: Currency, intlLocale: string) {
   return formatCurrencyValue(value, currency, true, intlLocale);
 }
 
-function StackTooltip({
+function AreaTooltip({
   active,
   payload,
   label,
@@ -34,7 +35,7 @@ function StackTooltip({
   wealthLabel,
 }: {
   active?: boolean;
-  payload?: Array<{ value?: number; dataKey?: string; color?: string }>;
+  payload?: Array<{ value?: number; dataKey?: string }>;
   label?: number;
   currency: Currency;
   intlLocale: string;
@@ -47,33 +48,34 @@ function StackTooltip({
   if (!active || label == null || !payload?.length) return null;
   const valueOf = (key: string) =>
     payload.find((item) => item.dataKey === key)?.value ?? 0;
-  const contributions = valueOf("contributions");
-  const returns = valueOf("returns");
-  const withdrawals = valueOf("withdrawals");
-  const wealth = contributions + returns;
+  const wealth = valueOf("wealth");
   const rows = [
     {
       key: "contributions",
       label: contributionsLabel,
-      value: contributions,
-      color: FREEDOM_STACK_COLORS.contributions,
+      value: valueOf("contributions"),
+      color: FREEDOM_AREA_COLORS.contributions,
     },
     {
       key: "returns",
       label: returnsLabel,
-      value: returns,
-      color: FREEDOM_STACK_COLORS.returns,
+      value: valueOf("returns"),
+      color: FREEDOM_AREA_COLORS.returns,
     },
     {
       key: "withdrawals",
       label: withdrawalsLabel,
-      value: withdrawals,
-      color: FREEDOM_STACK_COLORS.withdrawals,
+      value: valueOf("withdrawals"),
+      color: FREEDOM_AREA_COLORS.withdrawals,
     },
   ];
   return (
     <div className="landing-chart-tooltip">
       <p className="landing-chart-tooltip-label">{ageLabel(label)}</p>
+      <p className="landing-chart-tooltip-value">
+        {wealthLabel}{" "}
+        {formatCurrencyValue(wealth, currency, false, intlLocale)}
+      </p>
       {rows.map((row) => (
         <p key={row.key} className="landing-chart-tooltip-row">
           <span
@@ -85,10 +87,6 @@ function StackTooltip({
           <span>{formatCurrencyValue(row.value, currency, false, intlLocale)}</span>
         </p>
       ))}
-      <p className="landing-chart-tooltip-value">
-        {wealthLabel}{" "}
-        {formatCurrencyValue(wealth, currency, false, intlLocale)}
-      </p>
     </div>
   );
 }
@@ -121,52 +119,55 @@ export function FreedomProjectionChart({
   const reduced = useReducedMotion();
   const motion = chartMotion(reduced);
   const intlLocale = htmlLang(locale);
-  const c = FREEDOM_STACK_COLORS;
+  const c = FREEDOM_AREA_COLORS;
+  const duration = reduced ? 0 : 320;
 
   return (
     <figure
-      className="landing-chart landing-chart--compact landing-chart--stack"
+      className="landing-chart landing-chart--compact landing-chart--area"
       data-landing-chart="projection"
-      data-chart-stack="contributions-returns-withdrawals"
+      data-chart-area="contributions-returns-withdrawals"
+      data-chart-line="wealth"
     >
       <div className="landing-chart-head">
         <figcaption>
           <p className="landing-chart-kicker">{kicker}</p>
           <p className="landing-chart-peak">{peakLabel}</p>
         </figcaption>
-        <p className="landing-chart-note">{note}</p>
+        <ul className="landing-chart-legend">
+          <li data-stack="wealth">
+            <span className="landing-chart-swatch" aria-hidden="true" />
+            {wealthLabel}
+          </li>
+          <li data-stack="contributions">
+            <span className="landing-chart-swatch" aria-hidden="true" />
+            {contributionsLabel}
+          </li>
+          <li data-stack="returns">
+            <span className="landing-chart-swatch" aria-hidden="true" />
+            {returnsLabel}
+          </li>
+          <li data-stack="withdrawals">
+            <span className="landing-chart-swatch" aria-hidden="true" />
+            {withdrawalsLabel}
+          </li>
+        </ul>
       </div>
-      <ul className="landing-chart-legend">
-        <li data-stack="contributions">
-          <span className="landing-chart-swatch" aria-hidden="true" />
-          {contributionsLabel}
-        </li>
-        <li data-stack="returns">
-          <span className="landing-chart-swatch" aria-hidden="true" />
-          {returnsLabel}
-        </li>
-        <li data-stack="withdrawals">
-          <span className="landing-chart-swatch" aria-hidden="true" />
-          {withdrawalsLabel}
-        </li>
-      </ul>
       <div className="landing-chart-plot" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
+          <ComposedChart
             data={series}
-            margin={{ top: 12, right: 8, left: 4, bottom: 4 }}
-            barCategoryGap="18%"
-            barGap={0}
+            margin={{ top: 10, right: 12, left: 0, bottom: 4 }}
           >
             <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="var(--chart-grid)"
+              strokeDasharray="0"
+              stroke="rgba(13, 79, 86, 0.06)"
               vertical={false}
             />
             <XAxis
               dataKey="age"
-              tick={{ fontSize: 11, fill: "var(--chart-tick)" }}
-              axisLine={{ stroke: "var(--chart-axis)" }}
+              tick={{ fontSize: 11, fill: "#8a8580" }}
+              axisLine={false}
               tickLine={false}
               minTickGap={28}
               interval="equidistantPreserveStart"
@@ -175,14 +176,14 @@ export function FreedomProjectionChart({
               tickFormatter={(value: number) =>
                 formatAxis(value, currency, intlLocale)
               }
-              tick={{ fontSize: 11, fill: "var(--chart-tick)" }}
+              tick={{ fontSize: 11, fill: "#8a8580" }}
               axisLine={false}
               tickLine={false}
               width={72}
             />
             <Tooltip
               content={
-                <StackTooltip
+                <AreaTooltip
                   currency={currency}
                   intlLocale={intlLocale}
                   ageLabel={ageLabel}
@@ -192,42 +193,66 @@ export function FreedomProjectionChart({
                   wealthLabel={wealthLabel}
                 />
               }
-              cursor={{ fill: c.cursor }}
+              cursor={{ stroke: c.line, strokeWidth: 1, strokeOpacity: 0.35 }}
             />
-            <Bar
+            <Area
+              type="monotone"
               dataKey="contributions"
               name={contributionsLabel}
               stackId="wealth"
+              stroke={c.contributions}
+              strokeWidth={1}
               fill={c.contributions}
-              maxBarSize={22}
               isAnimationActive={motion.isAnimationActive}
-              animationDuration={reduced ? 0 : 280}
+              animationDuration={duration}
               animationEasing={motion.animationEasing}
             />
-            <Bar
+            <Area
+              type="monotone"
               dataKey="returns"
               name={returnsLabel}
               stackId="wealth"
+              stroke={c.returns}
+              strokeWidth={1}
               fill={c.returns}
-              maxBarSize={22}
               isAnimationActive={motion.isAnimationActive}
-              animationDuration={reduced ? 0 : 280}
+              animationDuration={duration}
               animationEasing={motion.animationEasing}
             />
-            <Bar
+            <Area
+              type="monotone"
               dataKey="withdrawals"
               name={withdrawalsLabel}
               stackId="wealth"
+              stroke={c.withdrawals}
+              strokeWidth={1}
               fill={c.withdrawals}
-              radius={[3, 3, 0, 0]}
-              maxBarSize={22}
               isAnimationActive={motion.isAnimationActive}
-              animationDuration={reduced ? 0 : 280}
+              animationDuration={duration}
               animationEasing={motion.animationEasing}
             />
-          </BarChart>
+            <Line
+              type="monotone"
+              dataKey="wealth"
+              name={wealthLabel}
+              stroke={c.line}
+              strokeWidth={2.75}
+              dot={false}
+              activeDot={{
+                r: 4,
+                fill: c.line,
+                stroke: "#fff",
+                strokeWidth: 2,
+              }}
+              isAnimationActive={motion.isAnimationActive}
+              animationDuration={duration}
+              animationEasing={motion.animationEasing}
+              legendType="line"
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
+      <p className="landing-chart-note">{note}</p>
     </figure>
   );
 }
