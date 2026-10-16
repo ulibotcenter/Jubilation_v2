@@ -13,9 +13,10 @@ import { LegalFooter } from "@/components/legal/LegalFooter";
 import { AccountSync } from "@/components/account/AccountSync";
 import { BillingSync } from "@/components/billing/BillingSync";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
-import { navIdFromPathname } from "@/hooks/useAppNavigation";
+import { navIdFromPathname } from "@/lib/appNavigation";
 import { canUseFullPlanner } from "@/lib/plans";
 import { isPrivacyPath } from "@/lib/privacy/local";
+import { DASHBOARD_PATH } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 
 interface AppShellProps {
@@ -80,7 +81,7 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
   }, [hydrated, pathname, setActiveNav]);
 
   useEffect(() => {
-    if (!hydrated || !enableHashSync || pathname !== "/") return;
+    if (!hydrated || !enableHashSync || pathname !== DASHBOARD_PATH) return;
 
     const applyHash = () => {
       const hash = window.location.hash;
@@ -139,7 +140,7 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
         </main>
       </div>
 
-      {pathname === "/" && onboardingCompleted && <CoachMarks />}
+      {pathname === DASHBOARD_PATH && onboardingCompleted && <CoachMarks />}
       <CommandPalette />
       <RetirementCoach />
       <BillingSync />

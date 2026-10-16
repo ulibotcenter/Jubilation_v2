@@ -2,12 +2,13 @@
 
 import { useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { DASHBOARD_PATH, DASHBOARD_PORTFOLIO_PATH } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 import type { NavItemId } from "@/types";
 
 const ROUTES: Record<NavItemId, string> = {
-  dashboard: "/",
-  portfolio: "/",
+  dashboard: DASHBOARD_PATH,
+  portfolio: DASHBOARD_PORTFOLIO_PATH,
   simulation: "/simulation",
   cashflow: "/cash-flow",
   settings: "/settings",
@@ -35,8 +36,8 @@ export function useAppNavigation() {
       setSidebarOpen(false);
 
       if (id === "portfolio") {
-        if (pathname !== "/") {
-          router.push("/#portfolio");
+        if (pathname !== DASHBOARD_PATH) {
+          router.push(DASHBOARD_PORTFOLIO_PATH);
         } else {
           scrollToPortfolio();
         }
@@ -44,8 +45,8 @@ export function useAppNavigation() {
       }
 
       if (id === "dashboard") {
-        if (pathname !== "/") {
-          router.push("/");
+        if (pathname !== DASHBOARD_PATH) {
+          router.push(DASHBOARD_PATH);
         } else {
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
@@ -61,12 +62,4 @@ export function useAppNavigation() {
   );
 
   return navigate;
-}
-
-export function navIdFromPathname(pathname: string): NavItemId {
-  if (pathname.startsWith("/simulation")) return "simulation";
-  if (pathname.startsWith("/cash-flow")) return "cashflow";
-  if (pathname.startsWith("/settings")) return "settings";
-  if (pathname.startsWith("/help")) return "help";
-  return "dashboard";
 }

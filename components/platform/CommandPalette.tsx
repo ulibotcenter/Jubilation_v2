@@ -6,10 +6,11 @@ import { Command, Search } from "lucide-react";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { DASHBOARD_PATH } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 
 const ACTIONS = [
-  { id: "dashboard", labelKey: "command.goDashboard" as MessageKey, href: "/" },
+  { id: "dashboard", labelKey: "command.goDashboard" as MessageKey, href: DASHBOARD_PATH },
   {
     id: "simulation",
     labelKey: "command.openSimulation" as MessageKey,
@@ -103,7 +104,7 @@ export function CommandPalette() {
                   setOpen(false);
                   setQuery("");
                   if ("href" in item) {
-                    if (item.href === "/") navigate("dashboard");
+                    if (item.id === "dashboard") navigate("dashboard");
                     else router.push(item.href);
                   } else if (item.action === "presentation") togglePresentation();
                   else if (item.action === "coach") setCoachOpen(true);
