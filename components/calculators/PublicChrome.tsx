@@ -1,21 +1,20 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LocaleCurrencyControls } from "@/components/platform/LocaleCurrencyControls";
 import { CALCULATOR_PATHS } from "@/lib/calculators/seo";
-import {
-  PUBLIC_DISCLAIMER_FOOTER,
-  PUBLIC_ENGINE_NOTE,
-} from "@/lib/calculators/copy";
+import { PUBLIC_ENGINE_NOTE } from "@/lib/calculators/copy";
 import { TERMS_PATH } from "@/lib/legal/terms";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { PLANS_PATH } from "@/lib/routes";
 
 export function PublicChrome({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+
   return (
     <div className="public-page">
-      <script
-        dangerouslySetInnerHTML={{
-          __html: "document.documentElement.lang='pt-BR';",
-        }}
-      />
       <header className="public-header">
         <Link href={CALCULATOR_PATHS.index} className="public-brand">
           <span className="public-brand-mark" aria-hidden="true">
@@ -23,27 +22,30 @@ export function PublicChrome({ children }: { children: ReactNode }) {
           </span>
           <span className="public-brand-text">
             <strong>Jubilation</strong>
-            <span>Calculadoras públicas</span>
+            <span>{t("public.brand.subtitle")}</span>
           </span>
         </Link>
-        <Link href="/planos" className="btn-primary public-header-cta">
-          Ver planos
-        </Link>
+        <div className="public-header-tools">
+          <LocaleCurrencyControls />
+          <Link href={PLANS_PATH} className="btn-primary public-header-cta">
+            {t("public.header.plans")}
+          </Link>
+        </div>
       </header>
       <main className="public-main">{children}</main>
       <footer className="public-footer">
-        <p>{PUBLIC_DISCLAIMER_FOOTER}</p>
+        <p>{t("footer.disclaimer")}</p>
         <p className="public-footer-meta">{PUBLIC_ENGINE_NOTE}</p>
         <p className="public-footer-links">
-          <Link href={CALCULATOR_PATHS.index}>Calculadoras</Link>
+          <Link href={CALCULATOR_PATHS.index}>{t("landing.nav.calculators")}</Link>
           {" · "}
-          <Link href={PRIVACY_PATH}>O que é guardado</Link>
+          <Link href={PRIVACY_PATH}>{t("footer.link.privacy")}</Link>
           {" · "}
-          <Link href={TERMS_PATH}>Termos — planejamento, não consultoria</Link>
+          <Link href={TERMS_PATH}>{t("footer.link.terms")}</Link>
           {" · "}
-          <Link href="/planos">Básico e Completo</Link>
+          <Link href={PLANS_PATH}>{t("nav.upgrade")}</Link>
           {" · "}
-          <Link href="/settings#cloud-account">Criar conta</Link>
+          <Link href="/settings#cloud-account">{t("nav.signIn")}</Link>
         </p>
       </footer>
     </div>

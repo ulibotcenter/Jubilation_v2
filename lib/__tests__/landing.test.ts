@@ -28,14 +28,16 @@ describe("landing at /", () => {
 
   it("renders Simule sua liberdade with CTAs to the existing calculator and /planos", () => {
     const page = readFileSync("app/page.tsx", "utf8");
+    const view = readFileSync("components/landing/LandingView.tsx", "utf8");
     expect(page).toContain("Simule sua liberdade");
-    expect(page).toContain("Personalizar o meu");
-    expect(page).toContain("Ver os planos");
-    expect(page).toContain("data-landing-cta=\"personalizar\"");
-    expect(page).toContain("data-landing-cta=\"planos\"");
-    expect(page).toContain("data-landing-nav=\"painel\"");
+    expect(view).toContain("landing.cta.personalize");
+    expect(view).toContain("landing.cta.plans");
+    expect(view).toContain("data-landing-cta=\"personalizar\"");
+    expect(view).toContain("data-landing-cta=\"planos\"");
+    expect(view).toContain("data-landing-nav=\"painel\"");
+    expect(view).toContain("LocaleCurrencyControls");
     expect(page).not.toContain("AppShell");
-    expect(page).not.toMatch(/fim de vida|end of life|falecimento|morte/i);
+    expect(view).not.toMatch(/fim de vida|end of life|falecimento|morte/i);
     expect(landingCalculatorHref()).toContain(CALCULATOR_PATHS.freedomDate);
     expect(PLANS_PATH).toBe("/planos");
   });

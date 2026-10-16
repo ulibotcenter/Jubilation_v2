@@ -1,13 +1,13 @@
 import {
-  publicIndependencePlan,
-  type PublicIndependenceInput,
-} from "@/lib/calculators/independence";
+  independenceChartSeries,
+  type IndependenceChartPoint,
+} from "@/lib/calculators/chartSeries";
+import { type PublicIndependenceInput } from "@/lib/calculators/independence";
 import { CALCULATOR_PATHS } from "@/lib/calculators/seo";
 import {
   DEFAULT_LIFE_EXPECTANCY_AGE,
   DEFAULT_PORTFOLIO_REAL_RETURN,
 } from "@/lib/engine/assumptions";
-import { projectYears } from "@/lib/engine/project";
 
 /** Chart stops at 60 — growth to freedom, not a drawdown story. */
 export const LANDING_HORIZON_AGE = 60;
@@ -26,15 +26,13 @@ export const LANDING_SAMPLE_INPUT: PublicIndependenceInput = {
   realReturn: DEFAULT_PORTFOLIO_REAL_RETURN,
 };
 
-export type LandingChartPoint = { age: number; wealth: number };
+export type LandingChartPoint = IndependenceChartPoint;
 
 export function buildLandingSampleSeries(
   input: PublicIndependenceInput = LANDING_SAMPLE_INPUT,
   untilAge = LANDING_HORIZON_AGE
 ): LandingChartPoint[] {
-  return projectYears(publicIndependencePlan(input))
-    .filter((row) => row.age <= untilAge)
-    .map((row) => ({ age: row.age, wealth: row.portfolioValue }));
+  return independenceChartSeries(input, untilAge);
 }
 
 export function landingWealthAt(

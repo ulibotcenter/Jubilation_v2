@@ -14,22 +14,30 @@ export function DisclaimerBlock({ variant = "short" }: { variant?: "short" | "lo
 
 export function AppCta({
   extra,
+  title = "Quer guardar o plano?",
+  primaryLabel = "Ver Básico e Completo",
+  secondaryLabel = "Criar conta",
+  ariaLabel = "Continuar no app",
 }: {
   extra?: string;
+  title?: string;
+  primaryLabel?: string;
+  secondaryLabel?: string;
+  ariaLabel?: string;
 }) {
   return (
-    <section className="public-cta" aria-label="Continuar no app">
-      <h2>Quer guardar o plano?</h2>
+    <section className="public-cta" aria-label={ariaLabel}>
+      <h2>{title}</h2>
       <p>
         {extra ??
           "A calculadora pública para neste número. O gráfico, os campos manuais e os três blocos começam no Básico."}
       </p>
       <div className="flex flex-wrap gap-2">
         <Link href="/planos" className="btn-primary">
-          Ver Básico e Completo
+          {primaryLabel}
         </Link>
         <Link href="/settings#cloud-account" className="btn-secondary">
-          Criar conta
+          {secondaryLabel}
         </Link>
       </div>
     </section>
