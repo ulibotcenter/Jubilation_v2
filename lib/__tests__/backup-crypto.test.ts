@@ -169,6 +169,26 @@ describe("cloud config", () => {
       EMAIL_FROM: "Jubilation <noreply@example.eu>",
     });
     expect(status.magicLink).toBe(true);
+    expect(status.password).toBe(true);
+  });
+
+  it("enables magic link with Resend and no SMTP", () => {
+    const status = publicCloudStatus({
+      DATABASE_URL: "postgres://u:p@db.eu/jubilation",
+      AUTH_SECRET: "a-very-long-auth-secret",
+      RESEND_API_KEY: "re_test_key",
+    });
+    expect(status.magicLink).toBe(true);
+    expect(status.password).toBe(true);
+  });
+
+  it("keeps password login on when mail transport is missing", () => {
+    const status = publicCloudStatus({
+      DATABASE_URL: "postgres://u:p@db.eu/jubilation",
+      AUTH_SECRET: "a-very-long-auth-secret",
+    });
+    expect(status.password).toBe(true);
+    expect(status.magicLink).toBe(false);
   });
 });
 
