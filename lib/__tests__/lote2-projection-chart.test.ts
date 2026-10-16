@@ -60,6 +60,9 @@ describe("lote 2 ProjectionChart on the freedom calculator", () => {
     expect(chart).toContain("point.rendimentos");
     expect(chart).toContain("point.saques");
     expect(chart).toContain("point.patrimonio");
+    expect(chart).toContain("densifyJourney");
+    expect(chart).toContain("ReferenceDot");
+    expect(chart).toContain('data-chart-layout="reference"');
     expect(chart).not.toContain("BarChart");
     expect(chart).not.toContain("<Bar");
   });

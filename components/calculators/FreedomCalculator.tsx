@@ -9,7 +9,7 @@ import {
 import { RelatedCalculators } from "@/components/calculators/RelatedCalculators";
 import { ProjectionChart } from "@/components/ProjectionChart";
 import {
-  chartPeakWealth,
+  chartPeakPoint,
   freedomChartSeries,
   toProjectionChartData,
 } from "@/lib/calculators/chartSeries";
@@ -79,16 +79,8 @@ export function FreedomCalculator({
   const data = useMemo(() => toProjectionChartData(series), [series]);
   const intlLocale = htmlLang(locale);
   const symbol = CURRENCY_SYMBOLS[currency];
-  const unit = t(
-    currency === "USD"
-      ? "currency.unit.USD"
-      : currency === "EUR"
-        ? "currency.unit.EUR"
-        : "currency.unit.BRL"
-  );
-  const ratePct = Math.round(input.realReturn * 1000) / 10;
-  const withdrawPct = Math.round(input.withdrawalRealReturn * 1000) / 10;
-  const peakWealth = chartPeakWealth(series, freedomAge);
+  const peakPoint = chartPeakPoint(series);
+  const endPoint = series.at(-1);
   const yearsOut = result.feasible
     ? Math.max(0, Math.round(result.value) - input.currentAge)
     : null;
@@ -184,20 +176,40 @@ export function FreedomCalculator({
         data={data}
         currency={currency}
         locale={locale}
-        kicker={t("calc.freedom.chart.kicker")}
-        peakLabel={t("calc.freedom.chart.peak", {
-          age: freedomAge,
-          amount: formatCurrencyValue(peakWealth, currency, true, intlLocale),
+        title={t("calc.freedom.chart.title")}
+        subtitle={t("calc.freedom.chart.subtitle")}
+        description={t("calc.freedom.chart.description")}
+        peakTitle={t("calc.freedom.chart.peakMark")}
+        peakDetail={t("calc.freedom.chart.peakDetail", {
+          age: peakPoint?.age ?? freedomAge,
+          amount: formatCurrencyValue(
+            peakPoint?.wealth ?? 0,
+            currency,
+            true,
+            intlLocale
+          ),
         })}
-        note={t("calc.freedom.chart.note", {
-          unit,
-          rate: ratePct,
-          withdraw: withdrawPct,
+        endTitle={t("calc.freedom.chart.endMark", {
+          age: endPoint?.age ?? input.lifeExpectancy,
         })}
+        endDetail={t("calc.freedom.chart.endDetail", {
+          amount: formatCurrencyValue(
+            endPoint?.wealth ?? 0,
+            currency,
+            true,
+            intlLocale
+          ),
+        })}
+        axisAgeLabel={t("calc.freedom.chart.axisAge")}
+        footerLabel={t("calc.freedom.chart.footer")}
+        footerHint={t("calc.freedom.chart.footerHint")}
         ageLabel={(age) => t("landing.chart.tooltipAge", { age })}
         aportesLabel={t("calc.freedom.chart.contributions")}
+        aportesHint={t("calc.freedom.chart.contributionsHint")}
         rendimentosLabel={t("calc.freedom.chart.returns")}
+        rendimentosHint={t("calc.freedom.chart.returnsHint")}
         saquesLabel={t("calc.freedom.chart.withdrawals")}
+        saquesHint={t("calc.freedom.chart.withdrawalsHint")}
         patrimonioLabel={t("calc.freedom.chart.remaining")}
       />
 

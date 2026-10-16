@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { freedomChartSeries } from "@/lib/calculators/chartSeries";
+import {
+  freedomChartSeries,
+  freedomProjection,
+  stackFreedomChart,
+} from "@/lib/calculators/chartSeries";
 import {
   FREEDOM_DEFAULTS,
   solveFreedomDate,
@@ -17,7 +21,8 @@ describe("lote 2 stacked freedom chart", () => {
   });
 
   it("stacks remaining contributions + returns to current wealth", () => {
-    const { series, freedomAge, result } = freedomChartSeries(FREEDOM_DEFAULTS);
+    const { years, freedomAge, result } = freedomProjection(FREEDOM_DEFAULTS);
+    const series = stackFreedomChart(years, freedomAge);
     expect(result.feasible).toBe(true);
 
     for (const point of series) {
@@ -37,7 +42,8 @@ describe("lote 2 stacked freedom chart", () => {
   });
 
   it("shows a withdrawals layer after freedom without snapping remaining wealth to zero", () => {
-    const { series, freedomAge } = freedomChartSeries(FREEDOM_DEFAULTS);
+    const { years, freedomAge } = freedomProjection(FREEDOM_DEFAULTS);
+    const series = stackFreedomChart(years, freedomAge);
     const after = series.filter((point) => point.age > freedomAge);
     expect(after.length).toBeGreaterThan(2);
     expect(after.some((point) => point.withdrawals > 0)).toBe(true);
@@ -94,9 +100,9 @@ describe("lote 2 stacked freedom chart", () => {
 
   it("paints the public chart as stacked areas under a wealth line", () => {
     expect(FREEDOM_AREA_COLORS.line).toBe("#0F766E");
-    expect(FREEDOM_AREA_COLORS.contributions).toBe("#93C5FD");
-    expect(FREEDOM_AREA_COLORS.returns).toBe("#FCD34D");
-    expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#FCA5A5");
+    expect(FREEDOM_AREA_COLORS.contributions).toBe("#A3B9C9");
+    expect(FREEDOM_AREA_COLORS.returns).toBe("#D6C190");
+    expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#DDB0AB");
 
     const chart = readFileSync(
       "components/calculators/FreedomProjectionChart.tsx",

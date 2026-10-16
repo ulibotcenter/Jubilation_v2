@@ -18,11 +18,11 @@ export type FreedomChartPoint = {
   wealth: number;
   accumulate: number | null;
   withdraw: number | null;
-  /** Remaining money in (seed + contributions), scaled to current wealth. */
+  /** Cumulative contributions (seed + inflows). Plateaus after freedom. */
   contributions: number;
-  /** Remaining compound interest, scaled to current wealth. */
+  /** Cumulative returns sitting on contributions (journey band, not remaining stock). */
   returns: number;
-  /** Net drawn from the peak after freedom (0 while contributing). */
+  /** Cumulative withdrawals as a modest bottom band in freedom years. */
   withdrawals: number;
 };
 
@@ -68,12 +68,9 @@ export function independenceChartSeries(
     .map((row) => ({ age: row.age, wealth: row.portfolioValue }));
 }
 
-/**
- * Freedom calculator path: contribute until the solved date, then draw down
- * at the withdrawal-phase real yield through the target age.
- */
-export function freedomChartSeries(input: PublicIndependenceInput): {
-  series: FreedomChartPoint[];
+/** Solved yearly path for the public freedom calculator. Does not restack. */
+export function freedomProjection(input: PublicIndependenceInput): {
+  years: ProjectionYear[];
   result: SolveResult;
   freedomAge: number;
 } {
@@ -93,12 +90,88 @@ export function freedomChartSeries(input: PublicIndependenceInput): {
       input.withdrawalRealReturn ?? DEFAULT_WITHDRAWAL_REAL_RETURN
     )
   ).years;
+  return { years, result, freedomAge };
+}
 
-  const series: FreedomChartPoint[] = stackFreedomChart(years, freedomAge);
+/**
+ * Freedom calculator path: contribute until the solved date, then draw down
+ * at the withdrawal-phase real yield through the target age.
+ */
+export function freedomChartSeries(input: PublicIndependenceInput): {
+  series: FreedomChartPoint[];
+  result: SolveResult;
+  freedomAge: number;
+} {
+  const { years, result, freedomAge } = freedomProjection(input);
+  const series: FreedomChartPoint[] = journeyFreedomChart(years, freedomAge);
   const split = series.find((point) => point.age === freedomAge);
   if (split) split.accumulate = split.wealth;
 
   return { series, result, freedomAge };
+}
+
+/**
+ * Visual journey layers from an already-solved yearly projection.
+ * Does not call the solver and does not change engine wealth.
+ *
+ * Bottom band = cumulative contributions (plateau after freedom).
+ * Middle band = cumulative returns sitting on contributions; after the
+ * peak the gold top eases only a little so the stack stays a layered hill
+ * instead of a remaining-stock envelope under the declining line.
+ * Coral = cumulative withdrawals as a modest bottom band in freedom years.
+ */
+export function journeyFreedomChart(
+  years: ProjectionYear[],
+  freedomAge: number
+): FreedomChartPoint[] {
+  let cumContrib = 0;
+  let cumReturns = 0;
+  let cumWithdraw = 0;
+
+  const raw: FreedomChartPoint[] = years.map((row, index) => {
+    const wealth = row.portfolioValue;
+    const withdrawing = row.age >= freedomAge;
+    if (index === 0) {
+      cumContrib = Math.max(0, wealth);
+    } else {
+      cumContrib += Math.max(0, row.contributions);
+      cumReturns += Math.max(0, row.returns);
+      if (withdrawing) {
+        cumWithdraw += Math.max(0, row.expenses);
+      }
+    }
+    return {
+      age: row.age,
+      wealth,
+      accumulate: withdrawing ? null : wealth,
+      withdraw: withdrawing ? wealth : null,
+      contributions: cumContrib,
+      returns: cumReturns,
+      withdrawals: withdrawing ? cumWithdraw : 0,
+    };
+  });
+
+  if (raw.length === 0) return raw;
+
+  const peak = raw.reduce((best, point) =>
+    point.wealth > best.wealth ? point : best
+  );
+  const peakGoldTop = peak.contributions + peak.returns;
+  const coralCap = peak.contributions * 0.26;
+
+  return raw.map((point) => {
+    let { contributions, returns, withdrawals } = point;
+    if (point.age > peak.age) {
+      const drop = Math.max(0, peak.wealth - point.wealth);
+      const goldTop = Math.max(contributions, peakGoldTop - 0.18 * drop);
+      returns = Math.max(0, goldTop - contributions);
+    }
+    withdrawals =
+      point.age >= freedomAge
+        ? Math.min(Math.max(0, withdrawals), coralCap)
+        : 0;
+    return { ...point, contributions, returns, withdrawals };
+  });
 }
 
 /**
@@ -184,4 +257,13 @@ export function chartPeakWealth(
   age: number
 ): number {
   return series.find((point) => point.age === age)?.wealth ?? series.at(-1)?.wealth ?? 0;
+}
+
+export function chartPeakPoint<T extends { age: number; wealth: number }>(
+  series: T[]
+): T | undefined {
+  if (series.length === 0) return undefined;
+  return series.reduce((best, point) =>
+    point.wealth > best.wealth ? point : best
+  );
 }
