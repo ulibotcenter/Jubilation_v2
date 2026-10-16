@@ -129,12 +129,15 @@ export function underLineFreedomChart(
     if (wealth === 0) {
       return { ...point, contributions: 0, returns: 0, withdrawals: 0 };
     }
-    const contribShare =
-      Math.min(Math.max(0, point.contributions), wealth) / wealth;
+    const remainingContrib = Math.min(
+      Math.max(0, point.contributions),
+      wealth
+    );
     const coral = withdrawing ? wealth * UNDER_LINE_CORAL_SHARE : 0;
-    const leftover = wealth - coral;
-    const contributions = leftover * contribShare;
-    const returns = leftover - contributions;
+    // Carve coral from the bottom of remaining contributions so the blue
+    // top stays the remaining-stock silhouette and gold still meets the line.
+    const contributions = Math.max(0, remainingContrib - coral);
+    const returns = Math.max(0, wealth - coral - contributions);
     return { ...point, contributions, returns, withdrawals: coral };
   });
 }
