@@ -93,7 +93,7 @@ export function UpgradePageContent({
   const storedPlan = useAppStore((s) => s.planTier);
   const billingLive = useAppStore((s) => s.billingLive);
   const [currency, setCurrency] = useState<BillingCurrency>(geoCurrency);
-  const [interval, setInterval] = useState<BillingInterval>("year");
+  const [interval, setInterval] = useState<BillingInterval>("month");
   const [status, setStatus] = useState<PublicBillingStatus | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [accountAvailable, setAccountAvailable] = useState(false);
