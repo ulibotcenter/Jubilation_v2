@@ -1537,6 +1537,55 @@ body::before {
   letter-spacing: -0.02em;
 }
 
+.topbar-plan-label {
+  display: none;
+  max-width: 12rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 420px) {
+  .topbar-plan-label {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+.plan-card-current {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent),
+    var(--shadow-accent, 0 8px 24px rgba(255, 107, 53, 0.18));
+}
+
+.plan-card-current-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+html.light .plan-card-current {
+  border-color: var(--accent);
+}
+
 .btn-stress {
   display: inline-flex;
   align-items: center;
@@ -2621,10 +2670,9 @@ body::before {
   display: inline-flex;
   margin-top: 0.75rem;
   padding: 0.25rem 0.5rem;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   border-radius: 999px;
   background: var(--accent-muted);
   color: var(--accent);

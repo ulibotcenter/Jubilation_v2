@@ -242,6 +242,8 @@ export const ES: Record<MessageKey, string> = {
   "plan.horizon": "Completo",
   "plan.couple": "Completo+Cônjuge",
   "plan.currentBadge": "Plan {plan}",
+  "plan.trialing": "{plan} (trial)",
+  "plan.headerAria": "Plan actual: {plan}",
   "plan.tagline.free": "Calculadora pública: edad, aporte y meta — un número",
   "plan.tagline.premium": "Plan manual, tres bloques, hasta 5 posiciones de bolsa o Tesouro",
   "plan.tagline.horizon": "Todo lo de Básico, más conectores, escenarios y PDF",

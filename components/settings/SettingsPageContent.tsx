@@ -16,6 +16,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CurrentPlanLabel } from "@/components/billing/CurrentPlanLabel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ConnectorsSection } from "@/components/connectors/ConnectorsSection";
 import { exportRetirementReport } from "@/lib/exportReport";
@@ -314,11 +315,10 @@ export function SettingsPageContent() {
             {user?.name}
           </p>
           <p className="text-sm text-muted-foreground">{user?.email}</p>
-          <span className="settings-plan-badge">
-            {t("plan.currentBadge", {
-              plan: t(`plan.${planTier}` as MessageKey),
-            })}
-          </span>
+          <CurrentPlanLabel
+            placement="settings"
+            className="settings-plan-badge"
+          />
           <Link href="/planos" className="btn-upgrade mt-4 inline-flex">
             <Sparkles className="w-3.5 h-3.5" size={14} />
             {t("nav.upgrade")}
