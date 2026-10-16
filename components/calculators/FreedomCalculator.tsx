@@ -9,7 +9,6 @@ import {
 import { RelatedCalculators } from "@/components/calculators/RelatedCalculators";
 import { ProjectionChart } from "@/components/ProjectionChart";
 import {
-  chartPeakPoint,
   freedomChartSeries,
   toProjectionChartData,
 } from "@/lib/calculators/chartSeries";
@@ -72,15 +71,13 @@ export function FreedomCalculator({
   const currency = useAppStore((s) => s.currency);
   const [draft, setDraft] = useState<Draft>(() => draftFromInput(initial));
   const input = useMemo(() => inputFromDraft(draft), [draft]);
-  const { series, result, freedomAge } = useMemo(
+  const { series, result } = useMemo(
     () => freedomChartSeries(input),
     [input]
   );
   const data = useMemo(() => toProjectionChartData(series), [series]);
   const intlLocale = htmlLang(locale);
   const symbol = CURRENCY_SYMBOLS[currency];
-  const peakPoint = chartPeakPoint(series);
-  const endPoint = series.at(-1);
   const yearsOut = result.feasible
     ? Math.max(0, Math.round(result.value) - input.currentAge)
     : null;
@@ -172,46 +169,7 @@ export function FreedomCalculator({
         />
       </CalculatorForm>
 
-      <ProjectionChart
-        data={data}
-        currency={currency}
-        locale={locale}
-        title={t("calc.freedom.chart.title")}
-        subtitle={t("calc.freedom.chart.subtitle")}
-        description={t("calc.freedom.chart.description")}
-        peakTitle={t("calc.freedom.chart.peakMark")}
-        peakDetail={t("calc.freedom.chart.peakDetail", {
-          age: peakPoint?.age ?? freedomAge,
-          amount: formatCurrencyValue(
-            peakPoint?.wealth ?? 0,
-            currency,
-            true,
-            intlLocale
-          ),
-        })}
-        endTitle={t("calc.freedom.chart.endMark", {
-          age: endPoint?.age ?? input.lifeExpectancy,
-        })}
-        endDetail={t("calc.freedom.chart.endDetail", {
-          amount: formatCurrencyValue(
-            endPoint?.wealth ?? 0,
-            currency,
-            true,
-            intlLocale
-          ),
-        })}
-        axisAgeLabel={t("calc.freedom.chart.axisAge")}
-        footerLabel={t("calc.freedom.chart.footer")}
-        footerHint={t("calc.freedom.chart.footerHint")}
-        ageLabel={(age) => t("landing.chart.tooltipAge", { age })}
-        aportesLabel={t("calc.freedom.chart.contributions")}
-        aportesHint={t("calc.freedom.chart.contributionsHint")}
-        rendimentosLabel={t("calc.freedom.chart.returns")}
-        rendimentosHint={t("calc.freedom.chart.returnsHint")}
-        saquesLabel={t("calc.freedom.chart.withdrawals")}
-        saquesHint={t("calc.freedom.chart.withdrawalsHint")}
-        patrimonioLabel={t("calc.freedom.chart.remaining")}
-      />
+      <ProjectionChart data={data} currency={symbol} />
 
       <section className="public-result card-surface" aria-live="polite">
         {result.feasible ? (

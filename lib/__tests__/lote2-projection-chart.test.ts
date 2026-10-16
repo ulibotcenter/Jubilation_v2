@@ -53,16 +53,19 @@ describe("lote 2 ProjectionChart on the freedom calculator", () => {
     expect(calc).toContain("NumberField");
     expect(calc).not.toContain("FreedomProjectionChart");
 
+    expect(calc).toContain("currency={symbol}");
+    expect(calc).toContain("CURRENCY_SYMBOLS[currency]");
+
     const chart = readFileSync("components/ProjectionChart.tsx", "utf8");
     expect(chart).toContain("export function ProjectionChart");
-    expect(chart).toContain("data: ProjectionChartPoint[]");
-    expect(chart).toContain("point.aportes");
-    expect(chart).toContain("point.rendimentos");
-    expect(chart).toContain("point.saques");
-    expect(chart).toContain("point.patrimonio");
-    expect(chart).toContain("densifyJourney");
-    expect(chart).toContain("ReferenceDot");
-    expect(chart).toContain('data-chart-layout="reference"');
+    expect(chart).toContain("data: Point[]");
+    expect(chart).toContain("currency = 'R$'");
+    expect(chart).toContain("areaPath('aportes')");
+    expect(chart).toContain("areaPath('rendimentos')");
+    expect(chart).toContain("areaPath('saques')");
+    expect(chart).toContain("d.patrimonio");
+    expect(chart).toContain("viewBox={`0 0 ${width} ${height}`}");
+    expect(chart).not.toContain("recharts");
     expect(chart).not.toContain("BarChart");
     expect(chart).not.toContain("<Bar");
   });

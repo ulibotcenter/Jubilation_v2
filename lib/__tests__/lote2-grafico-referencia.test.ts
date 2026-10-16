@@ -141,23 +141,18 @@ describe("lote 2 reference chart stacks under the wealth line", () => {
     expect(paintPeak / rawPeak).toBeGreaterThan(0.86);
   });
 
-  it("paints the reference chrome on ProjectionChart, not bars", () => {
+  it("keeps the public calculator on ProjectionChart with live NumberFields", () => {
     expect(FREEDOM_AREA_COLORS.line).toBe("#0F766E");
     expect(FREEDOM_AREA_COLORS.contributions).toBe("#A3B9C9");
     expect(FREEDOM_AREA_COLORS.returns).toBe("#D6C190");
     expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#DDB0AB");
 
     const chart = readFileSync("components/ProjectionChart.tsx", "utf8");
-    expect(chart).toContain("ComposedChart");
-    expect(chart).toContain('type="monotone"');
-    expect(chart).toContain("CartesianGrid");
-    expect(chart).toContain("ReferenceDot");
-    expect(chart).toContain("ReferenceLine");
-    expect(chart).toContain("densifyJourney");
-    expect(chart).toContain('data-chart-layout="reference"');
-    expect(chart).toContain("projection-chart-title");
-    expect(chart).toContain("projection-chart-legend");
-    expect(chart).toContain("projection-chart-footer");
+    expect(chart).toContain("SEU FUTURO");
+    expect(chart).toContain("FINANCEIRO");
+    expect(chart).toContain("Patrimônio ao longo do tempo");
+    expect(chart).toContain("stroke=\"#0F766E\"");
+    expect(chart).not.toContain("recharts");
     expect(chart).not.toContain("BarChart");
     expect(chart).not.toContain("<Bar");
 
@@ -168,7 +163,7 @@ describe("lote 2 reference chart stacks under the wealth line", () => {
     expect(calc).toContain('from "@/components/ProjectionChart"');
     expect(calc).toContain("toProjectionChartData(series)");
     expect(calc).toContain("NumberField");
-    expect(calc).toContain('t("calc.freedom.chart.title")');
+    expect(calc).toContain("<ProjectionChart data={data} currency={symbol} />");
 
     expect(t("pt", "calc.freedom.chart.title")).toBe("SEU FUTURO FINANCEIRO");
     expect(t("pt", "calc.freedom.chart.subtitle")).toBe(
