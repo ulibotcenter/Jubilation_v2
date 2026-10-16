@@ -594,6 +594,7 @@ export const ES: Record<MessageKey, string> = {
   "toast.cloud.syncedDown": "Copia de la nube restaurada en este aparato",
   "toast.cloud.error": "Falló la petición de la cuenta",
   "toast.cloud.invalidInput": "Hace falta un correo válido y una contraseña de al menos 10 caracteres",
+  "toast.cloud.invalidEmail": "Hace falta un correo válido",
   "toast.cloud.emptyVault": "Aún no hay copia cifrada en la nube",
   "toast.billing.needAccount": "Entra en Ajustes antes del checkout",
   "toast.billing.checkoutError": "No se pudo abrir el Checkout de Stripe",

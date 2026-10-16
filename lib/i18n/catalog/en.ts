@@ -592,6 +592,7 @@ export const EN = {
   "toast.cloud.syncedDown": "Cloud copy restored on this device",
   "toast.cloud.error": "Cloud account request failed",
   "toast.cloud.invalidInput": "Need a valid email and a password of at least 10 characters",
+  "toast.cloud.invalidEmail": "Need a valid email",
   "toast.cloud.emptyVault": "No encrypted copy in the cloud yet",
   "toast.billing.needAccount": "Sign in under Settings before checkout",
   "toast.billing.checkoutError": "Could not start Stripe Checkout",
