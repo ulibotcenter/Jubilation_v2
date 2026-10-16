@@ -7,6 +7,7 @@ import {
   Area,
   CartesianGrid,
   ComposedChart,
+  Layer,
   Line,
   ReferenceDot,
   ReferenceLine,
@@ -145,7 +146,7 @@ function BandLabel({
       y={y}
       textAnchor="middle"
       fill={fill}
-      style={{ fontSize: compact ? 10 : 11, fontWeight: 600 }}
+        style={{ fontSize: compact ? 10.5 : 12, fontWeight: 700 }}
     >
       <tspan x={x} dy={0}>
         {title}
@@ -221,7 +222,7 @@ function JourneyMarks({
   const c = FREEDOM_AREA_COLORS;
 
   return (
-    <g className="projection-chart-marks" pointerEvents="none">
+    <Layer className="projection-chart-marks">
       {ax != null && ay != null && aportesAt.blueTop > 0 ? (
         <BandLabel
           x={ax}
@@ -258,7 +259,7 @@ function JourneyMarks({
 
       <text
         x={px}
-        y={py - 28}
+        y={py - 44}
         textAnchor="middle"
         fill={c.line}
         style={{ fontSize: compact ? 10 : 11, fontWeight: 650 }}
@@ -284,7 +285,7 @@ function JourneyMarks({
           {endDetail}
         </tspan>
       </text>
-    </g>
+    </Layer>
   );
 }
 
@@ -426,11 +427,11 @@ export function ProjectionChart({
           </li>
         </ul>
       </div>
-      <div className="projection-chart-plot" aria-hidden="true">
+      <div className="projection-chart-plot" aria-hidden="true" style={{ minHeight: "18.5rem" }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={plot}
-            margin={{ top: 36, right: 88, left: 4, bottom: 8 }}
+            margin={{ top: 48, right: 88, left: 4, bottom: 8 }}
           >
             <defs>
               <linearGradient id={contribFill} x1="0" y1="0" x2="0" y2="1">
@@ -597,20 +598,24 @@ export function ProjectionChart({
             <ReferenceDot
               x={peak.age}
               y={peak.lineY}
-              r={5.5}
-              fill={c.line}
-              stroke="#fff"
+              r={6.5}
+              fill="#0F766E"
+              stroke="#ffffff"
               strokeWidth={2}
+              fillOpacity={1}
               ifOverflow="visible"
+              zIndex={4000}
             />
             <ReferenceDot
               x={end.age}
               y={end.lineY}
-              r={6}
-              fill="#fff"
-              stroke={c.line}
-              strokeWidth={2}
+              r={7}
+              fill="#ffffff"
+              stroke="#0F766E"
+              strokeWidth={2.25}
+              fillOpacity={1}
               ifOverflow="visible"
+              zIndex={4000}
             />
             <JourneyMarks
               plot={plot}

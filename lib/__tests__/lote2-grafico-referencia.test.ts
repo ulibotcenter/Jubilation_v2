@@ -108,7 +108,7 @@ describe("lote 2 reference journey chart", () => {
     const paintPeak = Math.max(...plot.map((point) => point.lineY));
     const rawPeak = Math.max(...series.map((point) => point.wealth));
     expect(paintPeak).toBeLessThan(rawPeak);
-    expect(paintPeak / rawPeak).toBeGreaterThan(0.92);
+    expect(paintPeak / rawPeak).toBeGreaterThan(0.86);
   });
 
   it("paints the reference chrome on ProjectionChart, not bars", () => {

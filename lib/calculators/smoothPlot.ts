@@ -272,11 +272,11 @@ export function densifyJourney(
  */
 export function roundJourneyPath(
   plot: FreedomPlotPoint[],
-  sigmaYears = 2.15
+  sigmaYears = 3.8
 ): FreedomPlotPoint[] {
   if (plot.length < 3 || sigmaYears <= 0) return plot;
   const twoS2 = 2 * sigmaYears * sigmaYears;
-  const radius = sigmaYears * 4;
+  const radius = sigmaYears * 4.6;
   const smoothed = plot.map((point) => {
     let weight = 0;
     let wealth = 0;
@@ -304,12 +304,13 @@ export function roundJourneyPath(
   const peakAge = plot.reduce((best, point) =>
     point.wealth > best.wealth ? point : best
   ).age;
-  const blendSigma = 3.4;
+  const blendSigma = 6.2;
   const blendTwoS2 = 2 * blendSigma * blendSigma;
   return plot.map((point, index) => {
-    const blend = Math.exp(
+    const peakBlend = Math.exp(
       -((point.age - peakAge) * (point.age - peakAge)) / blendTwoS2
     );
+    const blend = Math.min(1, 0.32 + 0.68 * peakBlend);
     const mixed = smoothed[index]!;
     const wealth = mixed.wealth * blend + point.wealth * (1 - blend);
     const layered = layersJourney({
