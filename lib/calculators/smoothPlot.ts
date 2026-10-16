@@ -285,6 +285,10 @@ export function densifyJourney(
       return [key, { ys, m: slopes(xs, ys) }];
     })
   ) as Record<(typeof keys)[number], { ys: number[]; m: number[] }>;
+  const blueKnots = series.map(
+    (point) => Math.max(0, point.contributions) + Math.max(0, point.withdrawals)
+  );
+  const blueSlopes = slopes(xs, blueKnots);
 
   const sample = (key: (typeof keys)[number], age: number) =>
     Math.max(0, interpolate(xs, columns[key].ys, columns[key].m, age));
@@ -299,13 +303,17 @@ export function densifyJourney(
     for (let s = 0; s < steps; s++) {
       const age = x0 + ((x1 - x0) * s) / steps;
       const wealth = sample("wealth", age);
-      const contributions = sample("contributions", age);
-      const returns = sample("returns", age);
       const src = s / steps < 0.5 ? series[i]! : series[i + 1]!;
       const withdrawals =
         firstWithdrawAge == null || age < firstWithdrawAge
           ? 0
           : sample("withdrawals", age);
+      const silhouette = Math.max(
+        withdrawals,
+        interpolate(xs, blueKnots, blueSlopes, age)
+      );
+      const contributions = Math.max(0, silhouette - withdrawals);
+      const returns = Math.max(0, wealth - withdrawals - contributions);
       out.push(
         withLayers({
           ...src,
@@ -338,7 +346,7 @@ export function roundJourneyPath(
   const smoothed = plot.map((point) => {
     let weight = 0;
     let wealth = 0;
-    let contributions = 0;
+    let silhouette = 0;
     let returns = 0;
     let withdrawals = 0;
     for (const other of plot) {
@@ -347,14 +355,17 @@ export function roundJourneyPath(
       const w = Math.exp(-(da * da) / twoS2);
       weight += w;
       wealth += w * other.wealth;
-      contributions += w * other.contributions;
+      silhouette +=
+        w * (Math.max(0, other.contributions) + Math.max(0, other.withdrawals));
       returns += w * other.returns;
       withdrawals += w * other.withdrawals;
     }
     return {
       wealth: weight === 0 ? point.wealth : wealth / weight,
-      contributions:
-        weight === 0 ? point.contributions : contributions / weight,
+      silhouette:
+        weight === 0
+          ? Math.max(0, point.contributions) + Math.max(0, point.withdrawals)
+          : silhouette / weight,
       returns: weight === 0 ? point.returns : returns / weight,
       withdrawals: weight === 0 ? point.withdrawals : withdrawals / weight,
     };
@@ -370,17 +381,21 @@ export function roundJourneyPath(
     );
     const mixed = smoothed[index]!;
     const lineY = mixed.wealth * blend + point.wealth * (1 - blend);
+    const coral =
+      point.withdrawals <= 0
+        ? 0
+        : mixed.withdrawals * blend + point.withdrawals * (1 - blend);
+    const silhouette =
+      mixed.silhouette * blend +
+      (Math.max(0, point.contributions) + Math.max(0, point.withdrawals)) *
+        (1 - blend);
     const fitted = fitLayersToWealth(
       {
         ...point,
         wealth: lineY,
-        contributions:
-          mixed.contributions * blend + point.contributions * (1 - blend),
+        contributions: Math.max(0, silhouette - coral),
         returns: mixed.returns * blend + point.returns * (1 - blend),
-        withdrawals:
-          point.withdrawals <= 0
-            ? 0
-            : mixed.withdrawals * blend + point.withdrawals * (1 - blend),
+        withdrawals: coral,
       },
       lineY
     );
