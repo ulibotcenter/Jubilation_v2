@@ -69,7 +69,7 @@ export default function CalculadorasIndexPage() {
         <p>
           O número que muda a conversa — quando o dinheiro chega, quanto ele
           paga, se a carência fecha — fica aqui, sem cadastro. Guardar o plano,
-          o gráfico e os três blocos é o Básico. O casal entra no Completo.
+          o gráfico e os três blocos é o Básico. O casal entra no Completo+Cônjuge.
         </p>
         <p>
           As regras brasileiras mudam. Estas páginas usam o pacote legal de

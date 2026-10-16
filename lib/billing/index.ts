@@ -1,22 +1,42 @@
 export {
+  BILLING_CATALOG_CELLS,
   BILLING_CURRENCIES,
+  BILLING_OFFER_IDS,
   DISPLAY_AMOUNT_CENTS,
+  LIST_AMOUNT_CENTS,
+  OFFER_META,
+  PROMO_AMOUNT_CENTS,
+  catalogCell,
+  offerIdFor,
+  type BillingCatalogCell,
   type BillingCurrency,
+  type BillingInterval,
   type BillingOfferId,
+  type BillingPlanSlug,
+  type PaidPlanTier,
 } from "@/lib/billing/catalog";
 export {
-  BILLING_OFFER_IDS,
+  allPriceEnvKeys,
   billingConfig,
+  billingConfigMatched,
+  candidatePriceIdsForCell,
+  catalogBillingStatus,
   displayAmountCents,
   isBillingOfferId,
   isPaidPlanTier,
   isStripePriceId,
+  listAmountCents,
+  matchPriceIdForCell,
+  matchedBillingOffers,
   offerById,
   parseBillingCurrency,
   parseBillingOffers,
   planFromPriceId,
+  priceEnvKeysForCell,
+  promoAmountCents,
   publicBillingStatus,
   resolveCheckoutPrice,
+  resolveMatchedCheckoutPrice,
   slotForCheckout,
   type BillingConfig,
   type BillingDisabledReason,
@@ -29,7 +49,23 @@ export {
 } from "@/lib/billing/config";
 export { createStripeCheckoutSession } from "@/lib/billing/checkout";
 export { formatPlanAmount } from "@/lib/billing/display";
+export {
+  EUROZONE_COUNTRIES,
+  GEO_COUNTRY_HEADERS,
+  countryFromRequestHeaders,
+  currencyFromCountry,
+  currencyFromRequestHeaders,
+} from "@/lib/billing/geo";
 export { commandFromStripeEvent, type BillingCommand } from "@/lib/billing/events";
+export {
+  createStripePriceRetriever,
+  parseStripePriceJson,
+  retrieveFromSnapshots,
+  retrieveStripePrice,
+  stripePriceMatchesCatalog,
+  type RetrieveStripePrice,
+  type StripePriceSnapshot,
+} from "@/lib/billing/stripePrice";
 export {
   stripeSignatureHeader,
   verifyStripeSignature,

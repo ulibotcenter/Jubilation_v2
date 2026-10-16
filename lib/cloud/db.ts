@@ -7,7 +7,7 @@ import {
   normalizeEmail,
   randomToken,
 } from "@/lib/cloud/magicLink";
-import type { PlanTier } from "@/lib/plans";
+import { parsePlanTier, type PlanTier } from "@/lib/plans";
 import {
   DEFAULT_DATA_REGION,
   DEFAULT_TENANT_ID,
@@ -127,8 +127,7 @@ interface AuthUserRow {
 }
 
 function asPlanTier(value: unknown): PlanTier {
-  if (value === "premium" || value === "horizon" || value === "free") return value;
-  return "free";
+  return parsePlanTier(value);
 }
 
 function asSubscriptionStatus(value: unknown): SubscriptionStatus {

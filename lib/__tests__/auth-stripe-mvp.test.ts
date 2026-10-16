@@ -256,7 +256,7 @@ describe("connector and export gates", () => {
 
 describe("missing env does not grant", () => {
   it("leaves billing off and the plan free without Stripe, a webhook, or a success URL", async () => {
-    const status = publicBillingStatus({});
+    const status = await publicBillingStatus({});
     expect(status.enabled).toBe(false);
     expect(status.reason).toBe("missing_env");
 

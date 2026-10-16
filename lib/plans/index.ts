@@ -1,4 +1,30 @@
-export type PlanTier = "free" | "premium" | "horizon";
+export type PlanTier = "free" | "premium" | "horizon" | "couple";
+
+export const PLAN_TIERS = ["free", "premium", "horizon", "couple"] as const;
+
+export function isPlanTier(value: unknown): value is PlanTier {
+  return (
+    value === "free" ||
+    value === "premium" ||
+    value === "horizon" ||
+    value === "couple"
+  );
+}
+
+export function parsePlanTier(value: unknown): PlanTier {
+  if (isPlanTier(value)) return value;
+  if (value === "monthly") return "premium";
+  if (value === "yearly") return "horizon";
+  return "free";
+}
+
+export function isPaidPlanTier(value: unknown): value is Exclude<PlanTier, "free"> {
+  return value === "premium" || value === "horizon" || value === "couple";
+}
+
+function hasCompletoFeatures(plan: PlanTier): boolean {
+  return plan === "horizon" || plan === "couple";
+}
 
 export type FeatureId =
   | "monte_carlo_full"
@@ -12,11 +38,12 @@ export type FeatureId =
   | "net_worth_history"
   | "sensitivity_sliders";
 
-/** Display names. Stripe ids stay premium (Básico) and horizon (Completo). */
+/** Display names. Stripe ids: premium Básico, horizon Completo, couple Completo+Cônjuge. */
 export const PLAN_LABELS: Record<PlanTier, string> = {
   free: "Grátis",
   premium: "Básico",
   horizon: "Completo",
+  couple: "Completo+Cônjuge",
 };
 
 /**
@@ -31,6 +58,10 @@ export const PLAN_PRICING: Record<
   free: { monthly: null, tagline: "Public calculator only" },
   premium: { monthly: null, tagline: "Básico — manual plan, 5 bolsa/Tesouro holdings" },
   horizon: { monthly: null, tagline: "Completo — connectors, scenarios, PDF" },
+  couple: {
+    monthly: null,
+    tagline: "Completo+Cônjuge — couple modeling, no spouse B3",
+  },
 };
 
 const FEATURE_GATES: Record<FeatureId, PlanTier> = {
@@ -50,6 +81,7 @@ const PLAN_RANK: Record<PlanTier, number> = {
   free: 0,
   premium: 1,
   horizon: 2,
+  couple: 3,
 };
 
 /**
@@ -80,40 +112,43 @@ export function manualPlanningOpen(): boolean {
  * Free is the public calculator. Missing Stripe env leaves the tier free.
  */
 export function canUseFullPlanner(plan: PlanTier): boolean {
-  return plan === "premium" || plan === "horizon";
+  return isPaidPlanTier(plan);
 }
 
 /** One saved retirement plan. Free cannot write it. */
 export function canSaveFullPlan(plan: PlanTier): boolean {
-  return plan === "premium" || plan === "horizon";
+  return isPaidPlanTier(plan);
 }
 
 /** Assumptions + year-by-year CSV. Completo adds the formatted report. */
 export function canUseBasicExport(plan: PlanTier): boolean {
-  return plan === "premium" || plan === "horizon";
+  return isPaidPlanTier(plan);
 }
 
 /**
- * B3 fixture and file import. Completo only. A missing Stripe env leaves
- * the tier at free, so the section stays closed. No click grants this.
+ * B3 fixture and file import. Completo and Completo+Cônjuge. Spouse B3 is
+ * never included — the couple plan is holder-typed input only.
  */
 export function canUseConnectors(plan: PlanTier): boolean {
-  return plan === "horizon";
+  return hasCompletoFeatures(plan);
 }
 
-/** Holdings, Monte Carlo, JSON, and the formatted PDF. Completo only. */
+/** Holdings, Monte Carlo, JSON, and the formatted PDF. Completo and above. */
 export function canUseAdvancedExport(plan: PlanTier): boolean {
-  return plan === "horizon";
+  return hasCompletoFeatures(plan);
 }
 
-/** Named scenario snapshots. Completo only — not a third Stripe product. */
+/** Named scenario snapshots. Completo and Completo+Cônjuge. */
 export function canUseMultipleScenarios(plan: PlanTier): boolean {
-  return plan === "horizon";
+  return hasCompletoFeatures(plan);
 }
 
-/** Couple modeling is a Completo feature, not its own price. */
+/**
+ * Couple modeling is Completo+Cônjuge only. Completo does not include it.
+ * There is no spouse B3 / CNIS / Receita integration on any plan.
+ */
 export function canModelCouple(plan: PlanTier): boolean {
-  return plan === "horizon";
+  return plan === "couple";
 }
 
 /**
