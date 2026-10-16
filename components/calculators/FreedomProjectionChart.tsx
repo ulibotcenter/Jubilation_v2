@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useReducedMotion } from "framer-motion";
 import {
   Area,
@@ -35,7 +36,11 @@ function AreaTooltip({
   wealthLabel,
 }: {
   active?: boolean;
-  payload?: Array<{ value?: number; dataKey?: string }>;
+  payload?: Array<{
+    value?: number;
+    dataKey?: string;
+    payload?: FreedomChartPoint;
+  }>;
   label?: number;
   currency: Currency;
   intlLocale: string;
@@ -46,26 +51,25 @@ function AreaTooltip({
   wealthLabel: string;
 }) {
   if (!active || label == null || !payload?.length) return null;
-  const valueOf = (key: string) =>
-    payload.find((item) => item.dataKey === key)?.value ?? 0;
-  const wealth = valueOf("wealth");
+  const point = payload[0]?.payload;
+  const wealth = point?.wealth ?? 0;
   const rows = [
     {
       key: "contributions",
       label: contributionsLabel,
-      value: valueOf("contributions"),
+      value: point?.contributions ?? 0,
       color: FREEDOM_AREA_COLORS.contributions,
     },
     {
       key: "returns",
       label: returnsLabel,
-      value: valueOf("returns"),
+      value: point?.returns ?? 0,
       color: FREEDOM_AREA_COLORS.returns,
     },
     {
       key: "withdrawals",
       label: withdrawalsLabel,
-      value: valueOf("withdrawals"),
+      value: point?.withdrawals ?? 0,
       color: FREEDOM_AREA_COLORS.withdrawals,
     },
   ];
@@ -121,6 +125,15 @@ export function FreedomProjectionChart({
   const intlLocale = htmlLang(locale);
   const c = FREEDOM_AREA_COLORS;
   const duration = reduced ? 0 : 320;
+  const plot = useMemo(
+    () =>
+      series.map((point) => ({
+        ...point,
+        remaining: point.contributions + point.returns,
+        envelope: point.contributions + point.returns + point.withdrawals,
+      })),
+    [series]
+  );
 
   return (
     <figure
@@ -156,7 +169,7 @@ export function FreedomProjectionChart({
       <div className="landing-chart-plot" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={series}
+            data={plot}
             margin={{ top: 10, right: 12, left: 0, bottom: 4 }}
           >
             <CartesianGrid
@@ -197,23 +210,19 @@ export function FreedomProjectionChart({
             />
             <Area
               type="monotone"
-              dataKey="contributions"
-              name={contributionsLabel}
-              stackId="wealth"
-              stroke={c.contributions}
-              strokeWidth={1}
-              fill={c.contributions}
+              dataKey="envelope"
+              name={withdrawalsLabel}
+              stroke="none"
+              fill={c.withdrawals}
               isAnimationActive={motion.isAnimationActive}
               animationDuration={duration}
               animationEasing={motion.animationEasing}
             />
             <Area
               type="monotone"
-              dataKey="returns"
+              dataKey="remaining"
               name={returnsLabel}
-              stackId="wealth"
-              stroke={c.returns}
-              strokeWidth={1}
+              stroke="none"
               fill={c.returns}
               isAnimationActive={motion.isAnimationActive}
               animationDuration={duration}
@@ -221,12 +230,10 @@ export function FreedomProjectionChart({
             />
             <Area
               type="monotone"
-              dataKey="withdrawals"
-              name={withdrawalsLabel}
-              stackId="wealth"
-              stroke={c.withdrawals}
-              strokeWidth={1}
-              fill={c.withdrawals}
+              dataKey="contributions"
+              name={contributionsLabel}
+              stroke="none"
+              fill={c.contributions}
               isAnimationActive={motion.isAnimationActive}
               animationDuration={duration}
               animationEasing={motion.animationEasing}
@@ -236,7 +243,7 @@ export function FreedomProjectionChart({
               dataKey="wealth"
               name={wealthLabel}
               stroke={c.line}
-              strokeWidth={2.75}
+              strokeWidth={3.25}
               dot={false}
               activeDot={{
                 r: 4,
