@@ -5544,6 +5544,15 @@ html.light .add-asset-modal {
   flex-shrink: 0;
 }
 
+.public-header-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
 .public-main {
   flex: 1;
   width: 100%;
@@ -5844,10 +5853,13 @@ html.light .add-asset-modal {
 }
 
 .landing-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "brand prefs"
+    "nav nav";
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.65rem 1rem;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   background: var(--topbar-bg);
@@ -5857,11 +5869,25 @@ html.light .add-asset-modal {
   backdrop-filter: blur(14px);
 }
 
+.landing-header-prefs {
+  grid-area: prefs;
+  justify-self: end;
+}
+
+@media (min-width: 840px) {
+  .landing-header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "brand nav prefs";
+  }
+}
+
 .landing-brand {
+  grid-area: brand;
   display: flex;
   align-items: center;
   gap: 0.7rem;
   min-width: 0;
+  flex-shrink: 0;
   text-decoration: none;
   color: inherit;
 }
@@ -5888,6 +5914,7 @@ html.light .add-asset-modal {
 
 .landing-brand-text strong {
   font-size: 1rem;
+  white-space: nowrap;
 }
 
 .landing-brand-text span {
@@ -5896,10 +5923,18 @@ html.light .add-asset-modal {
 }
 
 .landing-nav {
+  grid-area: nav;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.35rem 0.9rem;
+}
+
+@media (min-width: 840px) {
+  .landing-nav {
+    justify-content: flex-end;
+    padding-right: 0.35rem;
+  }
 }
 
 .landing-nav a {
@@ -6081,5 +6116,93 @@ html.light .add-asset-modal {
 
   .landing-brand-text span {
     display: none;
+  }
+
+  .prefs-segment--locale .prefs-chip-label {
+    display: none;
+  }
+
+  .prefs-chip {
+    padding: 0.2rem 0.32rem;
+  }
+}
+
+.landing-chart--compact {
+  margin: 1.25rem 0;
+}
+
+.landing-chart--compact .landing-chart-plot {
+  height: 14.5rem;
+}
+
+.prefs-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.prefs-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.prefs-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.48rem;
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1;
+  min-height: 1.7rem;
+}
+
+.prefs-chip:hover {
+  color: var(--foreground);
+}
+
+.prefs-chip[data-active="true"] {
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.prefs-chip:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.prefs-chip-label {
+  font-size: 0.68rem;
+}
+
+.locale-flag-svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+@media (max-width: 420px) {
+  .prefs-chip {
+    padding: 0.2rem 0.38rem;
+  }
+
+  .public-header-cta {
+    width: 100%;
+    text-align: center;
   }
 }

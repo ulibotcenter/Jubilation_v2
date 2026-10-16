@@ -1,10 +1,12 @@
-import type { ReactNode } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 
 interface NumberFieldProps {
   name: string;
   label: string;
   hint?: string;
-  defaultValue: number;
+  defaultValue?: number;
+  value?: number;
+  onValueChange?: (value: number) => void;
   min?: number;
   max?: number;
   step?: number;
@@ -16,11 +18,14 @@ export function NumberField({
   label,
   hint,
   defaultValue,
+  value,
+  onValueChange,
   min,
   max,
   step = 1,
   suffix,
 }: NumberFieldProps) {
+  const controlled = value != null && onValueChange != null;
   return (
     <label className="public-field">
       <span className="public-field-label">{label}</span>
@@ -28,12 +33,25 @@ export function NumberField({
         <input
           type="number"
           name={name}
-          defaultValue={defaultValue}
           min={min}
           max={max}
           step={step}
           inputMode="decimal"
           required
+          {...(controlled
+            ? {
+                value,
+                onChange: (event: ChangeEvent<HTMLInputElement>) => {
+                  const raw = event.target.value;
+                  if (raw === "") {
+                    onValueChange(0);
+                    return;
+                  }
+                  const next = Number(raw);
+                  if (Number.isFinite(next)) onValueChange(next);
+                },
+              }
+            : { defaultValue })}
         />
         {suffix ? <span className="public-field-suffix">{suffix}</span> : null}
       </span>
