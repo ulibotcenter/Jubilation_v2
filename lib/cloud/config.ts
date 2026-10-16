@@ -14,6 +14,9 @@ import {
 
 export type { DataRegion };
 
+/** Preferred From when Resend is configured and EMAIL_FROM is empty. */
+export const DEFAULT_RESEND_FROM = "Jubilation <noreply@jubilation.life>";
+
 export interface CloudAuthConfig {
   enabled: boolean;
   magicLink: boolean;
@@ -26,6 +29,7 @@ export interface CloudAuthConfig {
   smtpUser: string;
   smtpPass: string;
   emailFrom: string;
+  resendApiKey: string;
   smtpSecure: boolean;
   databaseSsl: boolean;
   defaultDataRegion: DataRegion;
@@ -63,12 +67,19 @@ export function cloudAuthConfig(
   const authSecret = (env.AUTH_SECRET ?? env.NEXTAUTH_SECRET)?.trim() ?? "";
   const authUrl = (env.AUTH_URL ?? env.NEXTAUTH_URL ?? env.NEXT_PUBLIC_APP_URL)?.trim() ?? "";
   const smtpHost = env.SMTP_HOST?.trim() ?? "";
-  const emailFrom = env.EMAIL_FROM?.trim() ?? "";
+  const resendApiKey = env.RESEND_API_KEY?.trim() ?? "";
+  const configuredFrom = env.EMAIL_FROM?.trim() ?? "";
+  const emailFrom =
+    configuredFrom ||
+    (resendApiKey.length > 0 ? DEFAULT_RESEND_FROM : "");
   const smtpPort = Number(env.SMTP_PORT ?? "587") || 587;
   const disabled = flagOff(env.AUTH);
   const enabled =
     !disabled && databaseUrl.length > 0 && authSecret.length >= 16;
-  const magicLink = enabled && smtpHost.length > 0 && emailFrom.length > 0;
+  const magicLink =
+    enabled &&
+    emailFrom.length > 0 &&
+    (resendApiKey.length > 0 || smtpHost.length > 0);
   const password = enabled;
   const sslEnv = env.DATABASE_SSL?.trim().toLowerCase();
   const databaseSsl =
@@ -87,6 +98,7 @@ export function cloudAuthConfig(
     smtpUser: env.SMTP_USER?.trim() ?? "",
     smtpPass: env.SMTP_PASS ?? "",
     emailFrom,
+    resendApiKey,
     smtpSecure: flagOn(env.SMTP_SECURE) || smtpPort === 465,
     databaseSsl,
     defaultDataRegion: DEFAULT_DATA_REGION,
