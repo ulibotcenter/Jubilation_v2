@@ -35,12 +35,12 @@ export const FREEDOM_AREA_COLORS = {
   contributions: "#93C5FD",
   returns: "#FCD34D",
   withdrawals: "#FCA5A5",
-  contribFrom: 0.5,
-  contribTo: 0.1,
-  returnsFrom: 0.42,
-  returnsTo: 0.08,
-  withdrawFrom: 0.48,
-  withdrawTo: 0.1,
+  contribFrom: 0.52,
+  contribTo: 0.12,
+  returnsFrom: 0.44,
+  returnsTo: 0.1,
+  withdrawFrom: 0.58,
+  withdrawTo: 0.16,
   cursor: "rgba(15, 118, 110, 0.18)",
 } as const;
 

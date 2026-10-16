@@ -26,12 +26,12 @@ describe("lote 2 premium monotone freedom chart", () => {
       contributions: "#93C5FD",
       returns: "#FCD34D",
       withdrawals: "#FCA5A5",
-      contribFrom: 0.5,
-      contribTo: 0.1,
-      returnsFrom: 0.42,
-      returnsTo: 0.08,
-      withdrawFrom: 0.48,
-      withdrawTo: 0.1,
+      contribFrom: 0.52,
+      contribTo: 0.12,
+      returnsFrom: 0.44,
+      returnsTo: 0.1,
+      withdrawFrom: 0.58,
+      withdrawTo: 0.16,
       cursor: "rgba(15, 118, 110, 0.18)",
     });
   });
@@ -68,6 +68,10 @@ describe("lote 2 premium monotone freedom chart", () => {
     const peakAt = wealth.indexOf(Math.max(...wealth));
     expect(peakAt).toBeGreaterThan(4);
     expect(peakAt).toBeLessThan(wealth.length - 4);
+    const rawPeak = Math.max(...wealth);
+    const paintPeak = Math.max(...plot.map((point) => point.lineY));
+    expect(paintPeak).toBeLessThan(rawPeak);
+    expect(paintPeak / rawPeak).toBeGreaterThan(0.92);
   });
 
   it("paints three monotone gradient areas under a teal wealth line, not bars", () => {
@@ -79,7 +83,7 @@ describe("lote 2 premium monotone freedom chart", () => {
     expect(chart).toContain('type="monotone"');
     expect(chart).toContain('dataKey="blueTop"');
     expect(chart).toContain('dataKey="goldTop"');
-    expect(chart).toContain('dataKey="wealth"');
+    expect(chart).toContain('dataKey="lineY"');
     expect(chart).toContain("linearGradient");
     expect(chart).toContain("stopOpacity");
     expect(chart).toContain("densifyMonotone(series, 12)");

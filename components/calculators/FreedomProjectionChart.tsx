@@ -239,7 +239,7 @@ export function FreedomProjectionChart({
             />
             <Area
               type="monotone"
-              dataKey="wealth"
+              dataKey="lineY"
               name={withdrawalsLabel}
               stroke="none"
               fill={`url(#${withdrawFill})`}
@@ -278,7 +278,7 @@ export function FreedomProjectionChart({
             />
             <Line
               type="monotone"
-              dataKey="wealth"
+              dataKey="lineY"
               name={wealthLabel}
               stroke={c.line}
               strokeWidth={2.75}

@@ -7,6 +7,8 @@ export type FreedomPlotPoint = FreedomChartPoint & {
   goldTop: number;
   /** Height of the coral withdrawal band; 0 while contributing. */
   coral: number;
+  /** Smoothed wealth used only for the painted curve. */
+  lineY: number;
 };
 
 /**
@@ -130,11 +132,11 @@ export function densifyMonotone(
 
   const withLayers = (point: FreedomChartPoint): FreedomPlotPoint => {
     const layers = layersUnderWealth(point);
-    return { ...point, ...layers };
+    return { ...point, ...layers, lineY: point.wealth };
   };
 
   if (series.length === 1 || stepsPerYear <= 1) {
-    return series.map(withLayers);
+    return roundPaintPath(series.map(withLayers));
   }
 
   const xs = series.map((point) => point.age);
@@ -176,5 +178,60 @@ export function densifyMonotone(
     }
   }
   out.push(withLayers(series.at(-1)!));
-  return out;
+  return roundPaintPath(out);
+}
+
+/**
+ * Visual-only rounding so the painted hill is a curve, not a pointed
+ * triangle. Blend is strongest at the peak; yearly engine values on the
+ * point stay untouched for tooltips and labels.
+ */
+export function roundPaintPath(
+  plot: FreedomPlotPoint[],
+  sigmaYears = 2.15
+): FreedomPlotPoint[] {
+  if (plot.length < 3 || sigmaYears <= 0) return plot;
+  const twoS2 = 2 * sigmaYears * sigmaYears;
+  const radius = sigmaYears * 4;
+  const smoothed = plot.map((point) => {
+    let weight = 0;
+    let wealth = 0;
+    let contributions = 0;
+    let withdrawals = 0;
+    for (const other of plot) {
+      const da = other.age - point.age;
+      if (Math.abs(da) > radius) continue;
+      const w = Math.exp(-(da * da) / twoS2);
+      weight += w;
+      wealth += w * other.wealth;
+      contributions += w * other.contributions;
+      withdrawals += w * other.withdrawals;
+    }
+    return {
+      wealth: weight === 0 ? point.wealth : wealth / weight,
+      contributions:
+        weight === 0 ? point.contributions : contributions / weight,
+      withdrawals: weight === 0 ? point.withdrawals : withdrawals / weight,
+    };
+  });
+  const peakAge = plot.reduce((best, point) =>
+    point.wealth > best.wealth ? point : best
+  ).age;
+  const blendSigma = 3.4;
+  const blendTwoS2 = 2 * blendSigma * blendSigma;
+  return plot.map((point, index) => {
+    const blend = Math.exp(
+      -((point.age - peakAge) * (point.age - peakAge)) / blendTwoS2
+    );
+    const mixed = smoothed[index]!;
+    const lineY = mixed.wealth * blend + point.wealth * (1 - blend);
+    const layers = layersUnderWealth({
+      ...point,
+      wealth: lineY,
+      contributions:
+        mixed.contributions * blend + point.contributions * (1 - blend),
+      withdrawals: mixed.withdrawals * blend + point.withdrawals * (1 - blend),
+    });
+    return { ...point, ...layers, lineY };
+  });
 }

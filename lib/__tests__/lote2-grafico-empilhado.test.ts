@@ -106,7 +106,7 @@ describe("lote 2 stacked freedom chart", () => {
     expect(chart).toContain("type=\"monotone\"");
     expect(chart).toContain('dataKey="blueTop"');
     expect(chart).toContain('dataKey="goldTop"');
-    expect(chart).toContain('dataKey="wealth"');
+    expect(chart).toContain('dataKey="lineY"');
     expect(chart).toContain(
       'data-chart-area="contributions-returns-withdrawals"'
     );
