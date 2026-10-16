@@ -43,11 +43,16 @@ describe("lote 2 stacked freedom chart", () => {
     expect(after.some((point) => point.withdrawals > 0)).toBe(true);
     expect(after.some((point) => point.returns > 0)).toBe(true);
 
+    const peak = Math.max(...series.map((point) => point.wealth));
     let declined = false;
     for (let i = 1; i < after.length; i++) {
       if (after[i].wealth < after[i - 1].wealth) declined = true;
       expect(after[i].withdrawals).toBeGreaterThanOrEqual(
         after[i - 1].withdrawals
+      );
+      expect(after[i].contributions + after[i].returns + after[i].withdrawals).toBeCloseTo(
+        peak,
+        0
       );
       const drop = after[i - 1].wealth - after[i].wealth;
       expect(drop).toBeLessThan(after[i - 1].wealth * 0.85);
@@ -57,6 +62,7 @@ describe("lote 2 stacked freedom chart", () => {
     const last = series.at(-1)!;
     expect(last.age).toBe(FREEDOM_DEFAULTS.lifeExpectancy);
     expect(last.wealth).toBeGreaterThan(0);
+    expect(last.wealth).toBeLessThan(peak);
     expect(last.withdrawals).toBeGreaterThan(0);
     expect(last.returns).toBeGreaterThan(0);
   });
