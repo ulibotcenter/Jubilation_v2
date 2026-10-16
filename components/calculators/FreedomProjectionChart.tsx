@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { useReducedMotion } from "framer-motion";
 import {
   Area,
-  CartesianGrid,
   ComposedChart,
   Line,
   ResponsiveContainer,
@@ -14,6 +13,7 @@ import {
 } from "recharts";
 import { FREEDOM_AREA_COLORS } from "@/lib/chartColors";
 import type { FreedomChartPoint } from "@/lib/calculators/chartSeries";
+import { densifyMonotone } from "@/lib/calculators/smoothPlot";
 import { htmlLang } from "@/lib/i18n/htmlLang";
 import type { AppLocale } from "@/lib/i18n/messages";
 import { chartMotion } from "@/lib/uiMotion";
@@ -37,8 +37,6 @@ function AreaTooltip({
 }: {
   active?: boolean;
   payload?: Array<{
-    value?: number;
-    dataKey?: string;
     payload?: FreedomChartPoint;
   }>;
   label?: number;
@@ -75,7 +73,7 @@ function AreaTooltip({
   ];
   return (
     <div className="landing-chart-tooltip">
-      <p className="landing-chart-tooltip-label">{ageLabel(label)}</p>
+      <p className="landing-chart-tooltip-label">{ageLabel(Math.round(label))}</p>
       <p className="landing-chart-tooltip-value">
         {wealthLabel}{" "}
         {formatCurrencyValue(wealth, currency, false, intlLocale)}
@@ -124,23 +122,20 @@ export function FreedomProjectionChart({
   const motion = chartMotion(reduced);
   const intlLocale = htmlLang(locale);
   const c = FREEDOM_AREA_COLORS;
-  const duration = reduced ? 0 : 320;
-  const plot = useMemo(
-    () =>
-      series.map((point) => ({
-        ...point,
-        remaining: point.contributions + point.returns,
-        envelope: point.contributions + point.returns + point.withdrawals,
-      })),
-    [series]
-  );
+  const duration = reduced ? 0 : 420;
+  const rawId = useId().replace(/:/g, "");
+  const contribFill = `ffContrib-${rawId}`;
+  const returnsFill = `ffReturns-${rawId}`;
+  const withdrawFill = `ffWithdraw-${rawId}`;
+  const plot = useMemo(() => densifyMonotone(series, 12), [series]);
 
   return (
     <figure
-      className="landing-chart landing-chart--compact landing-chart--area"
+      className="landing-chart landing-chart--compact landing-chart--area landing-chart--premium"
       data-landing-chart="projection"
       data-chart-area="contributions-returns-withdrawals"
       data-chart-line="wealth"
+      data-chart-curve="monotone"
     >
       <div className="landing-chart-head">
         <figcaption>
@@ -170,26 +165,60 @@ export function FreedomProjectionChart({
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={plot}
-            margin={{ top: 10, right: 12, left: 0, bottom: 4 }}
+            margin={{ top: 12, right: 16, left: 0, bottom: 6 }}
           >
-            <CartesianGrid
-              strokeDasharray="0"
-              stroke="rgba(13, 79, 86, 0.06)"
-              vertical={false}
-            />
+            <defs>
+              <linearGradient id={contribFill} x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor={c.contributions}
+                  stopOpacity={c.contribFrom}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={c.contributions}
+                  stopOpacity={c.contribTo}
+                />
+              </linearGradient>
+              <linearGradient id={returnsFill} x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor={c.returns}
+                  stopOpacity={c.returnsFrom}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={c.returns}
+                  stopOpacity={c.returnsTo}
+                />
+              </linearGradient>
+              <linearGradient id={withdrawFill} x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor={c.withdrawals}
+                  stopOpacity={c.withdrawFrom}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={c.withdrawals}
+                  stopOpacity={c.withdrawTo}
+                />
+              </linearGradient>
+            </defs>
             <XAxis
               dataKey="age"
-              tick={{ fontSize: 11, fill: "#8a8580" }}
+              tick={{ fontSize: 11, fill: "#9a9590" }}
               axisLine={false}
               tickLine={false}
-              minTickGap={28}
+              minTickGap={32}
               interval="equidistantPreserveStart"
+              tickFormatter={(value: number) => String(Math.round(value))}
             />
             <YAxis
               tickFormatter={(value: number) =>
                 formatAxis(value, currency, intlLocale)
               }
-              tick={{ fontSize: 11, fill: "#8a8580" }}
+              tick={{ fontSize: 11, fill: "#9a9590" }}
               axisLine={false}
               tickLine={false}
               width={72}
@@ -206,47 +235,56 @@ export function FreedomProjectionChart({
                   wealthLabel={wealthLabel}
                 />
               }
-              cursor={{ stroke: c.line, strokeWidth: 1, strokeOpacity: 0.35 }}
+              cursor={{ stroke: c.line, strokeWidth: 1, strokeOpacity: 0.22 }}
             />
             <Area
               type="monotone"
-              dataKey="envelope"
+              dataKey="lineY"
               name={withdrawalsLabel}
               stroke="none"
-              fill={c.withdrawals}
+              fill={`url(#${withdrawFill})`}
+              fillOpacity={1}
+              dot={false}
+              activeDot={false}
               isAnimationActive={motion.isAnimationActive}
               animationDuration={duration}
               animationEasing={motion.animationEasing}
             />
             <Area
               type="monotone"
-              dataKey="remaining"
+              dataKey="goldTop"
               name={returnsLabel}
               stroke="none"
-              fill={c.returns}
+              fill={`url(#${returnsFill})`}
+              fillOpacity={1}
+              dot={false}
+              activeDot={false}
               isAnimationActive={motion.isAnimationActive}
               animationDuration={duration}
               animationEasing={motion.animationEasing}
             />
             <Area
               type="monotone"
-              dataKey="contributions"
+              dataKey="blueTop"
               name={contributionsLabel}
               stroke="none"
-              fill={c.contributions}
+              fill={`url(#${contribFill})`}
+              fillOpacity={1}
+              dot={false}
+              activeDot={false}
               isAnimationActive={motion.isAnimationActive}
               animationDuration={duration}
               animationEasing={motion.animationEasing}
             />
             <Line
               type="monotone"
-              dataKey="wealth"
+              dataKey="lineY"
               name={wealthLabel}
               stroke={c.line}
-              strokeWidth={3.25}
+              strokeWidth={2.75}
               dot={false}
               activeDot={{
-                r: 4,
+                r: 4.5,
                 fill: c.line,
                 stroke: "#fff",
                 strokeWidth: 2,
