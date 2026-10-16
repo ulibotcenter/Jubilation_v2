@@ -21,6 +21,10 @@ import {
 import { formatPlanAmount } from "@/lib/billing/display";
 import { planTierAfterBrowserReturn } from "@/lib/plans";
 import { shouldOfferBasicoTrial } from "@/lib/billing/trial";
+import {
+  CurrentPlanLabel,
+  useCurrentPlanDisplay,
+} from "@/components/billing/CurrentPlanLabel";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
@@ -92,6 +96,7 @@ export function UpgradePageContent({
   const { t, locale } = useTranslation();
   const storedPlan = useAppStore((s) => s.planTier);
   const billingLive = useAppStore((s) => s.billingLive);
+  const currentDisplay = useCurrentPlanDisplay();
   const [currency, setCurrency] = useState<BillingCurrency>(geoCurrency);
   const [interval, setInterval] = useState<BillingInterval>("month");
   const [status, setStatus] = useState<PublicBillingStatus | null>(null);
@@ -198,14 +203,17 @@ export function UpgradePageContent({
 
       {!loading && (
         <>
-          <div className="card-surface p-6 space-y-3">
+          <div
+            className={`card-surface p-6 space-y-3${currentDisplay.plan === "free" ? " plan-card-current" : ""}`}
+            data-current-plan-summary=""
+            data-plan-tier={currentDisplay.plan}
+            data-plan-trialing={currentDisplay.trialing ? "true" : "false"}
+          >
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               {t("upgrade.currentPlan")}
             </p>
             <p className="font-bold">
-              {t("plan.currentBadge", {
-                plan: t(`plan.${planTier}` as MessageKey),
-              })}
+              <CurrentPlanLabel placement="planos" />
             </p>
             {billingLive && planTier !== "free" ? (
               <p className="text-sm text-muted-foreground">{t("upgrade.currentPaid")}</p>
@@ -305,20 +313,32 @@ export function UpgradePageContent({
                 interval === "year"
                   ? t("upgrade.interval.year")
                   : t("upgrade.interval.month");
-              const current = billingLive && planTier === card.plan;
+              const current = currentDisplay.plan === card.plan;
               const surface = card.accent ? "card-surface-accent" : "card-surface";
 
               return (
                 <article
                   key={card.plan}
-                  className={`${surface} p-6 space-y-3 flex flex-col`}
+                  className={`${surface} p-6 space-y-3 flex flex-col${current ? " plan-card-current" : ""}`}
                   data-plan={card.slug}
                   data-offer={offerId}
                   data-currency={currency}
                   data-interval={interval}
                   data-checkout-ready={amounts.checkoutReady ? "true" : "false"}
+                  data-current-plan={current ? "true" : "false"}
+                  aria-current={current ? "true" : undefined}
                 >
-                  <h3 className="font-bold">{t(card.titleKey)}</h3>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-bold">{t(card.titleKey)}</h3>
+                    {current ? (
+                      <span
+                        className="plan-card-current-badge"
+                        data-current-plan-badge=""
+                      >
+                        {t("upgrade.currentOffer")}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-sm text-muted-foreground flex-1">
                     {t(card.bodyKey)}
                   </p>

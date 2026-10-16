@@ -15,9 +15,9 @@ import { toast } from "sonner";
 import { Logo } from "@/components/common/Logo";
 import { LocaleThemeControls } from "@/components/platform/LocaleThemeControls";
 import { exportRetirementReport } from "@/lib/exportReport";
+import { CurrentPlanLabel } from "@/components/billing/CurrentPlanLabel";
 import { canUseAdvancedExport, canUseBasicExport } from "@/lib/plans";
 import { getCrossRate } from "@/lib/fx/convert";
-import type { MessageKey } from "@/lib/i18n/messages";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { CURRENCIES, type Currency } from "@/types";
@@ -238,6 +238,8 @@ export function Topbar() {
           <span>{t("nav.upgrade")}</span>
         </button>
 
+        <CurrentPlanLabel placement="header" className="topbar-plan-label" />
+
         {/* Avatar dropdown */}
         <div ref={avatarRef} className="relative">
           <button
@@ -266,11 +268,10 @@ export function Topbar() {
                   <p className="text-xs text-muted-foreground truncate">
                     {user.email}
                   </p>
-                  <span className="inline-flex mt-1.5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-accent/15 text-accent">
-                    {t("plan.currentBadge", {
-                      plan: t(`plan.${planTier}` as MessageKey),
-                    })}
-                  </span>
+                  <CurrentPlanLabel
+                    placement="menu"
+                    className="inline-flex mt-1.5 px-2 py-0.5 text-[10px] font-semibold tracking-wide rounded-full bg-accent/15 text-accent"
+                  />
                 </div>
                 {basicExport ? (
                 <button

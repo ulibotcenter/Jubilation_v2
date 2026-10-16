@@ -240,6 +240,8 @@ export const EN = {
   "plan.horizon": "Completo",
   "plan.couple": "Completo+Cônjuge",
   "plan.currentBadge": "{plan} plan",
+  "plan.trialing": "{plan} (trial)",
+  "plan.headerAria": "Current plan: {plan}",
   "plan.tagline.free": "Public calculator: age, contribution, goal — one number",
   "plan.tagline.premium": "Manual plan, three blocks, up to 5 bolsa or Tesouro holdings",
   "plan.tagline.horizon": "Everything in Básico, plus connectors, scenarios, and PDF",
