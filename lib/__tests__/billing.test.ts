@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { NextRequest } from "next/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "@/lib/cloud/db";
+import { SESSION_COOKIE } from "@/lib/cloud/db";
 import {
   BILLING_CATALOG_CELLS,
   LIST_AMOUNT_CENTS,
@@ -48,6 +51,36 @@ import {
 import { t } from "@/lib/i18n/messages";
 import checkoutCompleted from "./fixtures/stripe-checkout-session-completed.json";
 import subscriptionDeleted from "./fixtures/stripe-subscription-deleted.json";
+
+const checkoutAuth = vi.hoisted(() => ({
+  user: null as AuthUser | null,
+}));
+
+vi.mock("@/lib/cloud/db", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/cloud/db")>();
+  return {
+    ...actual,
+    userFromSessionToken: vi.fn(async (token: string | null | undefined) => {
+      if (token !== "test-session") return null;
+      return checkoutAuth.user;
+    }),
+  };
+});
+
+const TEST_CHECKOUT_USER: AuthUser = {
+  id: "user-ada-1",
+  email: "ada@example.com",
+  passwordHash: null,
+  dataRegion: "eu",
+  planTier: "free",
+  stripeCustomerId: null,
+  stripeSubscriptionId: null,
+  subscriptionStatus: "none",
+  preferredCountry: "BR",
+  preferredLocale: "pt",
+  preferredCurrency: "BRL",
+  leadAge: 42,
+};
 
 const SECRET_ENV = {
   STRIPE_SECRET_KEY: "sk_test_billing",
@@ -531,12 +564,71 @@ describe("Básico trial offer", () => {
 });
 
 describe("checkout POST", () => {
-  it("charges the Stripe Price for the selected currency when the catalog matches", async () => {
-    const prev = { ...process.env };
+  afterEach(() => {
+    checkoutAuth.user = null;
+  });
+
+  function enableCheckoutAuthEnv() {
     process.env.STRIPE_SECRET_KEY = "sk_test_billing";
-    process.env.STRIPE_PRICE_BASICO_YEARLY_USD = "price_premium_yearly_usd";
+    process.env.DATABASE_URL =
+      "postgres://u:p@db.eu-central-1.aws.neon.tech/jubilation";
+    process.env.AUTH_SECRET = "a-very-long-auth-secret";
     delete process.env.BILLING;
     delete process.env.STRIPE;
+    delete process.env.AUTH;
+  }
+
+  function signedInCheckoutRequest(body: Record<string, string>) {
+    return new NextRequest("http://localhost/api/billing/checkout", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `${SESSION_COOKIE}=test-session`,
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("returns 401 and does not create a Checkout Session without a user", async () => {
+    const prev = { ...process.env };
+    enableCheckoutAuthEnv();
+    process.env.STRIPE_PRICE_BASICO_MONTHLY = "price_premium_monthly_brl";
+    const original = globalThis.fetch;
+    const stripeUrls: string[] = [];
+    globalThis.fetch = async (input) => {
+      stripeUrls.push(String(input));
+      throw new Error("stripe_should_not_be_called");
+    };
+    try {
+      const { POST } = await import("@/app/api/billing/checkout/route");
+      const { NextRequest } = await import("next/server");
+      const res = await POST(
+        new NextRequest("http://localhost/api/billing/checkout", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            offerId: "premium_monthly",
+            currency: "brl",
+          }),
+        })
+      );
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "unauthorized" });
+      expect(stripeUrls).toEqual([]);
+    } finally {
+      globalThis.fetch = original;
+      for (const key of Object.keys(process.env)) {
+        if (!(key in prev)) delete process.env[key];
+      }
+      Object.assign(process.env, prev);
+    }
+  });
+
+  it("charges the Stripe Price for the selected currency when the catalog matches", async () => {
+    const prev = { ...process.env };
+    enableCheckoutAuthEnv();
+    process.env.STRIPE_PRICE_BASICO_YEARLY_USD = "price_premium_yearly_usd";
+    checkoutAuth.user = TEST_CHECKOUT_USER;
     const original = globalThis.fetch;
     const checkoutBodies: string[] = [];
     globalThis.fetch = async (input, init) => {
@@ -566,13 +658,9 @@ describe("checkout POST", () => {
       const { POST } = await import("@/app/api/billing/checkout/route");
       const { NextRequest } = await import("next/server");
       const res = await POST(
-        new NextRequest("http://localhost/api/billing/checkout", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            offerId: "premium_yearly",
-            currency: "usd",
-          }),
+        signedInCheckoutRequest({
+          offerId: "premium_yearly",
+          currency: "usd",
         })
       );
       const json = (await res.json()) as { url?: string };
@@ -581,6 +669,7 @@ describe("checkout POST", () => {
       const params = new URLSearchParams(checkoutBodies[0] ?? "");
       expect(params.get("line_items[0][price]")).toBe("price_premium_yearly_usd");
       expect(params.get("metadata[currency]")).toBe("usd");
+      expect(params.get("client_reference_id")).toBe("user-ada-1");
       expect(params.get("subscription_data[trial_period_days]")).toBe("7");
       expect(params.get("metadata[trialPeriodDays]")).toBe("7");
     } finally {
@@ -594,10 +683,9 @@ describe("checkout POST", () => {
 
   it("does not put a trial on Completo Checkout", async () => {
     const prev = { ...process.env };
-    process.env.STRIPE_SECRET_KEY = "sk_test_billing";
+    enableCheckoutAuthEnv();
     process.env.STRIPE_PRICE_COMPLETO_MONTHLY_EUR = "price_horizon_monthly_eur";
-    delete process.env.BILLING;
-    delete process.env.STRIPE;
+    checkoutAuth.user = TEST_CHECKOUT_USER;
     const original = globalThis.fetch;
     const checkoutBodies: string[] = [];
     globalThis.fetch = async (input, init) => {
@@ -627,13 +715,9 @@ describe("checkout POST", () => {
       const { POST } = await import("@/app/api/billing/checkout/route");
       const { NextRequest } = await import("next/server");
       const res = await POST(
-        new NextRequest("http://localhost/api/billing/checkout", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            offerId: "horizon_monthly",
-            currency: "eur",
-          }),
+        signedInCheckoutRequest({
+          offerId: "horizon_monthly",
+          currency: "eur",
         })
       );
       expect(res.status).toBe(200);

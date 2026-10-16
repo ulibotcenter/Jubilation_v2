@@ -8,7 +8,7 @@ import {
 } from "@/lib/billing/config";
 import { createStripeCheckoutSession } from "@/lib/billing/checkout";
 import { basicoTrialDaysForCheckout } from "@/lib/billing/trial";
-import { optionalUser } from "@/lib/cloud/http";
+import { isAuthUser, requireUser } from "@/lib/cloud/http";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
@@ -18,6 +18,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
+  const user = await requireUser(request);
+  if (!isAuthUser(user)) return user;
+
   const cfg = billingConfig();
   if (!cfg.enabled) {
     return NextResponse.json(
@@ -25,8 +28,6 @@ export async function POST(request: NextRequest) {
       { status: 503 }
     );
   }
-
-  const user = await optionalUser(request);
 
   let body: { offerId?: string; currency?: string };
   try {

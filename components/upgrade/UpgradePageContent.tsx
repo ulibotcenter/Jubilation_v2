@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Crown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -25,6 +26,7 @@ import {
   CurrentPlanLabel,
   useCurrentPlanDisplay,
 } from "@/components/billing/CurrentPlanLabel";
+import { CHECKOUT_LOGIN_HREF } from "@/lib/cloud/returnPath";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useAppStore } from "@/store/useAppStore";
@@ -94,6 +96,7 @@ export function UpgradePageContent({
   geoCurrency: BillingCurrency;
 }) {
   const { t, locale } = useTranslation();
+  const router = useRouter();
   const storedPlan = useAppStore((s) => s.planTier);
   const billingLive = useAppStore((s) => s.billingLive);
   const currentDisplay = useCurrentPlanDisplay();
@@ -101,7 +104,7 @@ export function UpgradePageContent({
   const [interval, setInterval] = useState<BillingInterval>("month");
   const [status, setStatus] = useState<PublicBillingStatus | null>(null);
   const [signedIn, setSignedIn] = useState(false);
-  const [accountAvailable, setAccountAvailable] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [busyOffer, setBusyOffer] = useState<string | null>(null);
   const checkout = useSyncExternalStore(subscribeSearch, checkoutParam, () => null);
   const planTier = planTierAfterBrowserReturn(storedPlan, checkout);
@@ -119,15 +122,21 @@ export function UpgradePageContent({
         if (cancelled) return;
         setStatus(json);
         const cloud = Boolean(auth.enabled);
-        setAccountAvailable(cloud);
         if (!json.enabled || !cloud) {
           setSignedIn(false);
+          setAuthReady(true);
           return;
         }
         const meRes = await fetch("/api/auth/me");
-        if (!cancelled) setSignedIn(meRes.ok);
+        if (!cancelled) {
+          setSignedIn(meRes.ok);
+          setAuthReady(true);
+        }
       } catch {
-        if (!cancelled) setStatus(catalogBillingStatus({}));
+        if (!cancelled) {
+          setStatus(catalogBillingStatus({}));
+          setAuthReady(true);
+        }
       }
     })();
     return () => {
@@ -135,7 +144,15 @@ export function UpgradePageContent({
     };
   }, []);
 
+  const goToLogin = () => {
+    router.push(CHECKOUT_LOGIN_HREF);
+  };
+
   const startCheckout = async (offerId: BillingOfferId) => {
+    if (authReady && !signedIn) {
+      goToLogin();
+      return;
+    }
     setBusyOffer(offerId);
     try {
       const res = await fetch("/api/billing/checkout", {
@@ -143,6 +160,10 @@ export function UpgradePageContent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ offerId, currency }),
       });
+      if (res.status === 401) {
+        goToLogin();
+        return;
+      }
       const body = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !body.url) {
         toast.error(
@@ -285,11 +306,18 @@ export function UpgradePageContent({
             </div>
           </div>
 
-          {enabled && accountAvailable && !signedIn && (
-            <div className="card-surface p-6 space-y-3">
+          {enabled && authReady && !signedIn && (
+            <div
+              className="card-surface p-6 space-y-3"
+              data-checkout-login-gate=""
+            >
               <h3 className="font-bold">{t("upgrade.signInTitle")}</h3>
               <p className="text-sm text-muted-foreground">{t("upgrade.signInBody")}</p>
-              <Link href="/settings" className="btn-secondary inline-flex text-sm">
+              <Link
+                href={CHECKOUT_LOGIN_HREF}
+                className="btn-secondary inline-flex text-sm"
+                data-checkout-login=""
+              >
                 {t("upgrade.signInCta")}
               </Link>
             </div>
@@ -386,20 +414,35 @@ export function UpgradePageContent({
                       {t("upgrade.currentOffer")}
                     </p>
                   ) : amounts.checkoutReady ? (
-                    <button
-                      type="button"
-                      className="btn-upgrade"
-                      data-checkout={offerId}
-                      disabled={busyOffer !== null}
-                      onClick={() => void startCheckout(offerId)}
-                    >
-                      {busyOffer === offerId
-                        ? t("upgrade.checkoutBusy")
-                        : card.plan === "premium" &&
-                            shouldOfferBasicoTrial(planTier)
+                    authReady && !signedIn ? (
+                      <Link
+                        href={CHECKOUT_LOGIN_HREF}
+                        className="btn-upgrade"
+                        data-checkout={offerId}
+                        data-checkout-auth="required"
+                      >
+                        {card.plan === "premium" &&
+                        shouldOfferBasicoTrial(planTier)
                           ? t("upgrade.checkoutTrial")
                           : t("upgrade.checkout")}
-                    </button>
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-upgrade"
+                        data-checkout={offerId}
+                        data-checkout-auth={signedIn ? "ready" : "checking"}
+                        disabled={busyOffer !== null || !authReady}
+                        onClick={() => void startCheckout(offerId)}
+                      >
+                        {busyOffer === offerId
+                          ? t("upgrade.checkoutBusy")
+                          : card.plan === "premium" &&
+                              shouldOfferBasicoTrial(planTier)
+                            ? t("upgrade.checkoutTrial")
+                            : t("upgrade.checkout")}
+                      </button>
+                    )
                   ) : (
                     <p className="text-xs text-muted-foreground" data-checkout-missing={offerId}>
                       {t("upgrade.priceNotInCurrency", { code: currencyLabel })}
