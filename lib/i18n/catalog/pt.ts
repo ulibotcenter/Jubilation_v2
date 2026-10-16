@@ -38,6 +38,7 @@ export const PT: Record<MessageKey, string> = {
   "nav.privacy": "Privacidade",
   "nav.upgrade": "Planos",
   "nav.signIn": "Entrar",
+  "nav.signOut": "Sair",
   "nav.collapse": "Recolher",
   "nav.mobile.home": "Início",
   "nav.mobile.sim": "Sim",

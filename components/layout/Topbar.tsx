@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   Download,
+  LogOut,
   Menu,
   Monitor,
   Sparkles,
@@ -39,6 +40,7 @@ export function Topbar() {
 
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +63,21 @@ export function Topbar() {
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const meRes = await fetch("/api/auth/me");
+        if (!cancelled) setSignedIn(meRes.ok);
+      } catch {
+        if (!cancelled) setSignedIn(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleCurrencyChange = async (code: Currency) => {
@@ -90,6 +107,17 @@ export function Topbar() {
 
   const handleSignIn = () => {
     router.push("/settings#cloud-account");
+  };
+
+  const handleSignOut = async () => {
+    setAvatarOpen(false);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      /* still leave so a failed POST does not keep a stale menu */
+    }
+    setSignedIn(false);
+    window.location.assign("/");
   };
 
   const handleExport = useCallback(async () => {
@@ -286,6 +314,19 @@ export function Topbar() {
                   {t("export.report")}
                 </button>
                 ) : null}
+                {signedIn === true ? (
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  data-logout-entry="menu"
+                  onClick={() => {
+                    void handleSignOut();
+                  }}
+                >
+                  <LogOut className="w-4 h-4" size={16} />
+                  {t("nav.signOut")}
+                </button>
+                ) : signedIn === false ? (
                 <button
                   type="button"
                   className="dropdown-item"
@@ -298,6 +339,7 @@ export function Topbar() {
                   <User className="w-4 h-4" size={16} />
                   {t("nav.signIn")}
                 </button>
+                ) : null}
                 <button
                   type="button"
                   className="dropdown-item"

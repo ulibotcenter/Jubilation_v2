@@ -36,6 +36,7 @@ export const EN = {
   "nav.privacy": "Privacy",
   "nav.upgrade": "Plans",
   "nav.signIn": "Sign in",
+  "nav.signOut": "Logout",
   "nav.collapse": "Collapse",
   "nav.mobile.home": "Home",
   "nav.mobile.sim": "Sim",
