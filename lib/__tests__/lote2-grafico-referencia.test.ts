@@ -14,7 +14,7 @@ import { densifyJourney, layersJourney } from "@/lib/calculators/smoothPlot";
 import { FREEDOM_AREA_COLORS } from "@/lib/chartColors";
 import { t } from "@/lib/i18n/messages";
 
-describe("lote 2 reference journey chart", () => {
+describe("lote 2 reference chart stacks under the wealth line", () => {
   it("keeps the same solver numbers on the wealth line", () => {
     const solved = solveFreedomDate(FREEDOM_DEFAULTS);
     const { result, series, freedomAge } = freedomChartSeries(FREEDOM_DEFAULTS);
@@ -28,7 +28,7 @@ describe("lote 2 reference journey chart", () => {
     }
   });
 
-  it("maps journey layers without inventing wealth", () => {
+  it("maps layers without inventing wealth", () => {
     const { series } = freedomChartSeries(FREEDOM_DEFAULTS);
     const data = toProjectionChartData(series);
     expect(data).toHaveLength(series.length);
@@ -40,7 +40,7 @@ describe("lote 2 reference journey chart", () => {
     }
   });
 
-  it("keeps contributions elevated after freedom and coral only then", () => {
+  it("keeps drawn layers summing to patrimonio, with coral only in freedom", () => {
     const { series, freedomAge } = freedomChartSeries(FREEDOM_DEFAULTS);
     const accumulating = series.filter((point) => point.age < freedomAge);
     const after = series.filter((point) => point.age > freedomAge);
@@ -48,38 +48,49 @@ describe("lote 2 reference journey chart", () => {
     expect(after.length).toBeGreaterThan(2);
     expect(after.every((point) => point.withdrawals > 0)).toBe(true);
 
-    const atFreedom = series.find((point) => point.age === freedomAge)!;
-    const last = series.at(-1)!;
-    expect(last.contributions).toBeGreaterThan(last.wealth);
-    expect(last.contributions).toBeCloseTo(atFreedom.contributions, 0);
-    expect(last.contributions + last.returns).toBeGreaterThan(last.wealth);
+    for (const point of series) {
+      expect(
+        point.contributions + point.returns + point.withdrawals
+      ).toBeCloseTo(Math.max(0, point.wealth), 6);
+      expect(point.contributions).toBeGreaterThanOrEqual(0);
+      expect(point.returns).toBeGreaterThanOrEqual(0);
+      expect(point.withdrawals).toBeGreaterThanOrEqual(0);
+      expect(point.contributions + point.returns + point.withdrawals).toBeLessThanOrEqual(
+        Math.max(0, point.wealth) + 1e-6
+      );
+    }
 
+    const last = series.at(-1)!;
     const peak = series.reduce((best, point) =>
       point.wealth > best.wealth ? point : best
     );
     expect(last.wealth).toBeGreaterThan(0);
     expect(last.wealth).toBeLessThan(peak.wealth);
-    expect(last.contributions + last.returns).toBeGreaterThan(
-      peak.wealth * 0.7
+    expect(last.contributions).toBeLessThanOrEqual(last.wealth + 1e-6);
+    expect(last.contributions + last.returns).toBeLessThanOrEqual(
+      last.wealth + 1e-6
     );
   });
 
-  it("does not clip journey bands to remaining-stock wealth", () => {
+  it("does not keep remaining-stock bands elevated above the line", () => {
     const { years, freedomAge } = freedomProjection(FREEDOM_DEFAULTS);
     const stacked = stackFreedomChart(years, freedomAge);
-    const journey = freedomChartSeries(FREEDOM_DEFAULTS).series;
+    const under = freedomChartSeries(FREEDOM_DEFAULTS).series;
     const lastStacked = stacked.at(-1)!;
-    const lastJourney = journey.at(-1)!;
+    const lastUnder = under.at(-1)!;
     expect(lastStacked.contributions + lastStacked.returns).toBeCloseTo(
       lastStacked.wealth,
       6
     );
-    expect(lastJourney.contributions + lastJourney.returns).toBeGreaterThan(
-      lastJourney.wealth * 2
+    expect(
+      lastUnder.contributions + lastUnder.returns + lastUnder.withdrawals
+    ).toBeCloseTo(lastUnder.wealth, 6);
+    expect(lastUnder.contributions + lastUnder.returns).toBeLessThanOrEqual(
+      lastUnder.wealth + 1e-6
     );
   });
 
-  it("recomputes the journey when an existing field changes", () => {
+  it("recomputes the stack when an existing field changes", () => {
     const low = toProjectionChartData(
       freedomChartSeries({
         ...FREEDOM_DEFAULTS,
@@ -96,15 +107,34 @@ describe("lote 2 reference journey chart", () => {
     expect(high.at(-1)!.aportes).toBeGreaterThan(low.at(-1)!.aportes);
   });
 
-  it("densifies a rounded peak without collapsing bands to the line", () => {
-    const { series } = freedomChartSeries(FREEDOM_DEFAULTS);
+  it("densifies a rounded peak with the gold band riding the line", () => {
+    const { series, freedomAge } = freedomChartSeries(FREEDOM_DEFAULTS);
     const plot = densifyJourney(series, 12);
     expect(plot.length).toBeGreaterThan(series.length * 8);
+    for (const point of series) {
+      const layers = layersJourney(point);
+      expect(layers.goldTop).toBeCloseTo(point.wealth, 6);
+      expect(layers.blueTop).toBeLessThanOrEqual(layers.goldTop + 1e-6);
+      expect(layers.coral).toBeLessThanOrEqual(layers.blueTop + 1e-6);
+    }
+    for (const point of plot) {
+      expect(point.goldTop).toBeCloseTo(point.lineY, 6);
+      expect(point.goldTop).toBeLessThanOrEqual(point.lineY + 1e-6);
+      expect(point.blueTop).toBeLessThanOrEqual(point.goldTop + 1e-6);
+      expect(point.coral).toBeLessThanOrEqual(point.blueTop + 1e-6);
+      expect(
+        point.contributions + point.returns + point.withdrawals
+      ).toBeCloseTo(point.lineY, 4);
+      if (point.age < freedomAge) {
+        expect(point.coral).toBeLessThanOrEqual(1e-6);
+      }
+    }
+    expect(plot.some((point) => point.age > freedomAge && point.coral > 0)).toBe(
+      true
+    );
     const last = plot.at(-1)!;
-    const layers = layersJourney(last);
-    expect(layers.blueTop).toBeGreaterThan(last.lineY);
-    expect(layers.goldTop).toBeGreaterThan(layers.blueTop);
-    expect(layers.coral).toBeGreaterThan(0);
+    expect(last.goldTop).toBeCloseTo(last.lineY, 6);
+    expect(last.coral).toBeGreaterThan(0);
     const paintPeak = Math.max(...plot.map((point) => point.lineY));
     const rawPeak = Math.max(...series.map((point) => point.wealth));
     expect(paintPeak).toBeLessThan(rawPeak);
@@ -146,6 +176,8 @@ describe("lote 2 reference journey chart", () => {
     );
     expect(t("pt", "calc.freedom.chart.axisAge")).toBe("IDADE");
     expect(t("pt", "calc.freedom.chart.footer")).toBe("Feito para o seu futuro");
-    expect(t("en", "calc.freedom.chart.contributionsHint")).toBe("(what you add)");
+    expect(t("en", "calc.freedom.chart.contributionsHint")).toBe(
+      "(what you add)"
+    );
   });
 });

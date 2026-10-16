@@ -380,7 +380,7 @@ export function ProjectionChart({
   const yMax = useMemo(() => {
     let max = 0;
     for (const point of plot) {
-      max = Math.max(max, point.lineY, point.goldTop, point.blueTop, point.coral);
+      max = Math.max(max, point.lineY);
     }
     return max <= 0 ? 1 : max * 1.14;
   }, [plot]);
