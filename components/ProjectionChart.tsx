@@ -1,8 +1,7 @@
 "use client";
 
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { PointerEvent } from "react";
-import { Shield } from "lucide-react";
+import type { PointerEvent, ReactNode } from "react";
 import { FREEDOM_AREA_COLORS } from "@/lib/chartColors";
 import type { ProjectionChartPoint } from "@/lib/calculators/chartSeries";
 import type { FreedomChartPoint } from "@/lib/calculators/chartSeries";
@@ -219,11 +218,13 @@ export function ProjectionChart({
   currency = "R$",
   currencyCode,
   freedomAge,
+  children,
 }: {
   data: ProjectionChartPoint[];
   currency?: string;
   currencyCode?: Currency;
   freedomAge?: number;
+  children?: ReactNode;
 }) {
   const plotRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(680);
@@ -278,8 +279,6 @@ export function ProjectionChart({
   const patrimonioLabel = t("calc.freedom.chart.remaining");
   const peakTitle = t("calc.freedom.chart.peakMark");
   const axisAge = t("calc.freedom.chart.axisAge");
-  const footerLabel = t("calc.freedom.chart.footer");
-  const footerHint = t("calc.freedom.chart.footerHint");
   const freedomLabel = t("calc.freedom.chart.withdraw");
   const ageWord = (age: number) => t("landing.chart.tooltipAge", { age });
 
@@ -891,13 +890,7 @@ export function ProjectionChart({
         ) : null}
       </div>
       <p className="projection-chart-axis-age">{axisAge}</p>
-      <p className="projection-chart-footer">
-        <Shield aria-hidden="true" />
-        <span>
-          <strong>{footerLabel}</strong>
-          <span>{footerHint}</span>
-        </span>
-      </p>
+      {children}
     </figure>
   );
 }

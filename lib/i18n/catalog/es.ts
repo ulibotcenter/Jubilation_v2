@@ -1103,8 +1103,6 @@ export const ES: Record<MessageKey, string> = {
   "calc.freedom.chart.endMark": "A los {age}",
   "calc.freedom.chart.endDetail": "{amount}",
   "calc.freedom.chart.axisAge": "EDAD",
-  "calc.freedom.chart.footer": "Hecho para tu futuro",
-  "calc.freedom.chart.footerHint": "Flexible. Personal. Hecho para durar.",
   "calc.freedom.resultLabel": "Con estos números, quedas libre",
   "calc.freedom.resultAge": "a los {n} años",
   "calc.freedom.resultNow": "Según el motor, el nivel ya se sostiene desde ahora.",

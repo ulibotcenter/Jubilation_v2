@@ -175,21 +175,21 @@ export function FreedomCalculator({
         currency={symbol}
         currencyCode={currency}
         freedomAge={freedomAge}
-      />
-
-      <FreedomSliders
-        wealth={draft.reserva}
-        contribution={draft.aporte}
-        currentAge={draft.idade}
-        horizon={draft.alvo}
-        spend={draft.gasto}
-        onWealth={(value) => patch("reserva", value)}
-        onContribution={(value) => patch("aporte", value)}
-        onHorizon={(value) => patch("alvo", value)}
-        onSpend={(value) => patch("gasto", value)}
-        currency={currency}
-        locale={intlLocale}
-      />
+      >
+        <FreedomSliders
+          wealth={draft.reserva}
+          contribution={draft.aporte}
+          currentAge={draft.idade}
+          horizon={draft.alvo}
+          spend={draft.gasto}
+          onWealth={(value) => patch("reserva", value)}
+          onContribution={(value) => patch("aporte", value)}
+          onHorizon={(value) => patch("alvo", value)}
+          onSpend={(value) => patch("gasto", value)}
+          currency={currency}
+          locale={intlLocale}
+        />
+      </ProjectionChart>
 
       <section className="public-result card-surface" aria-live="polite">
         {result.feasible ? (
