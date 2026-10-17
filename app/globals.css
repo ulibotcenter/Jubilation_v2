@@ -6503,39 +6503,6 @@ html.light .add-asset-modal {
   color: #0f766e;
 }
 
-.projection-chart-footer {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  margin: 1.05rem 0 0;
-  padding: 0.55rem 0.85rem;
-  border: 1px solid #ece8e4;
-  border-radius: 0.9rem;
-  background: #fafbfc;
-  color: #5d6b75;
-  font-size: 0.72rem;
-  line-height: 1.3;
-}
-
-.projection-chart-footer svg {
-  width: 1.15rem;
-  height: 1.15rem;
-  stroke: #0f766e;
-  flex: 0 0 auto;
-}
-
-.projection-chart-footer strong {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 650;
-  color: #3d4a54;
-}
-
-.projection-chart-footer span span {
-  display: block;
-  color: #8a9aa8;
-}
-
 @media (min-width: 960px) {
   .projection-chart {
     width: min(64rem, calc(100vw - 4rem));
@@ -6560,17 +6527,14 @@ html.light .add-asset-modal {
     flex-wrap: wrap;
     gap: 0.35rem 0.85rem;
   }
-
-  .projection-chart-footer {
-    width: 100%;
-  }
 }
 
 .freedom-sliders {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.65rem 1.25rem;
-  margin: -0.35rem 0 1.35rem;
+  gap: 0.55rem 1.35rem;
+  width: min(100%, 40rem);
+  margin: 0.85rem auto 0.15rem;
 }
 
 @media (min-width: 640px) {

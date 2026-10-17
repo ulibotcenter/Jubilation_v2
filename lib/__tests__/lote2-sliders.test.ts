@@ -50,10 +50,18 @@ describe("freedom page sliders", () => {
     );
     const chartAt = calculator.indexOf("<ProjectionChart");
     const slidersAt = calculator.indexOf("<FreedomSliders");
+    const chartEnd = calculator.indexOf("</ProjectionChart>");
     const resultAt = calculator.indexOf('className="public-result');
     expect(chartAt).toBeGreaterThan(-1);
     expect(slidersAt).toBeGreaterThan(chartAt);
-    expect(resultAt).toBeGreaterThan(slidersAt);
+    expect(chartEnd).toBeGreaterThan(slidersAt);
+    expect(resultAt).toBeGreaterThan(chartEnd);
+    const chart = readFileSync("components/ProjectionChart.tsx", "utf8");
+    const axisAt = chart.indexOf('className="projection-chart-axis-age"');
+    const childrenAt = chart.indexOf("{children}");
+    expect(axisAt).toBeGreaterThan(-1);
+    expect(childrenAt).toBeGreaterThan(axisAt);
+    expect(chart).not.toContain("projection-chart-footer");
     expect(calculator).toContain('onWealth={(value) => patch("reserva", value)}');
     expect(calculator).toContain(
       'onContribution={(value) => patch("aporte", value)}'

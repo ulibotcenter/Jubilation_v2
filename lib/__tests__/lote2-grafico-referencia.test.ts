@@ -172,7 +172,8 @@ describe("lote 2 reference chart stacks under the wealth line", () => {
       "Patrimônio ao longo do tempo"
     );
     expect(t("pt", "calc.freedom.chart.axisAge")).toBe("IDADE");
-    expect(t("pt", "calc.freedom.chart.footer")).toBe("Feito para o seu futuro");
+    expect(chart).not.toContain("projection-chart-footer");
+    expect(chart).not.toContain("calc.freedom.chart.footer");
     expect(t("en", "calc.freedom.chart.contributionsHint")).toBe(
       "(what you add)"
     );

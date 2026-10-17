@@ -1101,8 +1101,6 @@ export const EN = {
   "calc.freedom.chart.endMark": "At {age}",
   "calc.freedom.chart.endDetail": "{amount}",
   "calc.freedom.chart.axisAge": "AGE",
-  "calc.freedom.chart.footer": "Built for your future",
-  "calc.freedom.chart.footerHint": "Flexible. Personalized. Designed to last.",
   "calc.freedom.resultLabel": "With these numbers, you are free",
   "calc.freedom.resultAge": "at {n}",
   "calc.freedom.resultNow": "By the engine, the level already holds from now.",
