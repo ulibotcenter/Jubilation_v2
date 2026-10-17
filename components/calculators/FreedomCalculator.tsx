@@ -71,7 +71,7 @@ export function FreedomCalculator({
   const currency = useAppStore((s) => s.currency);
   const [draft, setDraft] = useState<Draft>(() => draftFromInput(initial));
   const input = useMemo(() => inputFromDraft(draft), [draft]);
-  const { series, result } = useMemo(
+  const { series, result, freedomAge } = useMemo(
     () => freedomChartSeries(input),
     [input]
   );
@@ -169,7 +169,12 @@ export function FreedomCalculator({
         />
       </CalculatorForm>
 
-      <ProjectionChart data={data} currency={symbol} />
+      <ProjectionChart
+        data={data}
+        currency={symbol}
+        currencyCode={currency}
+        freedomAge={freedomAge}
+      />
 
       <section className="public-result card-surface" aria-live="polite">
         {result.feasible ? (

@@ -148,10 +148,10 @@ describe("lote 2 reference chart stacks under the wealth line", () => {
     expect(FREEDOM_AREA_COLORS.withdrawals).toBe("#DDB0AB");
 
     const chart = readFileSync("components/ProjectionChart.tsx", "utf8");
-    expect(chart).toContain("SEU FUTURO");
-    expect(chart).toContain("FINANCEIRO");
-    expect(chart).toContain("Patrimônio ao longo do tempo");
-    expect(chart).toContain("stroke=\"#0F766E\"");
+    expect(chart).toContain("calc.freedom.chart.title");
+    expect(chart).toContain("calc.freedom.chart.subtitle");
+    expect(chart).toContain("densifyHill");
+    expect(chart).toContain("FREEDOM_AREA_COLORS");
     expect(chart).not.toContain("recharts");
     expect(chart).not.toContain("BarChart");
     expect(chart).not.toContain("<Bar");
@@ -163,7 +163,9 @@ describe("lote 2 reference chart stacks under the wealth line", () => {
     expect(calc).toContain('from "@/components/ProjectionChart"');
     expect(calc).toContain("toProjectionChartData(series)");
     expect(calc).toContain("NumberField");
-    expect(calc).toContain("<ProjectionChart data={data} currency={symbol} />");
+    expect(calc).toContain("data={data}");
+    expect(calc).toContain("currency={symbol}");
+    expect(calc).toContain("freedomAge={freedomAge}");
 
     expect(t("pt", "calc.freedom.chart.title")).toBe("SEU FUTURO FINANCEIRO");
     expect(t("pt", "calc.freedom.chart.subtitle")).toBe(

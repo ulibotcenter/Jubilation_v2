@@ -58,15 +58,18 @@ describe("lote 2 ProjectionChart on the freedom calculator", () => {
 
     const chart = readFileSync("components/ProjectionChart.tsx", "utf8");
     expect(chart).toContain("export function ProjectionChart");
-    expect(chart).toContain("data: Point[]");
-    expect(chart).toContain("currency = 'R$'");
-    expect(chart).toContain("areaPath('aportes')");
-    expect(chart).toContain("areaPath('rendimentos')");
-    expect(chart).toContain("areaPath('saques')");
-    expect(chart).toContain("d.patrimonio");
-    expect(chart).toContain("viewBox={`0 0 ${width} ${height}`}");
+    expect(chart).toContain("data: ProjectionChartPoint[]");
+    expect(chart).toContain("point.patrimonio");
+    expect(chart).toContain("point.aportes");
+    expect(chart).toContain("point.rendimentos");
+    expect(chart).toContain("point.saques");
+    expect(chart).toContain("densifyHill");
+    expect(chart).toContain("data-marker=\"peak\"");
+    expect(chart).toContain("data-marker=\"end\"");
+    expect(chart).toContain("data-marker=\"freedom\"");
     expect(chart).not.toContain("recharts");
     expect(chart).not.toContain("BarChart");
     expect(chart).not.toContain("<Bar");
+    expect(chart).not.toContain("areaPath('aportes')");
   });
 });

@@ -18,16 +18,13 @@ export type FreedomChartPoint = {
   wealth: number;
   accumulate: number | null;
   withdraw: number | null;
-  /** Remaining contributions under the wealth line. */
+  /** Share of current wealth from cumulative contributions. */
   contributions: number;
-  /** Remaining returns on contributions, still under the wealth line. */
+  /** Share of current wealth from cumulative returns. */
   returns: number;
-  /** Coral bottom slice of remaining wealth in freedom years. */
+  /** Share of current wealth from cumulative withdrawals. Zero before freedom. */
   withdrawals: number;
 };
-
-/** Coral is a visual slice of remaining wealth — never a peak envelope. */
-const UNDER_LINE_CORAL_SHARE = 0.18;
 
 /** Presentational rows for `ProjectionChart` — same numbers, Portuguese keys. */
 export type ProjectionChartPoint = {
@@ -114,31 +111,57 @@ export function freedomChartSeries(input: PublicIndependenceInput): {
 }
 
 /**
- * Visual layers that fill under the wealth line. Remaining contributions +
- * remaining returns + the coral withdrawal slice always equal current
- * wealth, so the painted gold top is patrimonio at every age.
- * Does not call the solver and does not change engine wealth.
+ * Visual layers under the wealth line. Real cumulative contributions,
+ * returns, and withdrawals are scaled so the three bands sum to that year's
+ * patrimonio. Nothing is added on top of the engine balance. Coral is zero
+ * before freedom. Does not call the solver.
  */
 export function underLineFreedomChart(
   years: ProjectionYear[],
   freedomAge: number
 ): FreedomChartPoint[] {
-  return stackFreedomChart(years, freedomAge).map((point) => {
-    const wealth = Math.max(0, point.wealth);
-    const withdrawing = point.age >= freedomAge;
-    if (wealth === 0) {
-      return { ...point, contributions: 0, returns: 0, withdrawals: 0 };
+  let contributed = 0;
+  let earned = 0;
+  let drawn = 0;
+
+  return years.map((row, index) => {
+    const wealth = row.portfolioValue;
+    const withdrawing = row.age >= freedomAge;
+    const safe = Math.max(0, wealth);
+    if (index === 0) {
+      contributed = safe;
+      earned = 0;
+      drawn = 0;
+    } else {
+      contributed += Math.max(0, row.contributions);
+      earned += Math.max(0, row.returns);
+      if (withdrawing) drawn += Math.max(0, row.expenses);
     }
-    const remainingContrib = Math.min(
-      Math.max(0, point.contributions),
-      wealth
-    );
-    const coral = withdrawing ? wealth * UNDER_LINE_CORAL_SHARE : 0;
-    // Carve coral from the bottom of remaining contributions so the blue
-    // top stays the remaining-stock silhouette and gold still meets the line.
-    const contributions = Math.max(0, remainingContrib - coral);
-    const returns = Math.max(0, wealth - coral - contributions);
-    return { ...point, contributions, returns, withdrawals: coral };
+    const rawWithdrawn = withdrawing ? drawn : 0;
+    const flow = contributed + earned + rawWithdrawn;
+    let contributions = 0;
+    let returns = 0;
+    let withdrawals = 0;
+    if (safe > 0 && flow > 0) {
+      contributions = (safe * contributed) / flow;
+      withdrawals = (safe * rawWithdrawn) / flow;
+      returns = safe - contributions - withdrawals;
+      if (returns < 0) {
+        contributions = Math.max(0, contributions + returns);
+        returns = 0;
+      }
+    } else if (safe > 0) {
+      returns = safe;
+    }
+    return {
+      age: row.age,
+      wealth,
+      accumulate: withdrawing ? null : wealth,
+      withdraw: withdrawing ? wealth : null,
+      contributions,
+      returns,
+      withdrawals,
+    };
   });
 }
 
@@ -192,7 +215,8 @@ export function journeyFreedomChart(
   const coralCap = peak.contributions * 0.26;
 
   return raw.map((point) => {
-    let { contributions, returns, withdrawals } = point;
+    const { contributions } = point;
+    let { returns, withdrawals } = point;
     if (point.age > peak.age) {
       const drop = Math.max(0, peak.wealth - point.wealth);
       const goldTop = Math.max(contributions, peakGoldTop - 0.18 * drop);
