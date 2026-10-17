@@ -487,30 +487,12 @@ export function densifyHill(
   const wealthSlope = slopes(xs, wealth);
   const coralSlope = slopes(xs, coral);
   const blueSlope = slopes(xs, blue);
-  const peakWealth = Math.max(...wealth);
-  const peakIndex = wealth.indexOf(peakWealth);
 
   const out: FreedomPlotPoint[] = [];
-  const sample = (
-    age: number,
-    src: FreedomChartPoint,
-    segment: number
-  ): FreedomPlotPoint => {
-    let lineY = Math.max(0, interpolate(xs, wealth, wealthSlope, age));
-    const x0 = xs[segment]!;
-    const x1 = xs[segment + 1]!;
-    const span = x1 - x0;
-    if (span > 0 && (segment === peakIndex || segment + 1 === peakIndex)) {
-      const t = Math.min(1, Math.max(0, (age - x0) / span));
-      const y0 = wealth[segment]!;
-      const y1 = wealth[segment + 1]!;
-      // Reach the crest early and leave it late, without passing the real peak
-      // or missing either yearly knot. t^4 stays near the crest; the climb is
-      // the mirror of that.
-      const towardEnd = segment === peakIndex ? t ** 4 : 1 - (1 - t) ** 4;
-      const shaped = y0 + (y1 - y0) * towardEnd;
-      lineY = Math.min(peakWealth, Math.max(0, shaped));
-    }
+  const sample = (age: number, src: FreedomChartPoint): FreedomPlotPoint => {
+    // One monotone cubic. Slope is continuous, including through the crest,
+    // so the peak does not grow a shelf or a notch.
+    const lineY = Math.max(0, interpolate(xs, wealth, wealthSlope, age));
     let coralY = Math.max(0, interpolate(xs, coral, coralSlope, age));
     let blueY = Math.max(0, interpolate(xs, blue, blueSlope, age));
     coralY = Math.min(coralY, lineY);
@@ -538,7 +520,7 @@ export function densifyHill(
     out.push(knots[i]!);
     for (let s = 1; s < steps; s++) {
       const age = x0 + ((x1 - x0) * s) / steps;
-      out.push(sample(age, knots[i]!, i));
+      out.push(sample(age, knots[i]!));
     }
   }
   out.push(knots[knots.length - 1]!);

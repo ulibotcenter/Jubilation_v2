@@ -75,6 +75,127 @@ function textWidth(text: string, size: number) {
   return Math.max(8, text.length * size * 0.62);
 }
 
+function erf(x: number): number {
+  const sign = x < 0 ? -1 : 1;
+  const a = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * a);
+  const y =
+    1 -
+    (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t +
+      0.254829592) *
+      t *
+      Math.exp(-a * a));
+  return sign * y;
+}
+
+/**
+ * Age position with extra width around the crest. Yearly balances stay put;
+ * the one-year turn gets enough room to read as a curve.
+ */
+function crestPosition(age: number, peakAge: number, emphasis = 2, sigma = 8.5) {
+  const z = (age - peakAge) / sigma;
+  return age + emphasis * sigma * Math.sqrt(Math.PI) * 0.5 * erf(z);
+}
+
+function hermiteY(y0: number, slope0: number, y1: number, slope1: number, h: number, t: number) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return (
+    (2 * t3 - 3 * t2 + 1) * y0 +
+    (t3 - 2 * t2 + t) * h * slope0 +
+    (-2 * t3 + 3 * t2) * y1 +
+    (t3 - t2) * h * slope1
+  );
+}
+
+/**
+ * One screen-space curve through every yearly balance. The slope is shared
+ * at each age, eases across the two years around the crest, and is flat on
+ * the peak — so the tip cannot grow a corner, a hook, or a shelf.
+ */
+function roundCrestLine<T extends { x: number; line: number; age: number }>(points: T[]): T[] {
+  const knots: number[] = [];
+  for (let i = 0; i < points.length; i++) {
+    if (Math.abs(points[i]!.age - Math.round(points[i]!.age)) < 0.02) knots.push(i);
+  }
+  if (knots.length < 4) return points;
+  let peakI = 0;
+  for (let i = 1; i < points.length; i++) {
+    if (points[i]!.line < points[peakI]!.line) peakI = i;
+  }
+  let peakK = 0;
+  for (let k = 1; k < knots.length; k++) {
+    if (Math.abs(knots[k]! - peakI) < Math.abs(knots[peakK]! - peakI)) peakK = k;
+  }
+  const delta: number[] = [];
+  for (let k = 0; k < knots.length - 1; k++) {
+    const a = points[knots[k]!]!;
+    const b = points[knots[k + 1]!]!;
+    delta[k] = b.x === a.x ? 0 : (b.line - a.line) / (b.x - a.x);
+  }
+  const slope = new Array<number>(knots.length);
+  slope[0] = delta[0] ?? 0;
+  slope[knots.length - 1] = delta[delta.length - 1] ?? 0;
+  for (let k = 1; k < knots.length - 1; k++) {
+    const prev = delta[k - 1] ?? 0;
+    const next = delta[k] ?? 0;
+    slope[k] = prev === 0 || next === 0 || prev * next < 0 ? 0 : (prev + next) / 2;
+  }
+  const clampSegments = () => {
+    for (let k = 0; k < delta.length; k++) {
+      const step = delta[k] ?? 0;
+      if (step === 0) {
+        slope[k] = 0;
+        slope[k + 1] = 0;
+        continue;
+      }
+      const a = (slope[k] ?? 0) / step;
+      const b = (slope[k + 1] ?? 0) / step;
+      const sum = a * a + b * b;
+      if (sum > 9) {
+        const scale = 3 / Math.sqrt(sum);
+        slope[k] = scale * a * step;
+        slope[k + 1] = scale * b * step;
+      }
+    }
+  };
+  clampSegments();
+  slope[peakK] = 0;
+  const soften = (k: number, factor: number) => {
+    if (k > 0 && k < slope.length) slope[k] = (slope[k] ?? 0) * factor;
+  };
+  soften(peakK - 1, 0.62);
+  soften(peakK + 1, 0.62);
+  soften(peakK - 2, 0.84);
+  soften(peakK + 2, 0.84);
+  clampSegments();
+  slope[peakK] = 0;
+  const knotSet = new Set(knots);
+
+  return points.map((point, index) => {
+    if (knotSet.has(index) || index <= knots[0]! || index >= knots[knots.length - 1]!) {
+      return point;
+    }
+    let k = 0;
+    while (k < knots.length - 2 && index > knots[k + 1]!) k += 1;
+    const left = points[knots[k]!]!;
+    const right = points[knots[k + 1]!]!;
+    const h = right.x - left.x;
+    if (h < 1) return point;
+    const y = hermiteY(
+      left.line,
+      slope[k] ?? 0,
+      right.line,
+      slope[k + 1] ?? 0,
+      h,
+      (point.x - left.x) / h
+    );
+    const low = Math.max(left.line, right.line);
+    const high = Math.min(left.line, right.line);
+    return { ...point, line: Math.min(low, Math.max(high, y)) };
+  });
+}
+
 function asSeries(data: ProjectionChartPoint[]): FreedomChartPoint[] {
   return data.map((point) => ({
     age: point.age,
@@ -175,39 +296,43 @@ export function ProjectionChart({
 
   const endLabelW = Math.max(textWidth(endTitle, 12), textWidth(endDetail, 11.5));
   const margin = {
-    top: compact ? 42 : 50,
+    top: compact ? 40 : 46,
     right: compact ? 8 : Math.max(108, Math.min(140, endLabelW + 28)),
-    bottom: compact ? 52 : 48,
-    left: compact ? 48 : 60,
+    bottom: compact ? 70 : 72,
+    left: compact ? 48 : 62,
   };
   const plotW = Math.max(80, width - margin.left - margin.right);
-  // The balance turns inside a single year. A tall frame draws that as a
-  // spike; a low wide hill keeps every integer age on the real balance
-  // and lets the crest read as a rounded top.
+  // Wide and weighted, with the crest close to its callout. Extra height
+  // turns this series into a spike; the age scale below opens the turn.
   const plotH = Math.round(
     compact
-      ? Math.min(108, Math.max(88, plotW * 0.26))
-      : Math.min(112, Math.max(100, plotW * 0.13))
+      ? Math.min(156, Math.max(128, plotW * 0.42))
+      : Math.min(228, Math.max(188, plotW * 0.28))
   );
   const height = margin.top + plotH + margin.bottom;
   const xMin = plot[0]!.age;
   const xMax = plot.at(-1)!.age;
   const xSpan = Math.max(1, xMax - xMin);
-  const yMax = Math.max(1, peakKnot.patrimonio * 1.2);
-  const xPad = xSpan * 0.018;
+  const yMax = Math.max(1, peakKnot.patrimonio * 1.05);
+  const xPad = xSpan * 0.012;
+  const xStart = crestPosition(xMin - xPad, peakKnot.age);
+  const xEnd = crestPosition(xMax + xPad, peakKnot.age);
   const xOf = (age: number) =>
-    margin.left + ((age - xMin + xPad) / (xSpan + xPad * 2)) * plotW;
+    margin.left + ((crestPosition(age, peakKnot.age) - xStart) / (xEnd - xStart)) * plotW;
   const yOf = (value: number) =>
     margin.top + plotH - (Math.max(0, value) / yMax) * plotH;
   const baseline = yOf(0);
 
-  const pts = plot.map((point) => ({
-    x: xOf(point.age),
-    line: yOf(point.lineY),
-    blue: yOf(point.blueTop),
-    coral: yOf(point.coral),
-    zero: baseline,
-  }));
+  const pts = roundCrestLine(
+    plot.map((point) => ({
+      age: point.age,
+      x: xOf(point.age),
+      line: yOf(point.lineY),
+      blue: yOf(point.blueTop),
+      coral: yOf(point.coral),
+      zero: baseline,
+    }))
+  );
   const lineD = polyline(pts.map((point) => ({ x: point.x, y: point.line })));
   const clipD = bandPath(
     pts.map((point) => ({ x: point.x, y: point.line })),
@@ -297,7 +422,7 @@ export function ProjectionChart({
   if (peakCenter + peakW / 2 > width - 6) peakCenter = width - 6 - peakW / 2;
   const peakBox: Box = {
     x: peakCenter - peakW / 2,
-    y: Math.max(2, peakY - 46),
+    y: Math.max(2, peakY - 36),
     w: peakW,
     h: 30,
   };
@@ -338,13 +463,22 @@ export function ProjectionChart({
     Math.abs(freedomX! - peakX) > 28 &&
     Math.abs(freedomX! - endX) > 28;
   const freedomText = freedom == null ? "" : `${freedomLabel} · ${freedom}`;
+  const freedomW = textWidth(freedomText, 11);
+  let freedomCenter = freedomX ?? 0;
+  if (showFreedom && endBox && freedomX != null) {
+    const draft = { x: freedomCenter - freedomW / 2, y: baseline + 36, w: freedomW, h: 14 };
+    if (overlaps(draft, endBox, 6)) {
+      freedomCenter = Math.min(freedomCenter, endBox.x - 10 - freedomW / 2);
+    }
+  }
+  if (freedomCenter - freedomW / 2 < 4) freedomCenter = 4 + freedomW / 2;
   const freedomBox: Box | null =
     showFreedom && freedomX != null
       ? {
-          x: freedomX - textWidth(freedomText, 10) / 2,
-          y: baseline + 28,
-          w: textWidth(freedomText, 10),
-          h: 12,
+          x: freedomCenter - freedomW / 2,
+          y: baseline + 36,
+          w: freedomW,
+          h: 14,
         }
       : null;
 
@@ -427,7 +561,14 @@ export function ProjectionChart({
       setHoverAge(null);
       return;
     }
-    const age = xMin - xPad + ((px - margin.left) / plotW) * (xSpan + xPad * 2);
+    let lo = xMin - xPad;
+    let hi = xMax + xPad;
+    for (let i = 0; i < 22; i++) {
+      const mid = (lo + hi) / 2;
+      if (xOf(mid) < px) lo = mid;
+      else hi = mid;
+    }
+    const age = (lo + hi) / 2;
     let nearest = data[0]!;
     let best = Infinity;
     for (const point of data) {
@@ -501,9 +642,9 @@ export function ProjectionChart({
               x2="0"
               y2={baseline}
             >
-              <stop offset="0%" stopColor="#E8D7AE" stopOpacity="0.82" />
-              <stop offset="28%" stopColor={GOLD} stopOpacity="0.9" />
-              <stop offset="100%" stopColor={GOLD} stopOpacity="0.94" />
+              <stop offset="0%" stopColor="#FBF7EE" stopOpacity="0.42" />
+              <stop offset="46%" stopColor="#F0E2C0" stopOpacity="0.58" />
+              <stop offset="100%" stopColor={GOLD} stopOpacity="0.7" />
             </linearGradient>
             <linearGradient
               id={blueId}
@@ -513,8 +654,8 @@ export function ProjectionChart({
               x2="0"
               y2={baseline}
             >
-              <stop offset="0%" stopColor="#D7E4EE" stopOpacity="0.92" />
-              <stop offset="100%" stopColor={BLUE} stopOpacity="0.94" />
+              <stop offset="0%" stopColor="#F3F7FB" stopOpacity="0.38" />
+              <stop offset="100%" stopColor={BLUE} stopOpacity="0.58" />
             </linearGradient>
             <linearGradient
               id={coralId}
@@ -524,8 +665,8 @@ export function ProjectionChart({
               x2="0"
               y2={baseline}
             >
-              <stop offset="0%" stopColor="#F6E6E3" stopOpacity="0.9" />
-              <stop offset="100%" stopColor={CORAL} stopOpacity="0.94" />
+              <stop offset="0%" stopColor="#FBF4F2" stopOpacity="0.34" />
+              <stop offset="100%" stopColor={CORAL} stopOpacity="0.55" />
             </linearGradient>
             <clipPath id={clipId}>
               <path d={clipD} />
@@ -541,7 +682,7 @@ export function ProjectionChart({
                 x2={margin.left + plotW}
                 y1={yOf(value)}
                 y2={yOf(value)}
-                stroke="rgba(148, 163, 175, 0.28)"
+                stroke="rgba(148, 163, 175, 0.2)"
                 strokeDasharray="1.5 7"
                 strokeWidth="1"
               />
@@ -569,7 +710,7 @@ export function ProjectionChart({
             d={lineD}
             fill="none"
             stroke={LINE}
-            strokeWidth="2.35"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             data-wealth-line="true"
@@ -580,12 +721,11 @@ export function ProjectionChart({
               <line
                 x1={freedomX}
                 x2={freedomX}
-                y1={baseline - 0.5}
-                y2={baseline + 6}
+                y1={baseline + 1}
+                y2={baseline + 8}
                 stroke={LINE}
                 strokeWidth="1.25"
               />
-              <circle cx={freedomX} cy={baseline} r="2.2" fill={LINE} />
               {showFreedomDot ? (
                 <circle
                   cx={freedomX}
@@ -598,11 +738,11 @@ export function ProjectionChart({
               ) : null}
               {hidden.has("freedom") ? null : (
                 <text
-                  x={freedomX}
-                  y={baseline + 38}
+                  x={freedomCenter}
+                  y={baseline + 48}
                   textAnchor="middle"
                   fill={LINE}
-                  fontSize="10"
+                  fontSize="11"
                   fontWeight="600"
                 >
                   {freedomText}
@@ -626,7 +766,7 @@ export function ProjectionChart({
             )
           )}
 
-          {!hidden.has("aportes") && aportesSpot ? (
+          {!compact && !hidden.has("aportes") && aportesSpot ? (
             <BandCopy
               x={aportesSpot.x}
               y={aportesSpot.y}
@@ -635,7 +775,7 @@ export function ProjectionChart({
               hint={hidden.has("aportes") ? "" : aportesInHint}
             />
           ) : null}
-          {!hidden.has("rendimentos") && returnsSpot ? (
+          {!compact && !hidden.has("rendimentos") && returnsSpot ? (
             <BandCopy
               x={returnsSpot.x}
               y={returnsSpot.y}
@@ -644,7 +784,7 @@ export function ProjectionChart({
               hint={hidden.has("rendimentos") ? "" : returnsInHint}
             />
           ) : null}
-          {!hidden.has("saques") && saquesSpot ? (
+          {!compact && !hidden.has("saques") && saquesSpot ? (
             <BandCopy
               x={saquesSpot.x}
               y={saquesSpot.y}
@@ -655,7 +795,7 @@ export function ProjectionChart({
           ) : null}
 
           <g data-marker="peak">
-            <circle cx={peakX} cy={peakY} r="3.25" fill={LINE} stroke="#fff" strokeWidth="1.75" />
+            <circle cx={peakX} cy={peakY} r="3.5" fill={LINE} />
             <text
               x={peakCenter}
               y={peakBox.y + 12}
