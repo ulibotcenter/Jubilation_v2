@@ -1,10 +1,10 @@
 /** Visual range for the freedom-page sliders. Does not clamp stored field values. */
 
-export const WEALTH_SLIDER_CAP = 2_000_000;
+export const WEALTH_SLIDER_CAP = 10_000_000;
 export const WEALTH_SLIDER_STEP = 10_000;
 export const CONTRIBUTION_SLIDER_MAX = 20_000;
 export const CONTRIBUTION_SLIDER_STEP = 100;
-export const HORIZON_SLIDER_MAX = 90;
+export const HORIZON_SLIDER_MAX = 120;
 export const SPEND_SLIDER_CAP = 50_000;
 export const SPEND_SLIDER_STEP = 500;
 
@@ -48,17 +48,12 @@ function steppedCeiling(value: number, cap: number, step: number): number {
   return Math.ceil(value / step) * step;
 }
 
-/** Stay at 2_000_000 unless the stored wealth needs a higher step-aligned ceiling. */
-export function wealthSliderMax(value: number): number {
-  return steppedCeiling(value, WEALTH_SLIDER_CAP, WEALTH_SLIDER_STEP);
-}
-
 /** Stay at 50_000 unless the stored monthly withdrawal needs a higher ceiling. */
 export function spendSliderMax(value: number): number {
   return steppedCeiling(value, SPEND_SLIDER_CAP, SPEND_SLIDER_STEP);
 }
 
-/** Target-age slider: current age + 1 through 90. Never the solved freedom age. */
+/** Target-age slider: current age + 1 through 120. Never the solved freedom age. */
 export function horizonSliderBounds(currentAge: number): {
   min: number;
   max: number;

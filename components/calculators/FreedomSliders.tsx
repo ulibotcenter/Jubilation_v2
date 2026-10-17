@@ -8,8 +8,8 @@ import {
   sliderThumb,
   SPEND_SLIDER_STEP,
   spendSliderMax,
+  WEALTH_SLIDER_CAP,
   WEALTH_SLIDER_STEP,
-  wealthSliderMax,
 } from "@/lib/calculators/freedomSliders";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { formatCurrencyValue, type Currency } from "@/types";
@@ -104,7 +104,6 @@ export function FreedomSliders({
 }) {
   const { t } = useTranslation();
   const baseId = useId();
-  const wealthMax = wealthSliderMax(wealth);
   const spendMax = spendSliderMax(spend);
   const horizonBounds = horizonSliderBounds(currentAge);
 
@@ -120,7 +119,7 @@ export function FreedomSliders({
         label={t("calc.freedom.slider.wealth")}
         readout={formatCurrencyValue(wealth, currency, false, locale)}
         min={0}
-        max={wealthMax}
+        max={WEALTH_SLIDER_CAP}
         step={WEALTH_SLIDER_STEP}
         value={wealth}
         onValue={onWealth}
