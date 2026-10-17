@@ -7,6 +7,7 @@ import {
   NumberField,
 } from "@/components/calculators/CalculatorForm";
 import { RelatedCalculators } from "@/components/calculators/RelatedCalculators";
+import { FreedomSliders } from "@/components/calculators/FreedomSliders";
 import { ProjectionChart } from "@/components/ProjectionChart";
 import {
   freedomChartSeries,
@@ -174,6 +175,20 @@ export function FreedomCalculator({
         currency={symbol}
         currencyCode={currency}
         freedomAge={freedomAge}
+      />
+
+      <FreedomSliders
+        wealth={draft.reserva}
+        contribution={draft.aporte}
+        currentAge={draft.idade}
+        horizon={draft.alvo}
+        withdrawRate={draft.saque}
+        onWealth={(value) => patch("reserva", value)}
+        onContribution={(value) => patch("aporte", value)}
+        onHorizon={(value) => patch("alvo", value)}
+        onWithdrawRate={(value) => patch("saque", value)}
+        currency={currency}
+        locale={intlLocale}
       />
 
       <section className="public-result card-surface" aria-live="polite">

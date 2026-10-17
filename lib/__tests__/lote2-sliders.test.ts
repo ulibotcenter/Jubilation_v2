@@ -1,0 +1,79 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import {
+  horizonSliderBounds,
+  sliderThumb,
+  wealthSliderMax,
+} from "@/lib/calculators/freedomSliders";
+import { t } from "@/lib/i18n/messages";
+
+describe("freedom page sliders", () => {
+  it("snaps the thumb and leaves out-of-range values to the caller", () => {
+    expect(sliderThumb(3_000_000, 0, 2_000_000, 10_000)).toBe(2_000_000);
+    expect(sliderThumb(-10, 0, 20_000, 100)).toBe(0);
+    expect(sliderThumb(8.04, 0, 8, 0.1)).toBe(8);
+    expect(sliderThumb(2.04, 0, 8, 0.1)).toBe(2);
+    expect(sliderThumb(2.06, 0, 8, 0.1)).toBe(2.1);
+    expect(sliderThumb(2050, 0, 20_000, 100)).toBe(2100);
+    expect(sliderThumb(50_000, 0, 2_000_000, 10_000)).toBe(50_000);
+    expect(sliderThumb(2, 0, 8, 0.1)).toBe(2);
+  });
+
+  it("raises the wealth ceiling only when the stored value exceeds 2_000_000", () => {
+    expect(wealthSliderMax(50_000)).toBe(2_000_000);
+    expect(wealthSliderMax(2_000_000)).toBe(2_000_000);
+    expect(wealthSliderMax(2_500_000)).toBe(2_500_000);
+    expect(wealthSliderMax(2_003_000)).toBe(2_010_000);
+  });
+
+  it("bounds target age from the current age, not the solved freedom age", () => {
+    expect(horizonSliderBounds(32)).toEqual({ min: 33, max: 90 });
+    expect(horizonSliderBounds(95)).toEqual({ min: 90, max: 90 });
+    expect(sliderThumb(100, 33, 90, 1)).toBe(90);
+    expect(sliderThumb(40, 33, 90, 1)).toBe(40);
+  });
+
+  it("places the four sliders under the chart and binds the draft fields", () => {
+    const calculator = readFileSync(
+      "components/calculators/FreedomCalculator.tsx",
+      "utf8"
+    );
+    const chartAt = calculator.indexOf("<ProjectionChart");
+    const slidersAt = calculator.indexOf("<FreedomSliders");
+    const resultAt = calculator.indexOf('className="public-result');
+    expect(chartAt).toBeGreaterThan(-1);
+    expect(slidersAt).toBeGreaterThan(chartAt);
+    expect(resultAt).toBeGreaterThan(slidersAt);
+    expect(calculator).toContain('onWealth={(value) => patch("reserva", value)}');
+    expect(calculator).toContain(
+      'onContribution={(value) => patch("aporte", value)}'
+    );
+    expect(calculator).toContain('onHorizon={(value) => patch("alvo", value)}');
+    expect(calculator).toContain(
+      'onWithdrawRate={(value) => patch("saque", value)}'
+    );
+    expect(calculator).toContain("horizon={draft.alvo}");
+    expect(calculator).not.toContain("horizon={freedomAge}");
+
+    const sliders = readFileSync(
+      "components/calculators/FreedomSliders.tsx",
+      "utf8"
+    );
+    expect(sliders).not.toContain("freedomAge");
+    expect(sliders).toContain('slider="reserva"');
+    expect(sliders).toContain('slider="aporte"');
+    expect(sliders).toContain('slider="alvo"');
+    expect(sliders).toContain('slider="saque"');
+
+    expect(t("pt", "calc.freedom.slider.wealth")).toBe("Patrimônio atual");
+    expect(t("pt", "calc.freedom.slider.contribution")).toBe("Aporte mensal");
+    expect(t("pt", "calc.freedom.slider.horizon")).toBe("Idade alvo");
+    expect(t("pt", "calc.freedom.slider.withdrawRate")).toBe(
+      "Rendimento real na fase de saque"
+    );
+    expect(t("en", "calc.freedom.slider.withdrawRate")).toBe(
+      "Real return in the withdrawal phase"
+    );
+    expect(t("es", "calc.freedom.slider.horizon")).toBe("Edad objetivo");
+  });
+});

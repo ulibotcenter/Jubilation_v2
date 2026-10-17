@@ -1076,6 +1076,11 @@ export const PT: Record<MessageKey, string> = {
   "calc.freedom.withdrawRate": "Rendimento real esperado na fase de saque",
   "calc.freedom.withdrawRateHint":
     "Padrão 2% ao ano. O patrimônio continua rendendo depois que você para de aportar.",
+  "calc.freedom.slider.group": "Ajustes da projeção",
+  "calc.freedom.slider.wealth": "Patrimônio atual",
+  "calc.freedom.slider.contribution": "Aporte mensal",
+  "calc.freedom.slider.horizon": "Idade alvo",
+  "calc.freedom.slider.withdrawRate": "Rendimento real na fase de saque",
   "calc.freedom.chart.kicker": "A sua projeção",
   "calc.freedom.chart.peak": "Aos {age}, {amount}",
   "calc.freedom.chart.note":
