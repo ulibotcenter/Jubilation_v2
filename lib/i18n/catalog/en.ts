@@ -1078,7 +1078,7 @@ export const EN = {
   "calc.freedom.slider.wealth": "Current wealth",
   "calc.freedom.slider.contribution": "Monthly contribution",
   "calc.freedom.slider.horizon": "Target age",
-  "calc.freedom.slider.withdrawRate": "Real return in the withdrawal phase",
+  "calc.freedom.slider.spend": "Desired monthly withdrawal",
   "calc.freedom.chart.kicker": "Your projection",
   "calc.freedom.chart.peak": "At {age}, {amount}",
   "calc.freedom.chart.note":

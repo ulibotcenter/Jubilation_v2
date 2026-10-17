@@ -6568,8 +6568,15 @@ html.light .add-asset-modal {
 
 .freedom-sliders {
   display: grid;
-  gap: 0.72rem;
-  margin: -0.65rem 0 1.5rem;
+  grid-template-columns: 1fr;
+  gap: 0.65rem 1.25rem;
+  margin: -0.35rem 0 1.35rem;
+}
+
+@media (min-width: 640px) {
+  .freedom-sliders {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .freedom-slider {
@@ -6609,12 +6616,5 @@ html.light .add-asset-modal {
   outline: 2px solid #0f766e;
   outline-offset: 2px;
   border-radius: 999px;
-}
-
-@media (min-width: 960px) {
-  .freedom-sliders {
-    width: min(64rem, calc(100vw - 4rem));
-    margin-left: calc((100% - min(64rem, 100vw - 4rem)) / 2);
-  }
 }
 

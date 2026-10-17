@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   horizonSliderBounds,
   sliderThumb,
+  spendSliderMax,
   wealthSliderMax,
 } from "@/lib/calculators/freedomSliders";
 import { t } from "@/lib/i18n/messages";
@@ -24,6 +25,15 @@ describe("freedom page sliders", () => {
     expect(wealthSliderMax(2_000_000)).toBe(2_000_000);
     expect(wealthSliderMax(2_500_000)).toBe(2_500_000);
     expect(wealthSliderMax(2_003_000)).toBe(2_010_000);
+  });
+
+  it("raises the monthly withdrawal ceiling only above 50_000", () => {
+    expect(spendSliderMax(6_000)).toBe(50_000);
+    expect(spendSliderMax(50_000)).toBe(50_000);
+    expect(spendSliderMax(50_100)).toBe(50_500);
+    expect(spendSliderMax(80_000)).toBe(80_000);
+    expect(sliderThumb(62_300, 0, 62_500, 500)).toBe(62_500);
+    expect(sliderThumb(70_000, 0, 50_000, 500)).toBe(50_000);
   });
 
   it("bounds target age from the current age, not the solved freedom age", () => {
@@ -49,9 +59,10 @@ describe("freedom page sliders", () => {
       'onContribution={(value) => patch("aporte", value)}'
     );
     expect(calculator).toContain('onHorizon={(value) => patch("alvo", value)}');
-    expect(calculator).toContain(
-      'onWithdrawRate={(value) => patch("saque", value)}'
-    );
+    expect(calculator).toContain('onSpend={(value) => patch("gasto", value)}');
+    expect(calculator).toContain("spend={draft.gasto}");
+    expect(calculator).toContain('name="saque"');
+    expect(calculator).not.toContain('onWithdrawRate');
     expect(calculator).toContain("horizon={draft.alvo}");
     expect(calculator).not.toContain("horizon={freedomAge}");
 
@@ -63,17 +74,20 @@ describe("freedom page sliders", () => {
     expect(sliders).toContain('slider="reserva"');
     expect(sliders).toContain('slider="aporte"');
     expect(sliders).toContain('slider="alvo"');
-    expect(sliders).toContain('slider="saque"');
+    expect(sliders).toContain('slider="gasto"');
+    expect(sliders).not.toContain('slider="saque"');
+    expect(sliders).not.toContain("withdrawRate");
 
     expect(t("pt", "calc.freedom.slider.wealth")).toBe("Patrimônio atual");
     expect(t("pt", "calc.freedom.slider.contribution")).toBe("Aporte mensal");
     expect(t("pt", "calc.freedom.slider.horizon")).toBe("Idade alvo");
-    expect(t("pt", "calc.freedom.slider.withdrawRate")).toBe(
-      "Rendimento real na fase de saque"
+    expect(t("pt", "calc.freedom.slider.spend")).toBe("Valor desejado de saque");
+    expect(t("en", "calc.freedom.slider.spend")).toBe(
+      "Desired monthly withdrawal"
     );
-    expect(t("en", "calc.freedom.slider.withdrawRate")).toBe(
-      "Real return in the withdrawal phase"
+    expect(t("es", "calc.freedom.slider.spend")).toBe("Valor deseado de retiro");
+    expect(t("pt", "calc.freedom.withdrawRate")).toBe(
+      "Rendimento real esperado na fase de saque"
     );
-    expect(t("es", "calc.freedom.slider.horizon")).toBe("Edad objetivo");
   });
 });

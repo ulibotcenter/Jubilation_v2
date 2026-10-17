@@ -5,8 +5,8 @@ export const WEALTH_SLIDER_STEP = 10_000;
 export const CONTRIBUTION_SLIDER_MAX = 20_000;
 export const CONTRIBUTION_SLIDER_STEP = 100;
 export const HORIZON_SLIDER_MAX = 90;
-export const WITHDRAW_SLIDER_MAX = 8;
-export const WITHDRAW_SLIDER_STEP = 0.1;
+export const SPEND_SLIDER_CAP = 50_000;
+export const SPEND_SLIDER_STEP = 500;
 
 function decimalPlaces(step: number): number {
   const text = String(step);
@@ -42,13 +42,20 @@ export function sliderThumb(
   return rounded;
 }
 
+/** Stay at the cap unless the stored value needs a higher step-aligned ceiling. */
+function steppedCeiling(value: number, cap: number, step: number): number {
+  if (!Number.isFinite(value) || value <= cap) return cap;
+  return Math.ceil(value / step) * step;
+}
+
 /** Stay at 2_000_000 unless the stored wealth needs a higher step-aligned ceiling. */
 export function wealthSliderMax(value: number): number {
-  if (!Number.isFinite(value) || value <= WEALTH_SLIDER_CAP) {
-    return WEALTH_SLIDER_CAP;
-  }
-  const steps = Math.ceil(value / WEALTH_SLIDER_STEP);
-  return steps * WEALTH_SLIDER_STEP;
+  return steppedCeiling(value, WEALTH_SLIDER_CAP, WEALTH_SLIDER_STEP);
+}
+
+/** Stay at 50_000 unless the stored monthly withdrawal needs a higher ceiling. */
+export function spendSliderMax(value: number): number {
+  return steppedCeiling(value, SPEND_SLIDER_CAP, SPEND_SLIDER_STEP);
 }
 
 /** Target-age slider: current age + 1 through 90. Never the solved freedom age. */
