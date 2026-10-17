@@ -4,27 +4,28 @@ import {
   horizonSliderBounds,
   sliderThumb,
   spendSliderMax,
-  wealthSliderMax,
+  WEALTH_SLIDER_CAP,
 } from "@/lib/calculators/freedomSliders";
 import { t } from "@/lib/i18n/messages";
 
 describe("freedom page sliders", () => {
   it("snaps the thumb and leaves out-of-range values to the caller", () => {
-    expect(sliderThumb(3_000_000, 0, 2_000_000, 10_000)).toBe(2_000_000);
+    expect(sliderThumb(12_000_000, 0, WEALTH_SLIDER_CAP, 10_000)).toBe(10_000_000);
+    expect(sliderThumb(3_000_000, 0, WEALTH_SLIDER_CAP, 10_000)).toBe(3_000_000);
     expect(sliderThumb(-10, 0, 20_000, 100)).toBe(0);
     expect(sliderThumb(8.04, 0, 8, 0.1)).toBe(8);
     expect(sliderThumb(2.04, 0, 8, 0.1)).toBe(2);
     expect(sliderThumb(2.06, 0, 8, 0.1)).toBe(2.1);
     expect(sliderThumb(2050, 0, 20_000, 100)).toBe(2100);
-    expect(sliderThumb(50_000, 0, 2_000_000, 10_000)).toBe(50_000);
+    expect(sliderThumb(50_000, 0, WEALTH_SLIDER_CAP, 10_000)).toBe(50_000);
     expect(sliderThumb(2, 0, 8, 0.1)).toBe(2);
   });
 
-  it("raises the wealth ceiling only when the stored value exceeds 2_000_000", () => {
-    expect(wealthSliderMax(50_000)).toBe(2_000_000);
-    expect(wealthSliderMax(2_000_000)).toBe(2_000_000);
-    expect(wealthSliderMax(2_500_000)).toBe(2_500_000);
-    expect(wealthSliderMax(2_003_000)).toBe(2_010_000);
+  it("pins wealth above 10 million to the thumb without raising the range", () => {
+    expect(WEALTH_SLIDER_CAP).toBe(10_000_000);
+    expect(sliderThumb(10_000_000, 0, WEALTH_SLIDER_CAP, 10_000)).toBe(10_000_000);
+    expect(sliderThumb(15_000_000, 0, WEALTH_SLIDER_CAP, 10_000)).toBe(10_000_000);
+    expect(sliderThumb(10_004_000, 0, WEALTH_SLIDER_CAP, 10_000)).toBe(10_000_000);
   });
 
   it("raises the monthly withdrawal ceiling only above 50_000", () => {
@@ -36,11 +37,13 @@ describe("freedom page sliders", () => {
     expect(sliderThumb(70_000, 0, 50_000, 500)).toBe(50_000);
   });
 
-  it("bounds target age from the current age, not the solved freedom age", () => {
-    expect(horizonSliderBounds(32)).toEqual({ min: 33, max: 90 });
-    expect(horizonSliderBounds(95)).toEqual({ min: 90, max: 90 });
-    expect(sliderThumb(100, 33, 90, 1)).toBe(90);
-    expect(sliderThumb(40, 33, 90, 1)).toBe(40);
+  it("bounds target age from the current age through 120, not the solved freedom age", () => {
+    expect(horizonSliderBounds(32)).toEqual({ min: 33, max: 120 });
+    expect(horizonSliderBounds(95)).toEqual({ min: 96, max: 120 });
+    expect(horizonSliderBounds(130)).toEqual({ min: 120, max: 120 });
+    expect(sliderThumb(130, 33, 120, 1)).toBe(120);
+    expect(sliderThumb(90, 33, 120, 1)).toBe(90);
+    expect(sliderThumb(40, 33, 120, 1)).toBe(40);
   });
 
   it("places the four sliders under the chart and binds the draft fields", () => {
