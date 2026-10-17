@@ -1074,6 +1074,11 @@ export const EN = {
   "calc.freedom.withdrawRate": "Expected real return in the withdrawal phase",
   "calc.freedom.withdrawRateHint":
     "Default 2% a year. Wealth keeps compounding after you stop contributing.",
+  "calc.freedom.slider.group": "Projection adjustments",
+  "calc.freedom.slider.wealth": "Current wealth",
+  "calc.freedom.slider.contribution": "Monthly contribution",
+  "calc.freedom.slider.horizon": "Target age",
+  "calc.freedom.slider.withdrawRate": "Real return in the withdrawal phase",
   "calc.freedom.chart.kicker": "Your projection",
   "calc.freedom.chart.peak": "At {age}, {amount}",
   "calc.freedom.chart.note":

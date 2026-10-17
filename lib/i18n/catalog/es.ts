@@ -1076,6 +1076,11 @@ export const ES: Record<MessageKey, string> = {
   "calc.freedom.withdrawRate": "Rendimiento real esperado en la fase de retiro",
   "calc.freedom.withdrawRateHint":
     "Por defecto 2% al año. El patrimonio sigue rindiendo cuando dejas de aportar.",
+  "calc.freedom.slider.group": "Ajustes de la proyección",
+  "calc.freedom.slider.wealth": "Patrimonio actual",
+  "calc.freedom.slider.contribution": "Aporte mensual",
+  "calc.freedom.slider.horizon": "Edad objetivo",
+  "calc.freedom.slider.withdrawRate": "Rendimiento real en la fase de retiro",
   "calc.freedom.chart.kicker": "Tu proyección",
   "calc.freedom.chart.peak": "A los {age}, {amount}",
   "calc.freedom.chart.note":
