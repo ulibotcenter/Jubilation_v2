@@ -1080,7 +1080,7 @@ export const PT: Record<MessageKey, string> = {
   "calc.freedom.slider.wealth": "Patrimônio atual",
   "calc.freedom.slider.contribution": "Aporte mensal",
   "calc.freedom.slider.horizon": "Idade alvo",
-  "calc.freedom.slider.withdrawRate": "Rendimento real na fase de saque",
+  "calc.freedom.slider.spend": "Valor desejado de saque",
   "calc.freedom.chart.kicker": "A sua projeção",
   "calc.freedom.chart.peak": "Aos {age}, {amount}",
   "calc.freedom.chart.note":

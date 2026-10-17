@@ -6,21 +6,15 @@ import {
   CONTRIBUTION_SLIDER_STEP,
   horizonSliderBounds,
   sliderThumb,
+  SPEND_SLIDER_STEP,
+  spendSliderMax,
   WEALTH_SLIDER_STEP,
   wealthSliderMax,
-  WITHDRAW_SLIDER_MAX,
-  WITHDRAW_SLIDER_STEP,
 } from "@/lib/calculators/freedomSliders";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { formatCurrencyValue, type Currency } from "@/types";
 
-type SliderKey = "reserva" | "aporte" | "alvo" | "saque";
-
-function formatRate(value: number): string {
-  if (!Number.isFinite(value)) return "0%";
-  const rounded = Math.round(value * 10000) / 10000;
-  return `${rounded}%`;
-}
+type SliderKey = "reserva" | "aporte" | "alvo" | "gasto";
 
 function formatAge(value: number, locale: string): string {
   if (!Number.isFinite(value)) return "0";
@@ -88,11 +82,11 @@ export function FreedomSliders({
   contribution,
   currentAge,
   horizon,
-  withdrawRate,
+  spend,
   onWealth,
   onContribution,
   onHorizon,
-  onWithdrawRate,
+  onSpend,
   currency,
   locale,
 }: {
@@ -100,17 +94,18 @@ export function FreedomSliders({
   contribution: number;
   currentAge: number;
   horizon: number;
-  withdrawRate: number;
+  spend: number;
   onWealth: (value: number) => void;
   onContribution: (value: number) => void;
   onHorizon: (value: number) => void;
-  onWithdrawRate: (value: number) => void;
+  onSpend: (value: number) => void;
   currency: Currency;
   locale: string;
 }) {
   const { t } = useTranslation();
   const baseId = useId();
   const wealthMax = wealthSliderMax(wealth);
+  const spendMax = spendSliderMax(spend);
   const horizonBounds = horizonSliderBounds(currentAge);
 
   return (
@@ -153,15 +148,15 @@ export function FreedomSliders({
         onValue={onHorizon}
       />
       <FreedomSlider
-        id={`${baseId}-saque`}
-        slider="saque"
-        label={t("calc.freedom.slider.withdrawRate")}
-        readout={formatRate(withdrawRate)}
+        id={`${baseId}-gasto`}
+        slider="gasto"
+        label={t("calc.freedom.slider.spend")}
+        readout={formatCurrencyValue(spend, currency, false, locale)}
         min={0}
-        max={WITHDRAW_SLIDER_MAX}
-        step={WITHDRAW_SLIDER_STEP}
-        value={withdrawRate}
-        onValue={onWithdrawRate}
+        max={spendMax}
+        step={SPEND_SLIDER_STEP}
+        value={spend}
+        onValue={onSpend}
       />
     </div>
   );

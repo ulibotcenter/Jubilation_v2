@@ -182,11 +182,11 @@ export function FreedomCalculator({
         contribution={draft.aporte}
         currentAge={draft.idade}
         horizon={draft.alvo}
-        withdrawRate={draft.saque}
+        spend={draft.gasto}
         onWealth={(value) => patch("reserva", value)}
         onContribution={(value) => patch("aporte", value)}
         onHorizon={(value) => patch("alvo", value)}
-        onWithdrawRate={(value) => patch("saque", value)}
+        onSpend={(value) => patch("gasto", value)}
         currency={currency}
         locale={intlLocale}
       />
