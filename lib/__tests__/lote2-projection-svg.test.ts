@@ -51,7 +51,8 @@ describe("lote 2 freedom chart replaces the uploaded SVG", () => {
     expect(calc).toContain('name="gasto"');
     expect(calc).toContain('name="alvo"');
     expect(calc).toContain('name="juro"');
-    expect(calc).toContain('name="saque"');
+    expect(calc).toContain('name="inflacao"');
+    expect(calc).not.toContain('name="saque"');
     expect(calc).toContain("NumberField");
     expect(calc).not.toContain("FreedomProjectionChart");
 

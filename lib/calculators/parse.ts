@@ -91,6 +91,19 @@ export function parseFreedomInput(q: SearchBag): PublicIndependenceInput {
   return parseIndependence(q, FREEDOM_DEFAULTS);
 }
 
+/**
+ * Visible inflation assumption on the freedom page.
+ * The page is already in real terms, so this number is not a second deflator.
+ */
+export function parseFreedomInflationPercent(q: SearchBag): number {
+  return parseClampedNumber(
+    q.inflacao,
+    ASSUMPTIONS.inflation.defaultValue,
+    ASSUMPTIONS.inflation.min,
+    ASSUMPTIONS.inflation.max
+  );
+}
+
 export function parseIncomeInput(q: SearchBag): PublicIndependenceInput {
   return parseIndependence(q, INCOME_DEFAULTS);
 }

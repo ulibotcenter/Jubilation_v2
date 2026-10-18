@@ -83,6 +83,17 @@ export function twoPhaseReturnOptions(
   };
 }
 
+/**
+ * One growth percent for the public freedom page.
+ * Accumulation and withdrawal both receive `realReturn`.
+ * This does not change the bisection or the yearly projection.
+ */
+export function shareRealReturn(
+  input: PublicIndependenceInput
+): PublicIndependenceInput {
+  return { ...input, withdrawalRealReturn: input.realReturn };
+}
+
 /** Contribution and lifestyle fixed; solve the earliest feasible retirement age. */
 export function solveFreedomDate(input: PublicIndependenceInput): SolveResult {
   const withdraw = input.withdrawalRealReturn;
