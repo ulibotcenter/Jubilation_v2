@@ -4,18 +4,18 @@ import { freedomChartSeries } from "@/lib/calculators/chartSeries";
 import {
   DEFAULT_WITHDRAWAL_REAL_RETURN,
   FREEDOM_DEFAULTS,
+  shareRealReturn,
 } from "@/lib/calculators/independence";
 import { parseFreedomInput } from "@/lib/calculators/parse";
-import { t } from "@/lib/i18n/messages";
 
 describe("lote 2 two-phase freedom chart", () => {
-  it("defaults withdrawal-phase real yield to 2%", () => {
+  it("keeps the engine withdrawal default, and the page shares one rate", () => {
     expect(DEFAULT_WITHDRAWAL_REAL_RETURN).toBe(0.02);
     expect(FREEDOM_DEFAULTS.withdrawalRealReturn).toBe(0.02);
     expect(parseFreedomInput({}).withdrawalRealReturn).toBe(0.02);
-    expect(t("pt", "calc.freedom.withdrawRate")).toBe(
-      "Quanto cresce depois que você para de guardar"
-    );
+    const shared = shareRealReturn(parseFreedomInput({}));
+    expect(shared.withdrawalRealReturn).toBe(shared.realReturn);
+    expect(shared.realReturn).toBe(FREEDOM_DEFAULTS.realReturn);
   });
 
   it("grows while contributing then declines after freedom without snapping to zero", () => {

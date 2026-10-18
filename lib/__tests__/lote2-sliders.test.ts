@@ -72,8 +72,11 @@ describe("freedom page sliders", () => {
     expect(calculator).toContain('onHorizon={(value) => patch("alvo", value)}');
     expect(calculator).toContain('onSpend={(value) => patch("gasto", value)}');
     expect(calculator).toContain("spend={draft.gasto}");
-    expect(calculator).toContain('name="saque"');
+    expect(calculator).toContain('name="gasto"');
+    expect(calculator).toContain('name="inflacao"');
+    expect(calculator).not.toContain('name="saque"');
     expect(calculator).not.toContain('onWithdrawRate');
+    expect(calculator).toContain("shareRealReturn");
     expect(calculator).toContain("horizon={draft.alvo}");
     expect(calculator).not.toContain("horizon={freedomAge}");
 
@@ -97,8 +100,17 @@ describe("freedom page sliders", () => {
       "Desired monthly withdrawal"
     );
     expect(t("es", "calc.freedom.slider.spend")).toBe("Valor deseado de retiro");
-    expect(t("pt", "calc.freedom.withdrawRate")).toBe(
-      "Quanto cresce depois que você para de guardar"
+    expect(t("pt", "calc.freedom.rate")).toBe("Quanto cresce ao ano");
+    expect(t("pt", "calc.freedom.inflation")).toBe("Inflação média ao ano");
+    expect(t("pt", "calc.freedom.spend")).toBe(
+      "Quanto quero ter por mês na liberdade"
     );
+    expect(t("en", "calc.freedom.spend")).toBe(
+      "What I want each month in freedom"
+    );
+    expect(t("es", "calc.freedom.spend")).toBe(
+      "Cuánto quiero tener al mes en la libertad"
+    );
+    expect(calculator).not.toContain("withdrawRate");
   });
 });

@@ -14,7 +14,12 @@ import {
   toProjectionChartData,
 } from "@/lib/calculators/chartSeries";
 import { PUBLIC_ENGINE_NOTE } from "@/lib/calculators/copy";
+import {
+  shareRealReturn,
+  type PublicIndependenceInput,
+} from "@/lib/calculators/independence";
 import { parseFreedomInput } from "@/lib/calculators/parse";
+import { ASSUMPTIONS } from "@/lib/engine/assumptions";
 import { htmlLang } from "@/lib/i18n/htmlLang";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
@@ -23,7 +28,6 @@ import {
   formatCurrencyValue,
   type Currency,
 } from "@/types";
-import type { PublicIndependenceInput } from "@/lib/calculators/independence";
 
 type Draft = {
   idade: number;
@@ -32,10 +36,13 @@ type Draft = {
   gasto: number;
   alvo: number;
   juro: number;
-  saque: number;
+  inflacao: number;
 };
 
-function draftFromInput(input: PublicIndependenceInput): Draft {
+function draftFromInput(
+  input: PublicIndependenceInput,
+  inflationPercent: number
+): Draft {
   return {
     idade: input.currentAge,
     reserva: input.liquidWealth,
@@ -43,20 +50,21 @@ function draftFromInput(input: PublicIndependenceInput): Draft {
     gasto: input.monthlySpending,
     alvo: input.lifeExpectancy,
     juro: Math.round(input.realReturn * 1000) / 10,
-    saque: Math.round(input.withdrawalRealReturn * 1000) / 10,
+    inflacao: inflationPercent,
   };
 }
 
-function inputFromDraft(draft: Draft): PublicIndependenceInput {
-  return parseFreedomInput({
-    idade: String(draft.idade),
-    reserva: String(draft.reserva),
-    aporte: String(draft.aporte),
-    gasto: String(draft.gasto),
-    alvo: String(draft.alvo),
-    juro: String(draft.juro),
-    saque: String(draft.saque),
-  });
+function inputFromDraft(draft: Omit<Draft, "inflacao">): PublicIndependenceInput {
+  return shareRealReturn(
+    parseFreedomInput({
+      idade: String(draft.idade),
+      reserva: String(draft.reserva),
+      aporte: String(draft.aporte),
+      gasto: String(draft.gasto),
+      alvo: String(draft.alvo),
+      juro: String(draft.juro),
+    })
+  );
 }
 
 function money(value: number, currency: Currency, locale: string) {
@@ -65,13 +73,28 @@ function money(value: number, currency: Currency, locale: string) {
 
 export function FreedomCalculator({
   initial,
+  inflationPercent = ASSUMPTIONS.inflation.defaultValue,
 }: {
   initial: PublicIndependenceInput;
+  inflationPercent?: number;
 }) {
   const { t, locale } = useTranslation();
   const currency = useAppStore((s) => s.currency);
-  const [draft, setDraft] = useState<Draft>(() => draftFromInput(initial));
-  const input = useMemo(() => inputFromDraft(draft), [draft]);
+  const [draft, setDraft] = useState<Draft>(() =>
+    draftFromInput(initial, inflationPercent)
+  );
+  const input = useMemo(
+    () =>
+      inputFromDraft({
+        idade: draft.idade,
+        reserva: draft.reserva,
+        aporte: draft.aporte,
+        gasto: draft.gasto,
+        alvo: draft.alvo,
+        juro: draft.juro,
+      }),
+    [draft.idade, draft.reserva, draft.aporte, draft.gasto, draft.alvo, draft.juro]
+  );
   const { series, result, freedomAge } = useMemo(
     () => freedomChartSeries(input),
     [input]
@@ -157,16 +180,15 @@ export function FreedomCalculator({
           hint={t("calc.freedom.rateHint")}
         />
         <NumberField
-          name="saque"
-          label={t("calc.freedom.withdrawRate")}
-          value={draft.saque}
-          onValueChange={(value) => patch("saque", value)}
-          min={-5}
-          max={12}
-          step={0.1}
+          name="inflacao"
+          label={t("calc.freedom.inflation")}
+          value={draft.inflacao}
+          onValueChange={(value) => patch("inflacao", value)}
+          min={ASSUMPTIONS.inflation.min}
+          max={ASSUMPTIONS.inflation.max}
+          step={ASSUMPTIONS.inflation.step}
           suffix="%"
-          hint={t("calc.freedom.withdrawRateHint")}
-          className="public-field--emphasis"
+          hint={t("calc.freedom.inflationHint")}
         />
       </CalculatorForm>
 
