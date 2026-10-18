@@ -31,12 +31,19 @@ export function FreePlanGate() {
 }
 
 /** Paid planner, or the public-calculator gate. Waits for billing status so a paid plan does not flash as free. */
-export function PlannerGate({ children }: { children: ReactNode }) {
+export function PlannerGate({
+  children,
+  empty,
+}: {
+  children: ReactNode;
+  /** Replaces the free-plan gate. Cash flow and simulation keep the default. */
+  empty?: ReactNode;
+}) {
   const planTier = useAppStore((s) => s.planTier);
   const billingChecked = useAppStore((s) => s.billingChecked);
   if (!billingChecked) {
     return <div className="card-surface h-40 skeleton" data-plan-gate="pending" />;
   }
-  if (!canUseFullPlanner(planTier)) return <FreePlanGate />;
+  if (!canUseFullPlanner(planTier)) return empty ?? <FreePlanGate />;
   return children;
 }

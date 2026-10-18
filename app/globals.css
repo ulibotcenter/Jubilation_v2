@@ -1255,6 +1255,32 @@ body::before {
   );
 }
 
+.empty-state--roomy {
+  padding: 2.75rem 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .empty-state--roomy {
+    padding: 3.5rem 2rem;
+  }
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  max-width: 100%;
+}
+
+.empty-state-actions .btn-primary,
+.empty-state-actions .btn-secondary {
+  white-space: normal;
+  text-align: center;
+}
+
 .app-content {
   flex: 1;
   padding: 1rem;

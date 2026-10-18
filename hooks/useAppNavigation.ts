@@ -38,6 +38,8 @@ export function useAppNavigation() {
       if (id === "portfolio") {
         if (pathname !== DASHBOARD_PATH) {
           router.push(DASHBOARD_PORTFOLIO_PATH);
+        } else if (window.location.hash !== "#portfolio") {
+          window.location.hash = "portfolio";
         } else {
           scrollToPortfolio();
         }
@@ -48,6 +50,10 @@ export function useAppNavigation() {
         if (pathname !== DASHBOARD_PATH) {
           router.push(DASHBOARD_PATH);
         } else {
+          if (window.location.hash) {
+            window.history.pushState(null, "", DASHBOARD_PATH);
+            window.dispatchEvent(new HashChangeEvent("hashchange"));
+          }
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
         return;

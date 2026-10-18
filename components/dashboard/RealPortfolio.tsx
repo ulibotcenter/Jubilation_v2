@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PortfolioEmptyState } from "@/components/dashboard/EmptyScreens";
 import { PortfolioAllocationChart } from "@/components/dashboard/PortfolioAllocationChart";
 import { PortfolioHoldingsTable } from "@/components/dashboard/PortfolioHoldingsTable";
 import { AddAssetModal } from "@/components/ui/AddAssetModal";
@@ -23,7 +24,7 @@ import { ConnectB3Button } from "@/components/portfolio/ConnectB3Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAssetClassLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { canUseConnectors } from "@/lib/plans";
+import { canUseConnectors, canUseFullPlanner } from "@/lib/plans";
 import { computeWeightedPortfolioCagr } from "@/lib/portfolioCagr";
 import { allocationByClass } from "@/lib/rebalance";
 import { useAppStore } from "@/store/useAppStore";
@@ -80,7 +81,8 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     mode === "playground" ? removeSimPortfolioAsset : removePortfolioAsset;
   const clearPortfolio = useAppStore((s) => s.clearPortfolio);
   const modelSeedActive = useAppStore((s) => s.modelSeedActive);
-  const connectorsOpen = canUseConnectors(useAppStore((s) => s.planTier));
+  const planTier = useAppStore((s) => s.planTier);
+  const connectorsOpen = canUseConnectors(planTier);
   const holdingCapBlocked = useAppStore((s) => s.holdingCapBlocked);
 
   const refreshPortfolioPrices = useAppStore((s) => s.refreshPortfolioPrices);
@@ -243,6 +245,10 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
       description: t("toast.portfolio.clearedDesc"),
     });
   };
+
+  if (mode === "real" && portfolio.length === 0) {
+    return <PortfolioEmptyState canAdd={canUseFullPlanner(planTier)} />;
+  }
 
   return (
     <div className="space-y-5">

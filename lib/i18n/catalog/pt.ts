@@ -175,6 +175,12 @@ export const PT: Record<MessageKey, string> = {
   "free.gate.calculator": "Abrir a calculadora",
   "free.gate.plans": "Ver Básico e Completo",
   "free.gate.signup": "Criar conta",
+  "empty.painel.title": "Seu painel começa aqui",
+  "empty.painel.body":
+    "Ainda não há um plano salvo. A calculadora mostra quando você fica livre.",
+  "empty.painel.cta": "Simule sua liberdade",
+  "empty.portfolio.title": "Seus investimentos aparecem aqui",
+  "empty.portfolio.body": "Você adiciona investimentos no Básico ou acima.",
   "portfolio.cap.title": "Limite do Básico",
   "portfolio.cap.body":
     "O Básico guarda até 5 posições de bolsa ou Tesouro. Imóvel e outros bens manuais não entram nessa conta. O Completo não tem esse limite.",
