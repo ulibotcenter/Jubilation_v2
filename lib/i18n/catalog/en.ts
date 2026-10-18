@@ -1044,6 +1044,8 @@ export const EN = {
   "landing.cta.personalize": "Make it mine",
   "landing.cta.plans": "See the plans",
   "landing.nav.calculators": "Calculators",
+  "landing.nav.calculator": "Calculator",
+  "landing.cta.haveAccount": "Already have an account",
   "landing.nav.aria": "Primary",
   "landing.chart.kicker": "Illustrative example",
   "landing.chart.peak": "At {age}, {amount}",

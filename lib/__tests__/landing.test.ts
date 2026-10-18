@@ -9,7 +9,13 @@ import {
   LANDING_WEALTH_AT_HORIZON,
   landingCalculatorHref,
 } from "@/lib/landing/sampleProjection";
-import { DASHBOARD_PATH, DASHBOARD_PORTFOLIO_PATH, PLANS_PATH } from "@/lib/routes";
+import { t } from "@/lib/i18n/messages";
+import {
+  DASHBOARD_PATH,
+  DASHBOARD_PORTFOLIO_PATH,
+  PLANS_PATH,
+  SIGN_IN_PATH,
+} from "@/lib/routes";
 import { NAV_ITEMS } from "@/types";
 
 describe("landing at /", () => {
@@ -33,9 +39,25 @@ describe("landing at /", () => {
     expect(view).toContain("landing.cta.personalize");
     expect(view).toContain("landing.cta.plans");
     expect(view).toContain("data-landing-cta=\"personalizar\"");
+    expect(view).toContain("landing-cta-primary");
     expect(view).toContain("data-landing-cta=\"planos\"");
-    expect(view).toContain("data-landing-nav=\"painel\"");
+    expect(view).toContain("data-landing-cta=\"entrar\"");
+    expect(view).toContain("landing.cta.haveAccount");
+    expect(view).toContain("SIGN_IN_PATH");
+    expect(view).toContain("PublicNav");
     expect(view).toContain("LocaleCurrencyControls");
+    const nav = readFileSync("components/layout/PublicNav.tsx", "utf8");
+    expect(nav).toContain('data-nav="calculadora"');
+    expect(nav).toContain("CALCULATOR_PATHS.freedomDate");
+    expect(nav).toContain('data-nav="planos"');
+    expect(nav).toContain('data-nav="entrar"');
+    expect(nav).toContain("SIGN_IN_PATH");
+    expect(nav).toContain('data-nav="painel"');
+    expect(t("pt", "landing.nav.calculator")).toBe("Calculadora");
+    expect(t("pt", "landing.cta.haveAccount")).toBe("Já tenho conta");
+    expect(t("pt", "nav.signIn")).toBe("Entrar");
+    expect(t("pt", "nav.upgrade")).toBe("Planos");
+    expect(SIGN_IN_PATH).toBe("/settings#cloud-account");
     expect(page).not.toContain("AppShell");
     expect(view).not.toMatch(/fim de vida|end of life|falecimento|morte/i);
     expect(landingCalculatorHref()).toContain(CALCULATOR_PATHS.freedomDate);

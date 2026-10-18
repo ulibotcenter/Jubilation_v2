@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { LandingHeroChart } from "@/components/landing/LandingHeroChart";
+import { PublicNav } from "@/components/layout/PublicNav";
 import { LocaleCurrencyControls } from "@/components/platform/LocaleCurrencyControls";
 import { CALCULATOR_PATHS } from "@/lib/calculators/seo";
 import { convertChartSeries } from "@/lib/calculators/chartSeries";
@@ -16,7 +17,7 @@ import {
 } from "@/lib/landing/sampleProjection";
 import { TERMS_PATH } from "@/lib/legal/terms";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
-import { DASHBOARD_PATH, PLANS_PATH } from "@/lib/routes";
+import { PLANS_PATH, SIGN_IN_PATH } from "@/lib/routes";
 import { htmlLang } from "@/lib/i18n/htmlLang";
 import { useAppStore } from "@/store/useAppStore";
 import { convertAmount } from "@/lib/fx/convert";
@@ -81,17 +82,7 @@ export function LandingView() {
             <span>{t("landing.brand.tagline")}</span>
           </span>
         </Link>
-        <nav className="landing-nav" aria-label={t("landing.nav.aria")}>
-          <Link href={DASHBOARD_PATH} data-landing-nav="painel">
-            {t("nav.dashboard")}
-          </Link>
-          <Link href={CALCULATOR_PATHS.index} data-landing-nav="calculadoras">
-            {t("landing.nav.calculators")}
-          </Link>
-          <Link href={PLANS_PATH} data-landing-nav="planos">
-            {t("nav.upgrade")}
-          </Link>
-        </nav>
+        <PublicNav className="landing-nav" />
         <LocaleCurrencyControls className="landing-header-prefs" />
       </header>
 
@@ -101,19 +92,32 @@ export function LandingView() {
           <h1 className="landing-headline">{t("landing.headline")}</h1>
           <p className="landing-subhead">{t("landing.subhead")}</p>
           <div className="landing-cta-row">
+            <div className="landing-cta-actions">
+              <Link
+                href={calculatorHref}
+                className="btn-primary landing-cta-primary"
+                data-landing-cta="personalizar"
+              >
+                {t("landing.cta.personalize")}
+              </Link>
+              <Link
+                href={PLANS_PATH}
+                className="btn-secondary landing-cta-plans"
+                data-landing-cta="planos"
+              >
+                {t("landing.cta.plans")}
+              </Link>
+            </div>
             <Link
-              href={calculatorHref}
-              className="btn-primary"
-              data-landing-cta="personalizar"
+              href={SIGN_IN_PATH}
+              className="landing-account-link"
+              data-landing-cta="entrar"
             >
-              {t("landing.cta.personalize")}
-            </Link>
-            <Link
-              href={PLANS_PATH}
-              className="btn-secondary"
-              data-landing-cta="planos"
-            >
-              {t("landing.cta.plans")}
+              <span>{t("landing.cta.haveAccount")}</span>
+              <span aria-hidden="true">·</span>
+              <span className="landing-account-link-action">
+                {t("nav.signIn")}
+              </span>
             </Link>
           </div>
         </div>

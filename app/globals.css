@@ -3822,6 +3822,7 @@ html.light .settings-backup-warning {
   border: none;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
   transition: background-color var(--transition-fast);
 }
 
@@ -3839,6 +3840,14 @@ html.light .settings-backup-warning {
   background: var(--accent-muted);
   color: var(--accent);
   font-weight: 600;
+}
+
+.user-menu-destination {
+  font-weight: 650;
+}
+
+.user-menu-destination svg {
+  color: var(--accent);
 }
 
 /* ─── Monte Carlo Scenarios ─── */
@@ -5490,9 +5499,10 @@ html.light .add-asset-modal {
 
 .public-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.65rem 1rem;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   background: var(--topbar-bg);
@@ -5540,8 +5550,22 @@ html.light .add-asset-modal {
   color: var(--muted-foreground);
 }
 
-.public-header-cta {
-  flex-shrink: 0;
+.public-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  order: 3;
+  flex: 1 0 100%;
+}
+
+@media (min-width: 840px) {
+  .public-nav {
+    order: 0;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    padding-right: 0.35rem;
+  }
 }
 
 .public-header-tools {
@@ -5949,14 +5973,22 @@ html.light .add-asset-modal {
   }
 }
 
-.landing-nav a {
+.landing-nav a,
+.public-nav a {
   color: var(--muted-foreground);
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
 }
 
-.landing-nav a:hover {
+.landing-nav a[data-nav="entrar"],
+.public-nav a[data-nav="entrar"] {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.landing-nav a:hover,
+.public-nav a:hover {
   color: var(--accent);
 }
 
@@ -6010,15 +6042,61 @@ html.light .add-asset-modal {
 
 .landing-cta-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
 }
 
-.landing-cta-row .btn-primary,
-.landing-cta-row .btn-secondary {
-  min-height: 2.75rem;
-  padding: 0.75rem 1.25rem;
-  font-size: 0.95rem;
+.landing-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 0.9rem;
+}
+
+.landing-cta-primary {
+  min-height: 3.15rem;
+  padding: 0.9rem 1.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  box-shadow: var(--shadow-accent);
+}
+
+.landing-cta-plans {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.landing-account-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-top: 0.1rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.landing-account-link-action {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.landing-account-link:hover .landing-account-link-action {
+  color: var(--accent-hover);
+}
+
+@media (max-width: 640px) {
+  .landing-cta-actions,
+  .landing-cta-primary {
+    width: 100%;
+  }
 }
 
 .landing-chart {
@@ -6361,10 +6439,6 @@ html.light .add-asset-modal {
     padding: 0.2rem 0.38rem;
   }
 
-  .public-header-cta {
-    width: 100%;
-    text-align: center;
-  }
 }
 
 .projection-chart {
