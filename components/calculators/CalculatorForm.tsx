@@ -1,4 +1,5 @@
-import type { ChangeEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { LiveNumberInput } from "@/components/calculators/LiveNumberInput";
 
 interface NumberFieldProps {
   name: string;
@@ -34,29 +35,27 @@ export function NumberField({
     >
       <span className="public-field-label">{label}</span>
       <span className="public-field-control">
-        <input
-          type="number"
-          name={name}
-          min={min}
-          max={max}
-          step={step}
-          inputMode="decimal"
-          required
-          {...(controlled
-            ? {
-                value,
-                onChange: (event: ChangeEvent<HTMLInputElement>) => {
-                  const raw = event.target.value;
-                  if (raw === "") {
-                    onValueChange(0);
-                    return;
-                  }
-                  const next = Number(raw);
-                  if (Number.isFinite(next)) onValueChange(next);
-                },
-              }
-            : { defaultValue })}
-        />
+        {controlled ? (
+          <LiveNumberInput
+            name={name}
+            value={value}
+            onValueChange={onValueChange}
+            min={min}
+            max={max}
+            step={step}
+          />
+        ) : (
+          <input
+            type="number"
+            name={name}
+            min={min}
+            max={max}
+            step={step}
+            inputMode="decimal"
+            required
+            defaultValue={defaultValue}
+          />
+        )}
         {suffix ? <span className="public-field-suffix">{suffix}</span> : null}
       </span>
       {hint ? <span className="public-field-hint">{hint}</span> : null}
