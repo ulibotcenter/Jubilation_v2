@@ -5,5 +5,5 @@ export const DASHBOARD_PORTFOLIO_PATH = `${DASHBOARD_PATH}#portfolio`;
 
 export const PLANS_PATH = "/planos";
 
-/** Cloud sign-in already lives on Settings. */
-export const SIGN_IN_PATH = "/settings#cloud-account";
+/** Lean sign-in. Profile fields stay on Settings. */
+export const SIGN_IN_PATH = "/entrar";

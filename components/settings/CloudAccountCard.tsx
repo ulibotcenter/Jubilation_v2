@@ -26,7 +26,7 @@ import {
   magicLinkRequestBody,
   passwordMeetsAccountMinimum,
 } from "@/lib/cloud/magicLinkForm";
-import { safeReturnPath } from "@/lib/cloud/returnPath";
+import { postLoginDestination, safeReturnPath } from "@/lib/cloud/returnPath";
 import { useAppStore } from "@/store/useAppStore";
 import type { Country } from "@/types";
 import Link from "next/link";
@@ -108,13 +108,12 @@ export function CloudAccountCard() {
       setMe({ email: body.email, dataRegion: body.dataRegion });
       setAccountPassword("");
       toast.success(t("toast.cloud.loggedIn"));
-      const next = safeReturnPath(
-        new URLSearchParams(window.location.search).get("next")
+      window.location.assign(
+        postLoginDestination(
+          new URLSearchParams(window.location.search).get("next")
+        )
       );
-      if (next) {
-        window.location.assign(next);
-        return;
-      }
+      return;
     } catch {
       toast.error(t("toast.cloud.error"));
     } finally {
@@ -139,10 +138,13 @@ export function CloudAccountCard() {
     }
     setBusy("magic");
     try {
+      const next = safeReturnPath(
+        new URLSearchParams(window.location.search).get("next")
+      );
       const res = await fetch("/api/auth/magic-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(next ? { ...body, next } : body),
       });
       if (!res.ok) {
         toast.error(t("toast.cloud.error"));

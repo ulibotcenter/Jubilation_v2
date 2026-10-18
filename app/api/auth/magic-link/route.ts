@@ -5,6 +5,7 @@ import { cloudAuthConfig } from "@/lib/cloud/config";
 import { createMagicLink } from "@/lib/cloud/db";
 import { cloudDisabledResponse, requireCloudConfig } from "@/lib/cloud/http";
 import { sendMagicLinkEmail } from "@/lib/cloud/mail";
+import { magicLinkCallbackUrl } from "@/lib/cloud/returnPath";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
@@ -33,12 +34,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_email" }, { status: 400 });
   }
   const lead = parseSignupLead(body);
+  const next =
+    body && typeof body === "object" && "next" in body
+      ? (body as { next?: unknown }).next
+      : null;
   const token = await createMagicLink(email, Date.now(), lead);
   const origin = (cloudAuthConfig().authUrl || request.nextUrl.origin).replace(
     /\/$/,
     ""
   );
-  const url = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}`;
+  const url = magicLinkCallbackUrl(
+    origin,
+    token,
+    typeof next === "string" ? next : null
+  );
   await sendMagicLinkEmail({ to: email.toLowerCase(), url });
   return NextResponse.json({ sent: true });
 }

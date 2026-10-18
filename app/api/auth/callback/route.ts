@@ -12,6 +12,7 @@ import {
   cloudDisabledResponse,
   requireCloudConfig,
 } from "@/lib/cloud/http";
+import { loginFailureUrl, postLoginUrl } from "@/lib/cloud/returnPath";
 import { DataRegionError } from "@/lib/region";
 
 export const dynamic = "force-dynamic";
@@ -26,16 +27,16 @@ export async function GET(request: NextRequest) {
     /\/$/,
     ""
   );
-  const settings = new URL("/settings", `${origin}/`);
+  const next = request.nextUrl.searchParams.get("next");
   if (!cfg) return cloudDisabledResponse();
 
   const token = request.nextUrl.searchParams.get("token") ?? "";
   if (!token) {
-    return NextResponse.redirect(`${settings.href}?auth=missing`);
+    return NextResponse.redirect(loginFailureUrl(origin, "missing", next));
   }
   const consumed = await consumeMagicLink(token);
   if (!consumed) {
-    return NextResponse.redirect(`${settings.href}?auth=expired`);
+    return NextResponse.redirect(loginFailureUrl(origin, "expired", next));
   }
   let user = await findUserByEmail(consumed.email);
   if (!user) {
@@ -48,12 +49,12 @@ export async function GET(request: NextRequest) {
       });
     } catch (err) {
       if (err instanceof DataRegionError) {
-        return NextResponse.redirect(`${settings.href}?auth=region`);
+        return NextResponse.redirect(loginFailureUrl(origin, "region", next));
       }
       throw err;
     }
   }
   const session = await createSession(user.id);
-  const res = NextResponse.redirect(`${settings.href}?auth=ok`);
+  const res = NextResponse.redirect(postLoginUrl(origin, next));
   return attachSession(res, session);
 }
