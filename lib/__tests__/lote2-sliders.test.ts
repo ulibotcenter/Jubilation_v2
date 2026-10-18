@@ -98,7 +98,7 @@ describe("freedom page sliders", () => {
     );
     expect(t("es", "calc.freedom.slider.spend")).toBe("Valor deseado de retiro");
     expect(t("pt", "calc.freedom.withdrawRate")).toBe(
-      "Rendimento real esperado na fase de saque"
+      "Quanto cresce depois que você para de guardar"
     );
   });
 });
