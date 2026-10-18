@@ -3,7 +3,12 @@
 import { Shield } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PlainLegalCard } from "@/components/legal/PlainLegalCard";
 import { downloadFile } from "@/lib/exportReport";
+import {
+  PRIVACY_POLICY_DESCRIPTION,
+  PRIVACY_POLICY_TITLE,
+} from "@/lib/legal/policy";
 import { consentExportFilename, eraseLocalPlan } from "@/lib/privacy/local";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
@@ -41,11 +46,12 @@ export function PrivacyPageContent() {
     <div className="secondary-page">
       <PageHeader
         icon={Shield}
-        title={t("privacy.title")}
-        description={t("privacy.pageDescription")}
+        title={PRIVACY_POLICY_TITLE}
+        description={PRIVACY_POLICY_DESCRIPTION}
       />
 
       <div className="settings-page-grid">
+        <PlainLegalCard />
         {SECTIONS.map((section) => (
           <section
             id={section.title === "privacy.terms.title" ? "termos" : undefined}

@@ -14,6 +14,7 @@ import {
   LANDING_WEALTH_AT_HORIZON,
   landingCalculatorHref,
 } from "@/lib/landing/sampleProjection";
+import { TERMS_PATH } from "@/lib/legal/terms";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
 import { DASHBOARD_PATH, PLANS_PATH } from "@/lib/routes";
 import { htmlLang } from "@/lib/i18n/htmlLang";
@@ -146,6 +147,8 @@ export function LandingView() {
           <Link href={PLANS_PATH}>{t("nav.upgrade")}</Link>
           {" · "}
           <Link href={PRIVACY_PATH}>{t("footer.link.privacy")}</Link>
+          {" · "}
+          <Link href={TERMS_PATH}>{t("footer.link.terms")}</Link>
         </p>
       </footer>
     </div>
