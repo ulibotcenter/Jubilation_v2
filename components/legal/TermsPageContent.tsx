@@ -1,3 +1,5 @@
+"use client";
+
 import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PlainLegalCard } from "@/components/legal/PlainLegalCard";
