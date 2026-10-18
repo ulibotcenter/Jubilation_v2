@@ -4,7 +4,7 @@ import { t } from "@/lib/i18n/messages";
 
 describe("checkout login return path", () => {
   it("only returns to /planos", () => {
-    expect(CHECKOUT_LOGIN_HREF).toBe("/settings?next=/planos#cloud-account");
+    expect(CHECKOUT_LOGIN_HREF).toBe("/entrar?next=/planos");
     expect(safeReturnPath("/planos")).toBe("/planos");
     expect(safeReturnPath("/settings")).toBeNull();
     expect(safeReturnPath("//evil.example")).toBeNull();

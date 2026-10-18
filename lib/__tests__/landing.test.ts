@@ -57,7 +57,7 @@ describe("landing at /", () => {
     expect(t("pt", "landing.cta.haveAccount")).toBe("Já tenho conta");
     expect(t("pt", "nav.signIn")).toBe("Entrar");
     expect(t("pt", "nav.upgrade")).toBe("Planos");
-    expect(SIGN_IN_PATH).toBe("/settings#cloud-account");
+    expect(SIGN_IN_PATH).toBe("/entrar");
     expect(page).not.toContain("AppShell");
     expect(view).not.toMatch(/fim de vida|end of life|falecimento|morte/i);
     expect(landingCalculatorHref()).toContain(CALCULATOR_PATHS.freedomDate);
