@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TERMS_PATH } from "@/lib/legal/terms";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -15,7 +16,7 @@ export function LegalFooter() {
           {t("footer.link.privacy")}
         </Link>
         {" · "}
-        <Link href="/privacy#termos" className="text-accent hover:underline">
+        <Link href={TERMS_PATH} className="text-accent hover:underline">
           {t("footer.link.terms")}
         </Link>
         {" · "}

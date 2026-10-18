@@ -94,6 +94,7 @@ export function calculatorMetadata(id: CalculatorPathId): Metadata {
 export const PUBLIC_SITEMAP_PATHS: readonly string[] = [
   "/",
   "/privacy",
+  "/termos",
   CALCULATOR_PATHS.index,
   CALCULATOR_PATHS.freedomDate,
   CALCULATOR_PATHS.retirementIncome,
