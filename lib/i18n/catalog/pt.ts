@@ -1046,6 +1046,8 @@ export const PT: Record<MessageKey, string> = {
   "landing.cta.personalize": "Personalizar o meu",
   "landing.cta.plans": "Ver os planos",
   "landing.nav.calculators": "Calculadoras",
+  "landing.nav.calculator": "Calculadora",
+  "landing.cta.haveAccount": "Já tenho conta",
   "landing.nav.aria": "Principal",
   "landing.chart.kicker": "Exemplo ilustrativo",
   "landing.chart.peak": "Aos {age}, {amount}",

@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Briefcase,
   ChevronDown,
   Download,
+  LayoutDashboard,
   LogOut,
   Menu,
   Monitor,
@@ -21,10 +24,17 @@ import { canUseAdvancedExport, canUseBasicExport } from "@/lib/plans";
 import { getCrossRate } from "@/lib/fx/convert";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
+import {
+  DASHBOARD_PATH,
+  DASHBOARD_PORTFOLIO_PATH,
+  PLANS_PATH,
+  SIGN_IN_PATH,
+} from "@/lib/routes";
 import { CURRENCIES, type Currency } from "@/types";
 
 export function Topbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useTranslation();
   const currency = useAppStore((s) => s.currency);
   const changeCurrency = useAppStore((s) => s.changeCurrency);
@@ -102,11 +112,11 @@ export function Topbar() {
   };
 
   const handleUpgrade = () => {
-    router.push("/planos");
+    router.push(PLANS_PATH);
   };
 
   const handleSignIn = () => {
-    router.push("/settings#cloud-account");
+    router.push(SIGN_IN_PATH);
   };
 
   const handleSignOut = async () => {
@@ -287,7 +297,7 @@ export function Topbar() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.97 }}
                 transition={{ duration: 0.15 }}
-                className="dropdown-menu absolute right-0 top-full mt-1.5 z-50 w-52"
+                className="dropdown-menu absolute right-0 top-full mt-1.5 z-50 w-56"
               >
                 <div className="px-3 py-2.5 border-b border-border">
                   <p className="text-sm font-semibold text-foreground truncate">
@@ -301,6 +311,52 @@ export function Topbar() {
                     className="inline-flex mt-1.5 px-2 py-0.5 text-[10px] font-semibold tracking-wide rounded-full bg-accent/15 text-accent"
                   />
                 </div>
+                {signedIn === true ? (
+                  <>
+                    <Link
+                      href={DASHBOARD_PATH}
+                      className="dropdown-item user-menu-destination"
+                      data-user-nav="painel"
+                      onClick={() => {
+                        setAvatarOpen(false);
+                        if (pathname === DASHBOARD_PATH) {
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }
+                      }}
+                    >
+                      <LayoutDashboard className="w-4 h-4" size={16} />
+                      {t("nav.dashboard")}
+                    </Link>
+                    <Link
+                      href={DASHBOARD_PORTFOLIO_PATH}
+                      className="dropdown-item user-menu-destination"
+                      data-user-nav="portfolio"
+                      onClick={() => {
+                        setAvatarOpen(false);
+                        if (pathname === DASHBOARD_PATH) {
+                          requestAnimationFrame(() => {
+                            document.getElementById("portfolio")?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            });
+                          });
+                        }
+                      }}
+                    >
+                      <Briefcase className="w-4 h-4" size={16} />
+                      {t("nav.portfolio")}
+                    </Link>
+                    <Link
+                      href={PLANS_PATH}
+                      className="dropdown-item user-menu-destination"
+                      data-user-nav="planos"
+                      onClick={() => setAvatarOpen(false)}
+                    >
+                      <Sparkles className="w-4 h-4" size={16} />
+                      {t("nav.upgrade")}
+                    </Link>
+                  </>
+                ) : null}
                 {basicExport ? (
                 <button
                   type="button"
@@ -340,6 +396,7 @@ export function Topbar() {
                   {t("nav.signIn")}
                 </button>
                 ) : null}
+                {signedIn === true ? null : (
                 <button
                   type="button"
                   className="dropdown-item"
@@ -351,6 +408,7 @@ export function Topbar() {
                   <Sparkles className="w-4 h-4" size={16} />
                   {t("nav.upgrade")}
                 </button>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
