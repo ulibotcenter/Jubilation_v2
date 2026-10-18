@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type ChangeEvent } from "react";
+import { useId, type ChangeEvent, type CSSProperties } from "react";
 import {
   CONTRIBUTION_SLIDER_MAX,
   CONTRIBUTION_SLIDER_STEP,
@@ -45,6 +45,8 @@ function FreedomSlider({
   onValue: (value: number) => void;
 }) {
   const thumb = sliderThumb(value, min, max, step);
+  const span = max - min;
+  const fill = span <= 0 ? 0 : Math.min(100, Math.max(0, ((thumb - min) / span) * 100));
   const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     const next = Number(event.target.value);
     if (!Number.isFinite(next)) return;
@@ -72,6 +74,7 @@ function FreedomSlider({
         aria-valuenow={thumb}
         aria-valuetext={readout}
         onChange={onChange}
+        style={{ "--slider-pct": `${fill}%` } as CSSProperties}
       />
     </div>
   );

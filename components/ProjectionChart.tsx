@@ -297,7 +297,7 @@ export function ProjectionChart({
   const margin = {
     top: compact ? 40 : 46,
     right: compact ? 8 : Math.max(108, Math.min(140, endLabelW + 28)),
-    bottom: compact ? 70 : 72,
+    bottom: compact ? 88 : 72,
     left: compact ? 48 : 62,
   };
   const plotW = Math.max(80, width - margin.left - margin.right);
@@ -429,8 +429,8 @@ export function ProjectionChart({
   const sameCrest = peakKnot.age === endKnot.age;
   const endPlace = compact
     ? {
-        x: width - 2,
-        y: baseline + 16,
+        x: width - 4,
+        y: baseline + 42,
         anchor: "end" as const,
       }
     : {

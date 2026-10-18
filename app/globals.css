@@ -6119,9 +6119,54 @@ html.light .add-asset-modal {
 }
 
 @media (max-width: 640px) {
+  .landing-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "brand"
+      "prefs"
+      "nav";
+    align-items: start;
+    gap: 0.7rem 0;
+    padding: 0.85rem 1rem 0.7rem;
+  }
+
+  .landing-header-prefs {
+    justify-self: stretch;
+  }
+
+  .landing-header-prefs .prefs-controls {
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+
+  .landing-header-prefs .prefs-chip {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8125rem;
+  }
+
+  .landing-header-prefs .prefs-chip-label,
+  .landing-header-prefs .prefs-segment--locale .prefs-chip-label {
+    display: inline;
+    font-size: 0.8125rem;
+  }
+
   .landing-cta-actions,
-  .landing-cta-primary {
+  .landing-cta-primary,
+  .landing-cta-plans {
     width: 100%;
+  }
+
+  .landing-cta-plans {
+    min-height: 2.75rem;
+    padding: 0.7rem 1rem;
+  }
+
+  .landing-account-link {
+    min-height: 2.75rem;
+    align-items: center;
+    padding: 0.35rem 0.15rem;
   }
 }
 
@@ -6680,5 +6725,67 @@ html.light .add-asset-modal {
   outline: 2px solid #0f766e;
   outline-offset: 2px;
   border-radius: 999px;
+}
+
+@media (max-width: 640px) {
+  .freedom-sliders {
+    gap: 0.85rem;
+  }
+
+  .freedom-slider {
+    row-gap: 0.2rem;
+  }
+
+  .freedom-slider input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 2.75rem;
+    margin: 0;
+    background: transparent;
+    touch-action: none;
+    cursor: pointer;
+  }
+
+  .freedom-slider input[type="range"]::-webkit-slider-runnable-track {
+    height: 0.375rem;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      #0f766e var(--slider-pct),
+      #e7e2dc var(--slider-pct)
+    );
+  }
+
+  .freedom-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-top: -0.6875rem;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    background: #0f766e;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.28);
+  }
+
+  .freedom-slider input[type="range"]::-moz-range-track {
+    height: 0.375rem;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      #0f766e var(--slider-pct),
+      #e7e2dc var(--slider-pct)
+    );
+  }
+
+  .freedom-slider input[type="range"]::-moz-range-thumb {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    background: #0f766e;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.28);
+  }
 }
 
