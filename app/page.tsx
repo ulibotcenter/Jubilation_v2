@@ -4,7 +4,7 @@ import { SITE_URL } from "@/lib/calculators/seo";
 
 const TITLE = "Simule sua liberdade";
 const DESCRIPTION =
-  "Clareza e escolha sobre o futuro: veja o patrimônio crescer e personalize o plano com o motor do Jubilation.";
+  "Clareza para ver o futuro, e a escolha de como chegar lá. O patrimônio cresce na sua frente — ajuste até o plano ser seu.";
 
 export const metadata: Metadata = {
   title: TITLE,

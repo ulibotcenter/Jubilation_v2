@@ -14,7 +14,7 @@ describe("lote 2 two-phase freedom chart", () => {
     expect(FREEDOM_DEFAULTS.withdrawalRealReturn).toBe(0.02);
     expect(parseFreedomInput({}).withdrawalRealReturn).toBe(0.02);
     expect(t("pt", "calc.freedom.withdrawRate")).toBe(
-      "Rendimento real esperado na fase de saque"
+      "Quanto cresce depois que você para de guardar"
     );
   });
 
