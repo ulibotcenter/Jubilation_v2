@@ -173,6 +173,12 @@ export const EN = {
   "free.gate.calculator": "Open the calculator",
   "free.gate.plans": "See Básico and Completo",
   "free.gate.signup": "Create account",
+  "empty.painel.title": "Your dashboard starts here",
+  "empty.painel.body":
+    "No saved plan yet. The calculator shows when you become free.",
+  "empty.painel.cta": "Simulate your freedom",
+  "empty.portfolio.title": "Your investments show up here",
+  "empty.portfolio.body": "You add investments on Básico or above.",
   "portfolio.cap.title": "Básico limit",
   "portfolio.cap.body":
     "Básico keeps up to 5 bolsa or Tesouro holdings. Property and other manual assets do not count. Completo has no cap.",

@@ -9,9 +9,11 @@ import { RebalanceCard } from "@/components/dashboard/RebalanceCard";
 import { RetirementHero } from "@/components/dashboard/RetirementHero";
 import { KPICards } from "@/components/dashboard/KPICards";
 import { OriginTotalsStrip } from "@/components/dashboard/OriginTotalsStrip";
+import { UnplannedPainel } from "@/components/dashboard/EmptyScreens";
 import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
 import { AppShell } from "@/components/layout/AppShell";
 import { PlannerGate } from "@/components/plans/PlannerGate";
+import { hasDashboardData } from "@/lib/dashboard/hasDashboardData";
 import { NeedleDeltaCard } from "@/components/platform/NeedleDeltaCard";
 import { SensitivityPanel } from "@/components/platform/SensitivityPanel";
 import { ShareSnapshotButton } from "@/components/platform/ShareSnapshotButton";
@@ -51,12 +53,22 @@ function RealProjectionSection() {
   );
 }
 
-export default function DashboardPage() {
+function PlannedPainel() {
   const { t } = useTranslation();
+  const portfolio = useAppStore((s) => s.portfolio);
+  const kpis = useAppStore((s) => s.kpis);
+  const hasData = hasDashboardData({
+    portfolioCount: portfolio.length,
+    currentNetWorth: kpis.currentNetWorth,
+    monthlyContribution: kpis.monthlyContribution,
+    monthlyExpenses: kpis.monthlyExpenses,
+    desiredMonthlyIncome: kpis.desiredMonthlyIncome,
+  });
+
+  if (!hasData) return <UnplannedPainel canAdd />;
 
   return (
-    <AppShell enableHashSync>
-      <PlannerGate>
+    <>
       <RetirementHero />
 
       <OriginTotalsStrip />
@@ -92,6 +104,15 @@ export default function DashboardPage() {
           <RealPortfolio />
         </div>
       </section>
+    </>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <AppShell enableHashSync>
+      <PlannerGate empty={<UnplannedPainel canAdd={false} />}>
+        <PlannedPainel />
       </PlannerGate>
     </AppShell>
   );
