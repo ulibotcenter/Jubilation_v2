@@ -35,28 +35,24 @@ const PLAN_CARDS: {
   plan: PaidPlanTier;
   slug: "basico" | "completo" | "completo-conjuge";
   titleKey: MessageKey;
-  bodyKey: MessageKey;
   accent: boolean;
 }[] = [
   {
     plan: "premium",
     slug: "basico",
     titleKey: "upgrade.plan.individual.title",
-    bodyKey: "upgrade.plan.individual.body",
     accent: false,
   },
   {
     plan: "horizon",
     slug: "completo",
     titleKey: "upgrade.plan.couple.title",
-    bodyKey: "upgrade.plan.couple.body",
     accent: true,
   },
   {
     plan: "couple",
     slug: "completo-conjuge",
     titleKey: "upgrade.plan.spouse.title",
-    bodyKey: "upgrade.plan.spouse.body",
     accent: false,
   },
 ];
@@ -98,7 +94,6 @@ export function UpgradePageContent({
   const { t, locale } = useTranslation();
   const router = useRouter();
   const storedPlan = useAppStore((s) => s.planTier);
-  const billingLive = useAppStore((s) => s.billingLive);
   const currentDisplay = useCurrentPlanDisplay();
   const [currency, setCurrency] = useState<BillingCurrency>(geoCurrency);
   const [interval, setInterval] = useState<BillingInterval>("month");
@@ -236,14 +231,6 @@ export function UpgradePageContent({
             <p className="font-bold">
               <CurrentPlanLabel placement="planos" />
             </p>
-            {billingLive && planTier !== "free" ? (
-              <p className="text-sm text-muted-foreground">{t("upgrade.currentPaid")}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t("upgrade.regionNote")}</p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              {t("upgrade.currencyFollowsGate")}
-            </p>
             {!enabled && (
               <p className="settings-soon-badge">{t("upgrade.unavailableBadge")}</p>
             )}
@@ -367,17 +354,6 @@ export function UpgradePageContent({
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-sm text-muted-foreground flex-1">
-                    {t(card.bodyKey)}
-                  </p>
-                  {card.plan === "couple" && (
-                    <p
-                      className="text-sm text-muted-foreground"
-                      data-privacy="no-spouse-b3"
-                    >
-                      {t("upgrade.plan.spouse.privacy")}
-                    </p>
-                  )}
                   <p className="text-xs font-semibold uppercase tracking-wide text-accent">
                     {t("upgrade.launchPromo")}
                   </p>
@@ -406,9 +382,6 @@ export function UpgradePageContent({
                       })}
                     </p>
                   ) : null}
-                  <p className="text-[11px] text-muted-foreground">
-                    {t("upgrade.priceRecommendationNote")}
-                  </p>
                   {current ? (
                     <p className="text-xs font-semibold uppercase tracking-wide text-accent">
                       {t("upgrade.currentOffer")}
