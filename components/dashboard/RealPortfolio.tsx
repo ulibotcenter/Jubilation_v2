@@ -260,6 +260,15 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
       {mode === "real" && modelSeedActive && portfolio.length > 0 ? (
         <div className="portfolio-model-banner" role="status">
           <p>{t("portfolio.model.banner")}</p>
+          <button
+            type="button"
+            className="btn-secondary"
+            data-testid="portfolio-clear-example"
+            onClick={handleClearAll}
+          >
+            <Eraser className="w-4 h-4" size={16} aria-hidden />
+            {t("portfolio.clearAll")}
+          </button>
         </div>
       ) : null}
       <div className="portfolio-toolbar">
@@ -275,13 +284,13 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           <Pencil className="w-4 h-4" size={16} />
           {t("portfolio.editAssets")}
         </button>
-        {mode === "real" && portfolio.length > 0 ? (
+        {mode === "real" && !modelSeedActive && portfolio.length > 0 ? (
           <button
             type="button"
             className="btn-secondary"
             onClick={handleClearAll}
           >
-            <Eraser className="w-4 h-4" size={16} />
+            <Eraser className="w-4 h-4" size={16} aria-hidden />
             {t("portfolio.clearAll")}
           </button>
         ) : null}

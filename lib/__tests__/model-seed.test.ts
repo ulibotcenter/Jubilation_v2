@@ -4,8 +4,35 @@ import { partializePersistedState } from "@/lib/persist/partialize";
 import { migratePersistedState } from "@/lib/persist/migrate";
 import { mergePersistedAppState, useAppStore } from "@/store/useAppStore";
 import { t } from "@/lib/i18n/messages";
+import { MOCK_PORTFOLIO } from "@/types";
 
 describe("model seed and Clear all", () => {
+  it("keeps the labeled example book short and diverse", () => {
+    const seed = createModelSeed();
+    expect(seed.length).toBeLessThanOrEqual(12);
+    const classes = new Set(seed.map((a) => a.assetClass));
+    expect(classes.has("stocks")).toBe(true);
+    expect(classes.has("bonds")).toBe(true);
+    expect(classes.has("real_estate")).toBe(true);
+    expect(seed.filter((a) => a.assetClass === "real_estate")).toHaveLength(1);
+    expect(
+      seed.some((a) => /watch|rolex|rel[oó]gio/i.test(`${a.name} ${a.ticker}`))
+    ).toBe(false);
+  });
+
+  it("trims the leftover lifestyle demo (watch, extra house, duplicates)", () => {
+    expect(MOCK_PORTFOLIO.length).toBeLessThanOrEqual(12);
+    expect(MOCK_PORTFOLIO.some((a) => a.id === "asset-watch")).toBe(false);
+    expect(MOCK_PORTFOLIO.some((a) => a.id === "asset-lambo")).toBe(false);
+    expect(MOCK_PORTFOLIO.some((a) => a.id === "asset-home-beach")).toBe(false);
+    expect(MOCK_PORTFOLIO.some((a) => a.ticker === "AAPL34")).toBe(false);
+    expect(
+      MOCK_PORTFOLIO.filter((a) => a.assetClass === "real_estate")
+    ).toHaveLength(1);
+    expect(MOCK_PORTFOLIO.some((a) => a.assetClass === "stocks")).toBe(true);
+    expect(MOCK_PORTFOLIO.some((a) => a.assetClass === "bonds")).toBe(true);
+  });
+
   it("seeds Apple, Bitcoin, Tesouro, one ETF, listed SPCX, and a house", () => {
     const seed = createModelSeed();
     expect(isModelSeedPortfolio(seed)).toBe(true);
@@ -26,6 +53,9 @@ describe("model seed and Clear all", () => {
     expect(seed.some((a) => a.listing === "unlisted")).toBe(true);
     expect(t("pt", "portfolio.model.banner").toLowerCase()).toMatch(/exemplo/);
     expect(t("en", "portfolio.model.banner").toLowerCase()).toMatch(/example/);
+    expect(t("pt", "portfolio.clearAll")).toBe("Zerar tudo");
+    expect(t("en", "portfolio.clearAll")).toBe("Clear all");
+    expect(t("es", "portfolio.clearAll")).toBe("Vaciar todo");
   });
 
   it("Clear all wipes the seed and persist keeps the empty book", () => {
