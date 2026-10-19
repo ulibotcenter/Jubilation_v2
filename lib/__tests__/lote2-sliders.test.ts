@@ -100,16 +100,41 @@ describe("freedom page sliders", () => {
       "Desired monthly withdrawal"
     );
     expect(t("es", "calc.freedom.slider.spend")).toBe("Valor deseado de retiro");
-    expect(t("pt", "calc.freedom.rate")).toBe("Quanto cresce ao ano");
-    expect(t("pt", "calc.freedom.inflation")).toBe("Inflação média ao ano");
+    const fieldOrder = [
+      ...calculator.matchAll(
+        /name="(idade|reserva|aporte|alvo|juro|inflacao|gasto)"/g
+      ),
+    ].map((match) => match[1]);
+    expect(fieldOrder).toEqual([
+      "idade",
+      "reserva",
+      "aporte",
+      "alvo",
+      "juro",
+      "inflacao",
+      "gasto",
+    ]);
+    expect(calculator).toContain('className="public-field--emphasis"');
+    const gastoAt = calculator.indexOf('name="gasto"');
+    const emphasisAt = calculator.indexOf('className="public-field--emphasis"');
+    expect(gastoAt).toBeGreaterThan(-1);
+    expect(emphasisAt).toBeGreaterThan(gastoAt);
+    expect(emphasisAt - gastoAt).toBeLessThan(80);
+
+    expect(t("pt", "calc.freedom.rate")).toBe(
+      "Retorno percentual anual médio dos seus investimentos"
+    );
+    expect(t("pt", "calc.freedom.inflation")).toBe(
+      "Inflação média esperada ao ano"
+    );
     expect(t("pt", "calc.freedom.spend")).toBe(
-      "Quanto quero ter por mês na liberdade"
+      "Quanto você gostaria de sacar por mês após ter sua liberdade financeira"
     );
     expect(t("en", "calc.freedom.spend")).toBe(
-      "What I want each month in freedom"
+      "How much you would like to withdraw per month after having your financial freedom"
     );
     expect(t("es", "calc.freedom.spend")).toBe(
-      "Cuánto quiero tener al mes en la libertad"
+      "Cuánto te gustaría retirar al mes después de tener tu libertad financiera"
     );
     expect(calculator).not.toContain("withdrawRate");
   });

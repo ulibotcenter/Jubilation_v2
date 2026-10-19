@@ -1067,27 +1067,31 @@ export const PT: Record<MessageKey, string> = {
   "public.brand.subtitle": "Calculadoras públicas",
   "public.header.plans": "Ver planos",
   "calc.freedom.kicker": "O seu futuro",
-  "calc.freedom.title": "Quando fico livre?",
+  "calc.freedom.title": "Quando fico livre financeiramente?",
   "calc.freedom.lead":
-    "Você escolhe quanto guardar por mês. A conta mostra a primeira idade em que isso, mais o que você já tem, cobre o que você quer por mês até a idade que marcar — em dinheiro de hoje.",
+    "Partimos de hoje com o que você já tem de economias mais o que você consegue guardar mês a mês, e calculamos quando você se liberta financeiramente baseado no valor que você deseja desfrutar após se libertar financeiramente.",
   "calc.freedom.submit": "Ver quando fico livre",
-  "calc.freedom.age": "Sua idade agora",
-  "calc.freedom.wealth": "O que você já tem guardado",
-  "calc.freedom.contribution": "O que você guarda por mês",
-  "calc.freedom.spend": "Quanto quero ter por mês na liberdade",
+  "calc.freedom.age": "Sua idade hoje",
+  "calc.freedom.wealth": "Quanto você já tem guardado atualmente",
+  "calc.freedom.contribution": "Quanto você consegue guardar todo mês",
+  "calc.freedom.spend":
+    "Quanto você gostaria de sacar por mês após ter sua liberdade financeira",
   "calc.freedom.horizon": "Até que idade o dinheiro precisa durar",
-  "calc.freedom.rate": "Quanto cresce ao ano",
-  "calc.freedom.inflation": "Inflação média ao ano",
+  "calc.freedom.rate": "Retorno percentual anual médio dos seus investimentos",
+  "calc.freedom.inflation": "Inflação média esperada ao ano",
   "calc.freedom.ageHint": "É daqui que a conta começa.",
-  "calc.freedom.wealthHint": "Só o dinheiro que você pode usar. No valor de hoje.",
+  "calc.freedom.wealthHint":
+    "Apenas o dinheiro que você pode usar, sua liquidez (sem os bens, por exemplo: casa/carro).",
   "calc.freedom.contributionHint":
-    "Deixe fixo. É isso que adianta a liberdade.",
-  "calc.freedom.spendHint": "Todo mês, em dinheiro de hoje.",
-  "calc.freedom.horizonHint": "Começa em 90. Mudar isso muda a data.",
+    "Tenha disciplina. É isso que garantirá e adiantará o seu período de liberdade financeira.",
+  "calc.freedom.spendHint":
+    "Valor que cobrirá todos os seus gastos pessoais mensais.",
+  "calc.freedom.horizonHint":
+    "Como base temos 90 anos, e você pode ajustar de acordo com suas expectativas.",
   "calc.freedom.rateHint":
-    "Começa em 4% e já está acima da inflação. O mesmo número vale enquanto você guarda e depois que para.",
+    "Consideramos uma média grosseira de 4% a.a. como base, e você pode ajustar de acordo com os seus retornos médios/esperados, sendo mais agressivo ou mais conservador. Este percentual é real (já acima da inflação).",
   "calc.freedom.inflationHint":
-    "O crescimento ao ano já está acima desta inflação. Os números ficam em dinheiro de hoje.",
+    "Consideramos uma média grosseira de 3% a.a. como base, e você pode ajustar de acordo com a realidade do seu país ou das suas classes de investimentos.",
   "calc.freedom.slider.group": "Ajustes da projeção",
   "calc.freedom.slider.wealth": "Patrimônio atual",
   "calc.freedom.slider.contribution": "Aporte mensal",

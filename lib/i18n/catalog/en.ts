@@ -1065,27 +1065,31 @@ export const EN = {
   "public.brand.subtitle": "Public calculators",
   "public.header.plans": "See plans",
   "calc.freedom.kicker": "Your future",
-  "calc.freedom.title": "When am I free?",
+  "calc.freedom.title": "When am I financially free?",
   "calc.freedom.lead":
-    "You choose how much to save each month. The math shows the first age when that, plus what you already have, covers what you want each month through the age you set — in today's money.",
+    "We start from today with the savings you already have plus what you manage to save month by month, and we calculate when you become financially free based on the amount you want to enjoy after becoming financially free.",
   "calc.freedom.submit": "See when I'm free",
-  "calc.freedom.age": "Your age now",
-  "calc.freedom.wealth": "What you already have saved",
-  "calc.freedom.contribution": "What you save each month",
-  "calc.freedom.spend": "What I want each month in freedom",
+  "calc.freedom.age": "Your age today",
+  "calc.freedom.wealth": "How much you already have saved currently",
+  "calc.freedom.contribution": "How much you manage to save every month",
+  "calc.freedom.spend":
+    "How much you would like to withdraw per month after having your financial freedom",
   "calc.freedom.horizon": "Until what age the money needs to last",
-  "calc.freedom.rate": "How much it grows each year",
-  "calc.freedom.inflation": "Average inflation each year",
+  "calc.freedom.rate": "Average annual percentage return of your investments",
+  "calc.freedom.inflation": "Expected average inflation per year",
   "calc.freedom.ageHint": "The count starts here.",
-  "calc.freedom.wealthHint": "Only money you can use. In today's value.",
+  "calc.freedom.wealthHint":
+    "Only the money you can use, your liquidity (without the assets, for example: house/car).",
   "calc.freedom.contributionHint":
-    "Leave it fixed. This is what brings freedom closer.",
-  "calc.freedom.spendHint": "Every month, in today's money.",
-  "calc.freedom.horizonHint": "It starts at 90. Changing this moves the date.",
+    "Have discipline. This is what will guarantee and bring forward your period of financial freedom.",
+  "calc.freedom.spendHint":
+    "Amount that will cover all of your monthly personal expenses.",
+  "calc.freedom.horizonHint":
+    "As a baseline we have 90 years, and you can adjust according to your expectations.",
   "calc.freedom.rateHint":
-    "Starts at 4% and is already above inflation. The same number applies while you save and after you stop.",
+    "We consider a rough average of 4% a year as a baseline, and you can adjust according to your average/expected returns, being more aggressive or more conservative. This percentage is real (already above inflation).",
   "calc.freedom.inflationHint":
-    "Yearly growth is already above this inflation. The numbers stay in today's money.",
+    "We consider a rough average of 3% a year as a baseline, and you can adjust according to the reality of your country or of your investment classes.",
   "calc.freedom.slider.group": "Projection adjustments",
   "calc.freedom.slider.wealth": "Current wealth",
   "calc.freedom.slider.contribution": "Monthly contribution",

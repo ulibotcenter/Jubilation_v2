@@ -31,10 +31,11 @@ export const CALCULATOR_SEO: Record<CalculatorPathId, CalculatorPageSeo> = {
   },
   freedomDate: {
     path: CALCULATOR_PATHS.freedomDate,
-    title: "Quando fico livre?",
+    title: "Quando fico livre financeiramente?",
     description:
       "Você diz quanto já guardou e quanto guarda por mês. A conta mostra a idade em que esse dinheiro sustenta o saque que você quer — em dinheiro de hoje.",
-    ogTitle: "Quando fico livre? Calculadora de independência financeira",
+    ogTitle:
+      "Quando fico livre financeiramente? Calculadora de independência financeira",
   },
   retirementIncome: {
     path: CALCULATOR_PATHS.retirementIncome,
