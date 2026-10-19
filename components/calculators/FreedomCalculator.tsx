@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AppCta, DisclaimerBlock } from "@/components/calculators/AppCta";
+import { FreedomNextStepCta } from "@/components/calculators/FreedomNextStepCta";
 import {
   CalculatorForm,
   NumberField,
@@ -22,6 +23,7 @@ import { parseFreedomInput } from "@/lib/calculators/parse";
 import { ASSUMPTIONS } from "@/lib/engine/assumptions";
 import { htmlLang } from "@/lib/i18n/htmlLang";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { SIGN_IN_PATH } from "@/lib/routes";
 import { useAppStore } from "@/store/useAppStore";
 import {
   CURRENCY_SYMBOLS,
@@ -120,6 +122,12 @@ export function FreedomCalculator({
       <CalculatorForm
         className="public-form--freedom"
         submitLabel={t("calc.freedom.submit")}
+        onSubmit={(event) => {
+          event.preventDefault();
+          document
+            .getElementById("freedom-next-cta")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
       >
         <NumberField
           name="idade"
@@ -264,6 +272,16 @@ export function FreedomCalculator({
         <p className="public-result-meta">{PUBLIC_ENGINE_NOTE}</p>
       </section>
 
+      <FreedomNextStepCta
+        currentAge={input.currentAge}
+        liquidWealth={input.liquidWealth}
+        monthlyContribution={input.monthlyContribution}
+        monthlySpending={input.monthlySpending}
+        lifeExpectancy={input.lifeExpectancy}
+        inflationPercent={draft.inflacao}
+        freedomAge={freedomAge}
+      />
+
       <section className="public-prose">
         <h2>{t("calc.freedom.whatTitle")}</h2>
         <p>{t("calc.freedom.whatBody1")}</p>
@@ -277,6 +295,7 @@ export function FreedomCalculator({
         primaryLabel={t("calc.freedom.appPrimary")}
         secondaryLabel={t("calc.freedom.appSecondary")}
         ariaLabel={t("calc.freedom.appAria")}
+        secondaryHref={SIGN_IN_PATH}
       />
       <RelatedCalculators current="freedomDate" />
     </article>

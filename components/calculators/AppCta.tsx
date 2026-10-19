@@ -18,12 +18,16 @@ export function AppCta({
   primaryLabel = "Ver Básico e Completo",
   secondaryLabel = "Criar conta",
   ariaLabel = "Continuar no app",
+  primaryHref = "/planos",
+  secondaryHref = "/settings#cloud-account",
 }: {
   extra?: string;
   title?: string;
   primaryLabel?: string;
   secondaryLabel?: string;
   ariaLabel?: string;
+  primaryHref?: string;
+  secondaryHref?: string;
 }) {
   return (
     <section className="public-cta" aria-label={ariaLabel}>
@@ -33,10 +37,10 @@ export function AppCta({
           "A calculadora pública para neste número. O gráfico, os campos manuais e os três blocos começam no Básico."}
       </p>
       <div className="flex flex-wrap gap-2">
-        <Link href="/planos" className="btn-primary">
+        <Link href={primaryHref} className="btn-primary">
           {primaryLabel}
         </Link>
-        <Link href="/settings#cloud-account" className="btn-secondary">
+        <Link href={secondaryHref} className="btn-secondary">
           {secondaryLabel}
         </Link>
       </div>
