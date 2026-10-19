@@ -50,8 +50,34 @@ describe("freedom calculator numeric fields", () => {
     expect(live).not.toContain("onValueChange(0)");
     expect(form).toContain("LiveNumberInput");
     expect(live).toContain('type="number"');
+    expect(live).toContain('step="any"');
+    expect(live).not.toContain("step={step}");
     expect(live).toContain("defaultValue");
     expect(live).not.toContain("value={value}");
     expect(live).not.toContain("value={text}");
+  });
+
+  it("does not put a slider step on the typed freedom fields", () => {
+    const calculator = readFileSync(
+      "components/calculators/FreedomCalculator.tsx",
+      "utf8"
+    );
+    const live = readFileSync(
+      "components/calculators/LiveNumberInput.tsx",
+      "utf8"
+    );
+    const sliders = readFileSync(
+      "components/calculators/FreedomSliders.tsx",
+      "utf8"
+    );
+    expect(live).toContain('step="any"');
+    expect(calculator).not.toMatch(/step=\{(?:1000|50|100|0\.1)\}/);
+    expect(calculator).not.toContain("ASSUMPTIONS.inflation.step");
+    expect(sliders).toContain("WEALTH_SLIDER_STEP");
+    expect(sliders).toContain("CONTRIBUTION_SLIDER_STEP");
+    expect(sliders).toContain("SPEND_SLIDER_STEP");
+    expect(commitNumericInput("35414")).toBe(35414);
+    expect(commitNumericInput("190000")).toBe(190000);
+    expect(commitNumericInput("4000")).toBe(4000);
   });
 });
