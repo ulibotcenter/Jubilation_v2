@@ -64,11 +64,19 @@ describe("quando fico livre — one return and visible inflation", () => {
     expect(calc).not.toContain("withdrawRate");
     expect(calc).toContain("shareRealReturn");
     expect(calc).not.toContain("inflacao: String");
-    expect(t("pt", "calc.freedom.inflationHint")).toMatch(/acima desta inflação/);
-    expect(t("pt", "calc.freedom.inflationHint")).toMatch(/dinheiro de hoje/);
-    expect(t("en", "calc.freedom.inflationHint")).toMatch(/already above this inflation/);
-    expect(t("es", "calc.freedom.inflationHint")).toMatch(
-      /por encima de esta inflación/
+    expect(t("pt", "calc.freedom.rateHint")).toMatch(/já acima da inflação/);
+    expect(t("en", "calc.freedom.rateHint")).toMatch(/already above inflation/);
+    expect(t("es", "calc.freedom.rateHint")).toMatch(
+      /por encima de la inflación/
+    );
+    expect(t("pt", "calc.freedom.inflationHint")).toBe(
+      "Consideramos uma média grosseira de 3% a.a. como base, e você pode ajustar de acordo com a realidade do seu país ou das suas classes de investimentos."
+    );
+    expect(t("pt", "calc.freedom.title")).toBe(
+      "Quando fico livre financeiramente?"
+    );
+    expect(t("pt", "calc.freedom.lead")).toBe(
+      "Partimos de hoje com o que você já tem de economias mais o que você consegue guardar mês a mês, e calculamos quando você se liberta financeiramente baseado no valor que você deseja desfrutar após se libertar financeiramente."
     );
     expect(t("pt", "calc.freedom.slider.spend")).toBe("Valor desejado de saque");
   });

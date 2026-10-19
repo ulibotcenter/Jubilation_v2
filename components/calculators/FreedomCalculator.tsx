@@ -149,17 +149,6 @@ export function FreedomCalculator({
           hint={t("calc.freedom.contributionHint")}
         />
         <NumberField
-          name="gasto"
-          label={t("calc.freedom.spend")}
-          value={draft.gasto}
-          onValueChange={(value) => patch("gasto", value)}
-          min={100}
-          max={500_000}
-          step={100}
-          suffix={symbol}
-          hint={t("calc.freedom.spendHint")}
-        />
-        <NumberField
           name="alvo"
           label={t("calc.freedom.horizon")}
           value={draft.alvo}
@@ -189,6 +178,18 @@ export function FreedomCalculator({
           step={ASSUMPTIONS.inflation.step}
           suffix="%"
           hint={t("calc.freedom.inflationHint")}
+        />
+        <NumberField
+          name="gasto"
+          className="public-field--emphasis"
+          label={t("calc.freedom.spend")}
+          value={draft.gasto}
+          onValueChange={(value) => patch("gasto", value)}
+          min={100}
+          max={500_000}
+          step={100}
+          suffix={symbol}
+          hint={t("calc.freedom.spendHint")}
         />
       </CalculatorForm>
 
