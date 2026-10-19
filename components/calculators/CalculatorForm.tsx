@@ -117,15 +117,22 @@ export function CalculatorForm({
   children,
   submitLabel = "Atualizar simulação",
   className,
+  onSubmit,
 }: {
   children: ReactNode;
   submitLabel?: string;
   className?: string;
+  onSubmit?: () => void;
 }) {
   return (
     <form
       method="get"
       className={`public-form card-surface${className ? ` ${className}` : ""}`}
+      onSubmit={(event) => {
+        if (!onSubmit) return;
+        event.preventDefault();
+        onSubmit();
+      }}
     >
       <div className="public-form-grid">{children}</div>
       <button type="submit" className="btn-primary">

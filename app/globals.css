@@ -5920,6 +5920,28 @@ html.light .add-asset-modal {
   background: var(--accent-muted);
 }
 
+.public-result + .public-cta--after-result {
+  margin-top: 0.75rem;
+}
+
+.public-cta--after-result h2 {
+  margin-bottom: 0.75rem;
+}
+
+.public-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 639px) {
+  .public-cta--after-result .btn-primary,
+  .public-cta--after-result .btn-secondary {
+    flex: 1 1 100%;
+    min-height: var(--touch-target);
+  }
+}
+
 .public-related {
   margin-top: 1.5rem;
 }

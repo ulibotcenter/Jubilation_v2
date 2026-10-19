@@ -9,6 +9,18 @@ import { calculatorMetadata } from "@/lib/calculators/seo";
 
 export const metadata: Metadata = calculatorMetadata("freedomDate");
 
+function queryWasSubmitted(query: SearchBag): boolean {
+  return Boolean(
+    query.idade ||
+      query.reserva ||
+      query.aporte ||
+      query.gasto ||
+      query.alvo ||
+      query.juro ||
+      query.inflacao
+  );
+}
+
 export default async function QuandoFicoLivrePage({
   searchParams,
 }: {
@@ -19,6 +31,7 @@ export default async function QuandoFicoLivrePage({
     <FreedomCalculator
       initial={parseFreedomInput(query)}
       inflationPercent={parseFreedomInflationPercent(query)}
+      asked={queryWasSubmitted(query)}
     />
   );
 }

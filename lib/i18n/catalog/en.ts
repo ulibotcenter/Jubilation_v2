@@ -1138,6 +1138,13 @@ export const EN = {
   "calc.freedom.appPrimary": "See Básico and Completo",
   "calc.freedom.appSecondary": "Create account",
   "calc.freedom.appAria": "Continue in the app",
+  "calc.freedom.nextTitle": "What's next?",
+  "calc.freedom.nextCreate": "Create account and save",
+  "calc.freedom.nextPlans": "See plans",
+  "calc.freedom.nextSave": "Save this plan",
+  "calc.freedom.nextSavedLocal":
+    "Numbers updated on this device. Opening the dashboard.",
+  "calc.freedom.nextAria": "Next step after the calculation",
   "privacy.title": "Privacy",
   "privacy.pageDescription":
     "Plain language: what stays on this device, what never enters, why we use it, where it is hosted, and how to delete it.",

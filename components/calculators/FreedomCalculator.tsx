@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AppCta, DisclaimerBlock } from "@/components/calculators/AppCta";
+import { FreedomNextCta } from "@/components/calculators/FreedomNextCta";
 import {
   CalculatorForm,
   NumberField,
@@ -74,12 +75,16 @@ function money(value: number, currency: Currency, locale: string) {
 export function FreedomCalculator({
   initial,
   inflationPercent = ASSUMPTIONS.inflation.defaultValue,
+  asked = false,
 }: {
   initial: PublicIndependenceInput;
   inflationPercent?: number;
+  asked?: boolean;
 }) {
   const { t, locale } = useTranslation();
   const currency = useAppStore((s) => s.currency);
+  const resultRef = useRef<HTMLElement>(null);
+  const [showNext, setShowNext] = useState(asked);
   const [draft, setDraft] = useState<Draft>(() =>
     draftFromInput(initial, inflationPercent)
   );
@@ -120,6 +125,13 @@ export function FreedomCalculator({
       <CalculatorForm
         className="public-form--freedom"
         submitLabel={t("calc.freedom.submit")}
+        onSubmit={() => {
+          setShowNext(true);
+          resultRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }}
       >
         <NumberField
           name="idade"
@@ -219,7 +231,12 @@ export function FreedomCalculator({
         />
       </ProjectionChart>
 
-      <section className="public-result card-surface" aria-live="polite">
+      <section
+        ref={resultRef}
+        id="quando-fico-livre-resultado"
+        className="public-result card-surface"
+        aria-live="polite"
+      >
         {result.feasible ? (
           <>
             <p className="public-result-label">{t("calc.freedom.resultLabel")}</p>
@@ -263,6 +280,14 @@ export function FreedomCalculator({
         )}
         <p className="public-result-meta">{PUBLIC_ENGINE_NOTE}</p>
       </section>
+
+      {showNext ? (
+        <FreedomNextCta
+          input={input}
+          inflationPercent={draft.inflacao}
+          freedomAge={result.feasible ? freedomAge : null}
+        />
+      ) : null}
 
       <section className="public-prose">
         <h2>{t("calc.freedom.whatTitle")}</h2>
