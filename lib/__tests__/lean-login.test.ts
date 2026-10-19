@@ -71,12 +71,17 @@ describe("lean sign-in", () => {
     expect(magic).toContain("magicLinkCallbackUrl");
   });
 
-  it("asks only for email, password, and the magic link", () => {
+  it("asks for email, password, confirm on create, and the magic link", () => {
     const form = readFileSync("components/auth/LeanLoginForm.tsx", "utf8");
     expect(form).toContain('data-login-field="email"');
     expect(form).toContain('data-login-field="password"');
+    expect(form).toContain('data-login-field="confirm-password"');
+    expect(form).toContain('isSignup ? "register" : "password"');
+    expect(form).toContain('isSignup ? "signin" : "signup"');
     expect(form).toContain("status?.password");
     expect(form).toContain('data-login-action="magic-link"');
+    expect(form).toContain("/api/auth/register");
+    expect(form).not.toContain("attachSession");
     expect(form).not.toMatch(
       /onboarding\.field\.country|name="age"|name="country"|leadAge/
     );

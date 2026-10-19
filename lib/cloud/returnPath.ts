@@ -47,3 +47,32 @@ export function magicLinkCallbackUrl(
   if (safe) url.searchParams.set("next", safe);
   return url.href;
 }
+
+/** Absolute signup-confirmation URL. Checkout `next=/planos` stays if present. */
+export function confirmCallbackUrl(
+  origin: string,
+  token: string,
+  next?: string | null
+): string {
+  const url = new URL("/api/auth/confirm", originBase(origin));
+  url.searchParams.set("token", token);
+  const safe = safeReturnPath(next);
+  if (safe) url.searchParams.set("next", safe);
+  return url.href;
+}
+
+/** Where the confirm callback sends the browser. Session is attached only on ok. */
+export function resolveConfirmRedirect(input: {
+  origin: string;
+  token: string | null | undefined;
+  consumed: boolean;
+  next?: string | null;
+}): { ok: boolean; url: string } {
+  if (!input.token) {
+    return { ok: false, url: loginFailureUrl(input.origin, "missing", input.next) };
+  }
+  if (!input.consumed) {
+    return { ok: false, url: loginFailureUrl(input.origin, "expired", input.next) };
+  }
+  return { ok: true, url: postLoginUrl(input.origin, input.next) };
+}

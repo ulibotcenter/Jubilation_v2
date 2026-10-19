@@ -104,9 +104,17 @@ export function CloudAccountCard() {
           ),
         }
       );
-      const body = (await res.json()) as Me & { error?: string };
+      const body = (await res.json()) as Me & {
+        error?: string;
+        pending?: boolean;
+      };
       if (!res.ok) {
         toast.error(t("toast.cloud.error"));
+        return;
+      }
+      if (mode === "register" && body.pending) {
+        setAccountPassword("");
+        toast.success(t("toast.cloud.confirmSent"));
         return;
       }
       setMe({ email: body.email, dataRegion: body.dataRegion });

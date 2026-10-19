@@ -10,12 +10,29 @@ export type MagicLinkDelivery = {
   transport: "resend" | "smtp";
 };
 
+export type AuthEmailKind = "magic-link" | "confirm-signup";
+
 function magicLinkContent(url: string): { subject: string; text: string; html: string } {
   return {
     subject: "Seu acesso ao Jubilation",
     text: `Abra este link para entrar (vale ${20} minutos):\n\n${url}\n\nSe você não pediu, ignore este e-mail.`,
     html: `<p>Abra este link para entrar (vale 20 minutos):</p><p><a href="${url}">${url}</a></p><p>Se você não pediu, ignore este e-mail.</p>`,
   };
+}
+
+function confirmSignupContent(url: string): { subject: string; text: string; html: string } {
+  return {
+    subject: "Confirme sua conta no Jubilation",
+    text: `Abra este link para confirmar sua conta (vale ${20} minutos):\n\n${url}\n\nSe você não criou esta conta, ignore este e-mail.`,
+    html: `<p>Abra este link para confirmar sua conta (vale 20 minutos):</p><p><a href="${url}">${url}</a></p><p>Se você não criou esta conta, ignore este e-mail.</p>`,
+  };
+}
+
+function authEmailContent(
+  kind: AuthEmailKind,
+  url: string
+): { subject: string; text: string; html: string } {
+  return kind === "confirm-signup" ? confirmSignupContent(url) : magicLinkContent(url);
 }
 
 function isUnverifiedDomainError(status: number, message: string): boolean {
@@ -45,11 +62,12 @@ async function postResendEmail(input: {
   from: string;
   to: string;
   url: string;
+  kind?: AuthEmailKind;
 }): Promise<
   | { ok: true; id: string; from: string }
   | { ok: false; status: number; domainRejected: boolean }
 > {
-  const content = magicLinkContent(input.url);
+  const content = authEmailContent(input.kind ?? "magic-link", input.url);
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -85,6 +103,7 @@ async function sendViaResend(input: {
   from: string;
   to: string;
   url: string;
+  kind?: AuthEmailKind;
 }): Promise<MagicLinkDelivery> {
   const preferred = DEFAULT_RESEND_FROM;
   const first = await postResendEmail({ ...input, from: preferred });
@@ -107,6 +126,7 @@ async function sendViaResend(input: {
 async function sendViaSmtp(input: {
   to: string;
   url: string;
+  kind?: AuthEmailKind;
   smtpHost: string;
   smtpPort: number;
   smtpSecure: boolean;
@@ -114,7 +134,7 @@ async function sendViaSmtp(input: {
   smtpPass: string;
   emailFrom: string;
 }): Promise<MagicLinkDelivery> {
-  const content = magicLinkContent(input.url);
+  const content = authEmailContent(input.kind ?? "magic-link", input.url);
   const transporter = nodemailer.createTransport({
     host: input.smtpHost,
     port: input.smtpPort,
@@ -138,10 +158,11 @@ async function sendViaSmtp(input: {
   };
 }
 
-export async function deliverMagicLinkEmail(
+export async function deliverAuthEmail(
   input: {
     to: string;
     url: string;
+    kind?: AuthEmailKind;
   },
   env?: Record<string, string | undefined>
 ): Promise<MagicLinkDelivery> {
@@ -149,23 +170,31 @@ export async function deliverMagicLinkEmail(
   if (!cfg.magicLink) {
     throw new Error("magic_link_disabled");
   }
+  const kind = input.kind ?? "magic-link";
   if (cfg.resendApiKey) {
     const delivered = await sendViaResend({
       apiKey: cfg.resendApiKey,
       from: cfg.emailFrom,
       to: input.to,
       url: input.url,
+      kind,
     });
-    console.info("magic-link email accepted", {
-      id: delivered.id,
-      from: delivered.from,
-      transport: delivered.transport,
-    });
+    console.info(
+      kind === "confirm-signup"
+        ? "confirm-signup email accepted"
+        : "magic-link email accepted",
+      {
+        id: delivered.id,
+        from: delivered.from,
+        transport: delivered.transport,
+      }
+    );
     return delivered;
   }
   return sendViaSmtp({
     to: input.to,
     url: input.url,
+    kind,
     smtpHost: cfg.smtpHost,
     smtpPort: cfg.smtpPort,
     smtpSecure: cfg.smtpSecure,
@@ -175,9 +204,36 @@ export async function deliverMagicLinkEmail(
   });
 }
 
+export async function deliverMagicLinkEmail(
+  input: {
+    to: string;
+    url: string;
+  },
+  env?: Record<string, string | undefined>
+): Promise<MagicLinkDelivery> {
+  return deliverAuthEmail({ ...input, kind: "magic-link" }, env);
+}
+
+export async function deliverConfirmationEmail(
+  input: {
+    to: string;
+    url: string;
+  },
+  env?: Record<string, string | undefined>
+): Promise<MagicLinkDelivery> {
+  return deliverAuthEmail({ ...input, kind: "confirm-signup" }, env);
+}
+
 export async function sendMagicLinkEmail(input: {
   to: string;
   url: string;
 }): Promise<void> {
   await deliverMagicLinkEmail(input);
+}
+
+export async function sendConfirmationEmail(input: {
+  to: string;
+  url: string;
+}): Promise<void> {
+  await deliverConfirmationEmail(input);
 }

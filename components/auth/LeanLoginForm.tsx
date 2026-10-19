@@ -31,9 +31,11 @@ export function LeanLoginForm({
   const { t } = useTranslation();
   const [status, setStatus] = useState<PublicCloudStatus | null>(null);
   const [ready, setReady] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState<"login" | "magic" | null>(null);
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [busy, setBusy] = useState<"login" | "register" | "magic" | null>(null);
   const returnPath = safeReturnPath(next);
 
   useEffect(() => {
@@ -98,6 +100,43 @@ export function LeanLoginForm({
     }
   };
 
+  const handleRegister = async () => {
+    if (!isValidAccountEmail(email) || !passwordMeetsAccountMinimum(password)) {
+      toast.error(t("toast.cloud.invalidInput"));
+      return;
+    }
+    if (password !== passwordConfirm) {
+      toast.error(t("toast.cloud.passwordMismatch"));
+      return;
+    }
+    setBusy("register");
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          returnPath
+            ? {
+                email: email.trim(),
+                password,
+                passwordConfirm,
+                next: returnPath,
+              }
+            : { email: email.trim(), password, passwordConfirm }
+        ),
+      });
+      if (!res.ok) {
+        toast.error(t("toast.cloud.error"));
+        return;
+      }
+      toast.success(t("toast.cloud.confirmSent"));
+    } catch {
+      toast.error(t("toast.cloud.error"));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const handleMagic = async () => {
     if (!isValidAccountEmail(email)) {
       toast.error(t("toast.cloud.invalidEmail"));
@@ -129,9 +168,14 @@ export function LeanLoginForm({
   const enabled = Boolean(status?.enabled);
   const showPassword = Boolean(status?.password);
   const showMagic = Boolean(status?.magicLink);
+  const isSignup = mode === "signup";
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
+    if (isSignup && showPassword) {
+      void handleRegister();
+      return;
+    }
     if (showPassword) {
       void handleLogin();
       return;
@@ -143,11 +187,14 @@ export function LeanLoginForm({
     <section
       className="card-surface lean-login-card"
       data-lean-login={ready ? "ready" : "loading"}
+      data-login-mode={mode}
       data-login-password={showPassword ? "on" : "off"}
       data-login-magic={showMagic ? "on" : "off"}
     >
-      <h1>{t("nav.signIn")}</h1>
-      <p className="lean-login-lead">{t("login.lead")}</p>
+      <h1>{isSignup ? t("settings.cloud.register") : t("nav.signIn")}</h1>
+      <p className="lean-login-lead">
+        {isSignup ? t("login.signupLead") : t("login.lead")}
+      </p>
 
       {!ready && (
         <p className="lean-login-status">
@@ -185,10 +232,24 @@ export function LeanLoginForm({
                 id="lean-login-password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete={isSignup ? "new-password" : "current-password"}
                 value={password}
                 data-login-field="password"
                 onChange={(event) => setPassword(event.target.value)}
+              />
+            </label>
+          )}
+          {showPassword && isSignup && (
+            <label className="household-field" htmlFor="lean-login-password-confirm">
+              <span>{t("settings.cloud.passwordConfirm")}</span>
+              <input
+                id="lean-login-password-confirm"
+                name="passwordConfirm"
+                type="password"
+                autoComplete="new-password"
+                value={passwordConfirm}
+                data-login-field="confirm-password"
+                onChange={(event) => setPasswordConfirm(event.target.value)}
               />
             </label>
           )}
@@ -197,12 +258,14 @@ export function LeanLoginForm({
               <button
                 type="submit"
                 className="btn-primary"
-                data-login-action="password"
+                data-login-action={isSignup ? "register" : "password"}
                 disabled={busy !== null}
               >
-                {busy === "login"
+                {busy === "login" || busy === "register"
                   ? t("settings.cloud.syncing")
-                  : t("settings.cloud.login")}
+                  : isSignup
+                    ? t("settings.cloud.register")
+                    : t("settings.cloud.login")}
               </button>
             )}
             {showMagic && (
@@ -219,6 +282,19 @@ export function LeanLoginForm({
               </button>
             )}
           </div>
+          {showPassword && (
+            <button
+              type="button"
+              className="lean-login-switch"
+              data-login-switch={isSignup ? "signin" : "signup"}
+              disabled={busy !== null}
+              onClick={() => setMode(isSignup ? "signin" : "signup")}
+            >
+              {isSignup
+                ? t("landing.cta.haveAccount")
+                : t("settings.cloud.register")}
+            </button>
+          )}
         </form>
       )}
     </section>
