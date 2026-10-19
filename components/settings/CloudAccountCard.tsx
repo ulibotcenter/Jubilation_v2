@@ -16,6 +16,7 @@ import { EmailUseModal } from "@/components/legal/EmailUseModal";
 import { publicCloudStatus, type PublicCloudStatus } from "@/lib/cloud/config";
 import { EMAIL_USE_LABEL } from "@/lib/legal/emailUse";
 import { TERMS_PATH } from "@/lib/legal/terms";
+import { PRIVACY_PATH } from "@/lib/privacy/local";
 import { COUNTRIES } from "@/lib/onboarding/country";
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -35,6 +36,9 @@ interface Me {
   email: string;
   dataRegion: string;
 }
+
+/** Vault sync stays in this module; end users do not see the controls. */
+const SHOW_ENCRYPTED_BACKUP_TOOLS = false;
 
 export function CloudAccountCard() {
   const { t } = useTranslation();
@@ -305,6 +309,10 @@ export function CloudAccountCard() {
         <Link href={TERMS_PATH} className="text-accent hover:underline">
           {t("footer.link.terms")}
         </Link>
+        {" · "}
+        <Link href={PRIVACY_PATH} className="text-accent hover:underline">
+          {t("footer.link.privacy")}
+        </Link>
       </p>
       <EmailUseModal open={emailUseOpen} onClose={() => setEmailUseOpen(false)} />
     </>
@@ -337,12 +345,6 @@ export function CloudAccountCard() {
           <p className="settings-page-card-body mt-2">
             {t("settings.cloud.bodySoon")}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-2">
-            {t("settings.cloud.region", { region: status?.dataRegion ?? "eu" })}
-          </p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {t("settings.cloud.regionNote")}
-          </p>
           {leadFields}
           <button
             type="button"
@@ -357,12 +359,6 @@ export function CloudAccountCard() {
       {!loading && enabled && !me && (
         <>
           <p className="settings-page-card-body">{t("settings.cloud.bodyReady")}</p>
-          <p className="text-[11px] text-muted-foreground mt-2">
-            {t("settings.cloud.region", { region: status?.dataRegion ?? "eu" })}
-          </p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {t("settings.cloud.regionNote")}
-          </p>
           {leadFields}
           {status?.password && (
             <label className="household-field mt-3">
@@ -419,48 +415,50 @@ export function CloudAccountCard() {
           <p className="text-[11px] text-muted-foreground mt-1">
             {t("settings.cloud.planSync")}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {t("settings.cloud.region", { region: me.dataRegion })}
-            {updatedAt
-              ? ` · ${t("settings.cloud.updatedAt", { date: updatedAt.slice(0, 10) })}`
-              : ""}
-          </p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {t("settings.cloud.regionNote")}
-          </p>
-          <p className="settings-page-card-body mt-3">
-            {t("settings.cloud.backupPasswordHint")}
-          </p>
-          <label className="household-field mt-3">
-            <span>{t("settings.cloud.blobPassword")}</span>
-            <input
-              type="password"
-              autoComplete="off"
-              value={blobPassword}
-              onChange={(e) => setBlobPassword(e.target.value)}
-            />
-          </label>
+          {SHOW_ENCRYPTED_BACKUP_TOOLS && (
+            <>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {updatedAt
+                  ? t("settings.cloud.updatedAt", { date: updatedAt.slice(0, 10) })
+                  : ""}
+              </p>
+              <p className="settings-page-card-body mt-3">
+                {t("settings.cloud.backupPasswordHint")}
+              </p>
+              <label className="household-field mt-3">
+                <span>{t("settings.cloud.blobPassword")}</span>
+                <input
+                  type="password"
+                  autoComplete="off"
+                  value={blobPassword}
+                  onChange={(e) => setBlobPassword(e.target.value)}
+                />
+              </label>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <button
+                  type="button"
+                  className="btn-secondary text-xs"
+                  disabled={busy !== null}
+                  onClick={() => void handleSyncUp()}
+                >
+                  {busy === "up"
+                    ? t("settings.cloud.syncing")
+                    : t("settings.cloud.syncUp")}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary text-xs"
+                  disabled={busy !== null}
+                  onClick={() => void handleSyncDown()}
+                >
+                  {busy === "down"
+                    ? t("settings.cloud.syncing")
+                    : t("settings.cloud.syncDown")}
+                </button>
+              </div>
+            </>
+          )}
           <div className="flex flex-wrap gap-2 mt-4">
-            <button
-              type="button"
-              className="btn-secondary text-xs"
-              disabled={busy !== null}
-              onClick={() => void handleSyncUp()}
-            >
-              {busy === "up"
-                ? t("settings.cloud.syncing")
-                : t("settings.cloud.syncUp")}
-            </button>
-            <button
-              type="button"
-              className="btn-secondary text-xs"
-              disabled={busy !== null}
-              onClick={() => void handleSyncDown()}
-            >
-              {busy === "down"
-                ? t("settings.cloud.syncing")
-                : t("settings.cloud.syncDown")}
-            </button>
             <button
               type="button"
               className="btn-ghost text-xs"
@@ -470,6 +468,15 @@ export function CloudAccountCard() {
               {t("settings.cloud.logout")}
             </button>
           </div>
+          <p className="text-[11px] text-muted-foreground mt-3">
+            <Link href={TERMS_PATH} className="text-accent hover:underline">
+              {t("footer.link.terms")}
+            </Link>
+            {" · "}
+            <Link href={PRIVACY_PATH} className="text-accent hover:underline">
+              {t("footer.link.privacy")}
+            </Link>
+          </p>
         </>
       )}
     </section>
