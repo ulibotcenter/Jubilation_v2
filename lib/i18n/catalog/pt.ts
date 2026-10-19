@@ -317,7 +317,7 @@ export const PT: Record<MessageKey, string> = {
   "feature.premium": "Disponível no Básico",
   "feature.horizon": "Disponível no Completo",
   "feature.couple": "Disponível no Completo+Cônjuge",
-  "settings.description": "Moeda, idioma, backup criptografado e preferências de dados do seu plano.",
+  "settings.description": "Moeda, idioma e preferências da sua conta.",
   "settings.privacy.title": "Privacidade",
   "settings.privacy.body":
     "O que este app guarda neste aparelho, o que não entra, e como apagar — inclusive o cônjuge que você digitou.",
@@ -357,15 +357,15 @@ export const PT: Record<MessageKey, string> = {
   "settings.backup.confirmRestore":
     "Restaurar este backup e substituir o plano que está neste aparelho?",
   "settings.cloud.title": "Conta na nuvem",
-  "settings.cloud.checking": "Verificando se a nuvem está configurada…",
+  "settings.cloud.checking": "Verificando a conta…",
   "settings.cloud.soonBadge": "Em breve na nuvem",
   "settings.cloud.bodySoon":
-    "Não há conta na nuvem neste ambiente. O plano vive neste navegador até você baixar um backup criptografado. O sync só liga quando houver Postgres na UE (DATABASE_URL) e AUTH_SECRET — não fingimos que já sincroniza.",
+    "A conta ainda não está disponível neste ambiente. Você pode continuar neste aparelho e voltar para entrar quando o acesso estiver ligado.",
   "settings.cloud.bodyReady":
-    "Entre com um link mágico quando o e-mail estiver configurado, ou com senha. O plano de aposentadoria, o país, o idioma e a moeda ficam no Postgres na UE. O plano pago só muda quando o Stripe confirma. O backup criptografado continua opcional — essa senha não sai deste aparelho.",
+    "Entre com um link enviado ao e-mail, ou com senha. O plano de aposentadoria, o país, o idioma e a moeda ficam na sua conta. O plano pago só muda quando o pagamento confirma.",
   "settings.cloud.signInEntry": "Entrar",
   "settings.cloud.planSync":
-    "Esta conta grava o plano de aposentadoria no Postgres na UE. Entrar não muda o plano pago.",
+    "Sua conta guarda o plano de aposentadoria. Entrar não muda o plano pago.",
   "settings.cloud.email": "E-mail",
   "settings.cloud.password": "Senha da conta",
   "settings.cloud.blobPassword": "Senha do backup (cifra o blob)",

@@ -315,7 +315,7 @@ export const EN = {
   "feature.premium": "Available on Básico",
   "feature.horizon": "Available on Completo",
   "feature.couple": "Available on Completo+Cônjuge",
-  "settings.description": "Currency, language, encrypted backup, and data preferences for your retirement plan.",
+  "settings.description": "Currency, language, and account preferences.",
   "settings.privacy.title": "Privacy",
   "settings.privacy.body":
     "What this app stores on this device, what never enters, and how to delete it — including a spouse you typed.",
@@ -355,15 +355,15 @@ export const EN = {
   "settings.backup.confirmRestore":
     "Restore this backup and replace the plan currently on this device?",
   "settings.cloud.title": "Cloud account",
-  "settings.cloud.checking": "Checking whether cloud sync is configured…",
+  "settings.cloud.checking": "Checking your account…",
   "settings.cloud.soonBadge": "Coming soon in the cloud",
   "settings.cloud.bodySoon":
-    "There is no cloud account on this deployment. Your plan lives in this browser until you download an encrypted backup. Sync will turn on only when Postgres in the EU (DATABASE_URL) and AUTH_SECRET are set — we will not pretend it is already syncing.",
+    "Account sign-in is not available in this environment yet. You can keep using the app on this device and come back to sign in when access is on.",
   "settings.cloud.bodyReady":
-    "Sign in with a magic link when email is configured, or with a password. The retirement plan, country, language, and currency are saved to Postgres in the EU. The paid plan changes only when Stripe confirms a payment. An encrypted backup is still optional — that password never leaves this device.",
+    "Sign in with an email link, or with a password. Your retirement plan, country, language, and currency stay with your account. The paid plan changes only when payment confirms.",
   "settings.cloud.signInEntry": "Sign in",
   "settings.cloud.planSync":
-    "This account saves the retirement plan on Postgres in the EU. Signing in does not change the paid plan.",
+    "This account stores your retirement plan. Signing in does not change the paid plan.",
   "settings.cloud.email": "Email",
   "settings.cloud.password": "Account password",
   "settings.cloud.blobPassword": "Backup password (encrypts the blob)",

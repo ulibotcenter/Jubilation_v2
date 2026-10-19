@@ -31,8 +31,8 @@ import { CURRENCIES, type Country, type Currency } from "@/types";
 import { HouseholdCard } from "@/components/settings/HouseholdCard";
 import { B3ConsentCard } from "@/components/settings/B3ConsentCard";
 import { ImportFilesCard } from "@/components/settings/ImportFilesCard";
-import { BackupCard } from "@/components/settings/BackupCard";
 import { CloudAccountCard } from "@/components/settings/CloudAccountCard";
+import { TERMS_PATH } from "@/lib/legal/terms";
 import { PRIVACY_PATH } from "@/lib/privacy/local";
 
 const LOCALES: { code: AppLocale; labelKey: MessageKey }[] = [
@@ -198,7 +198,6 @@ export function SettingsPageContent() {
           )}
         </section>
 
-        <BackupCard />
         <CloudAccountCard />
 
         <HouseholdCard />
@@ -215,9 +214,14 @@ export function SettingsPageContent() {
           <p className="settings-page-card-body">
             {t("settings.privacy.body")}
           </p>
-          <Link href={PRIVACY_PATH} className="btn-secondary mt-4 inline-flex">
-            {t("settings.privacy.link")}
-          </Link>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Link href={PRIVACY_PATH} className="btn-secondary inline-flex">
+              {t("settings.privacy.link")}
+            </Link>
+            <Link href={TERMS_PATH} className="btn-ghost inline-flex">
+              {t("footer.link.terms")}
+            </Link>
+          </div>
         </section>
 
         <section className="settings-page-card">

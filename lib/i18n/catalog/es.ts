@@ -317,7 +317,7 @@ export const ES: Record<MessageKey, string> = {
   "feature.premium": "Disponible en Básico",
   "feature.horizon": "Disponible en Completo",
   "feature.couple": "Disponible en Completo+Cônjuge",
-  "settings.description": "Moneda, idioma, copia cifrada y preferencias de datos de tu plan.",
+  "settings.description": "Moneda, idioma y preferencias de tu cuenta.",
   "settings.privacy.title": "Privacidad",
   "settings.privacy.body":
     "Qué guarda esta app en este aparato, qué no entra, y cómo borrar — incluido el cónyuge que escribiste.",
@@ -357,15 +357,15 @@ export const ES: Record<MessageKey, string> = {
   "settings.backup.confirmRestore":
     "¿Restaurar esta copia y sustituir el plan que está en este aparato?",
   "settings.cloud.title": "Cuenta en la nube",
-  "settings.cloud.checking": "Comprobando si la nube está configurada…",
+  "settings.cloud.checking": "Comprobando la cuenta…",
   "settings.cloud.soonBadge": "Pronto en la nube",
   "settings.cloud.bodySoon":
-    "No hay cuenta en la nube en este entorno. El plan vive en este navegador hasta que descargues una copia cifrada. La sincronización solo se activa con Postgres en la UE (DATABASE_URL) y AUTH_SECRET — no fingimos que ya sincroniza.",
+    "El acceso a la cuenta aún no está disponible en este entorno. Puedes seguir en este aparato y volver a entrar cuando el acceso esté activo.",
   "settings.cloud.bodyReady":
-    "Entra con un enlace mágico cuando el correo esté configurado, o con contraseña. El plan de jubilación, el país, el idioma y la moneda quedan en Postgres en la UE. El plan de pago solo cambia cuando Stripe confirma. La copia cifrada sigue siendo opcional — esa contraseña no sale de este aparato.",
+    "Entra con un enlace enviado al correo, o con contraseña. El plan de jubilación, el país, el idioma y la moneda quedan en tu cuenta. El plan de pago solo cambia cuando el pago confirma.",
   "settings.cloud.signInEntry": "Entrar",
   "settings.cloud.planSync":
-    "Esta cuenta guarda el plan de jubilación en Postgres en la UE. Entrar no cambia el plan de pago.",
+    "Esta cuenta guarda el plan de jubilación. Entrar no cambia el plan de pago.",
   "settings.cloud.email": "Correo",
   "settings.cloud.password": "Contraseña de la cuenta",
   "settings.cloud.magicLink": "Recibir enlace de acceso",
