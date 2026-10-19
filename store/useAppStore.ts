@@ -103,6 +103,7 @@ import { chartDataWithMcBands } from "@/lib/projectionsExtended";
 import { projectPlan } from "@/lib/engine/project";
 import { percentile } from "@/lib/engine/monteCarlo";
 import {
+  blankPlaygroundFromDefaults,
   buildPlaygroundProjections,
   initialPlaygroundFromMock,
   normalizeSimPlayground,
@@ -532,6 +533,7 @@ export interface AppStore {
     currency: Currency;
   }) => void;
   copyPortfolioToSimulation: () => void;
+  clearSimulationPlayground: () => void;
   ensureSimPlayground: () => void;
   setSimKPI: (field: KPIField, value: number) => void;
   setSimPortfolioSearchQuery: (query: string) => void;
@@ -2153,6 +2155,17 @@ export const useAppStore = create<AppStore>()(
             kpiOutsidePortfolio: state.kpiOutsidePortfolio,
             portfolio: state.portfolio,
             simulationIncludedAssetIds: state.simulationIncludedAssetIds,
+            currency: state.currency,
+            fxSnapshot: state.fxSnapshot,
+            household: state.household,
+          }),
+        });
+      },
+
+      clearSimulationPlayground: () => {
+        const state = get();
+        set({
+          simPlayground: blankPlaygroundFromDefaults({
             currency: state.currency,
             fxSnapshot: state.fxSnapshot,
             household: state.household,

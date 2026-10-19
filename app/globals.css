@@ -916,6 +916,30 @@ body::before {
   opacity: 0.85;
 }
 
+.playground-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+}
+
+.playground-actions .btn-primary,
+.playground-actions .btn-secondary {
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.playground-actions-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
 .playground-toolbar {
   display: flex;
   flex-direction: column;
@@ -927,6 +951,22 @@ body::before {
 }
 
 @media (min-width: 640px) {
+  .playground-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .playground-actions .btn-primary,
+  .playground-actions .btn-secondary {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .playground-actions-hint {
+    flex: 1 1 100%;
+  }
+
   .playground-toolbar {
     flex-direction: row;
     align-items: center;

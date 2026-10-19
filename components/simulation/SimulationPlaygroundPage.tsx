@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { FlaskConical, RotateCcw } from "lucide-react";
+import { Copy, Eraser, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { IncomeGoalPanel } from "@/components/dashboard/IncomeGoalPanel";
 import { KPICards } from "@/components/dashboard/KPICards";
@@ -24,6 +24,9 @@ export function SimulationPlaygroundPage() {
   const copyPortfolioToSimulation = useAppStore(
     (s) => s.copyPortfolioToSimulation
   );
+  const clearSimulationPlayground = useAppStore(
+    (s) => s.clearSimulationPlayground
+  );
   const ensureSimPlayground = useAppStore((s) => s.ensureSimPlayground);
 
   const projectedPortfolio = useMemo(() => {
@@ -35,10 +38,17 @@ export function SimulationPlaygroundPage() {
     ensureSimPlayground();
   }, [ensureSimPlayground]);
 
-  const handleReset = () => {
+  const handleClear = () => {
+    clearSimulationPlayground();
+    toast.success(t("simulation.playground.clear"), {
+      description: t("toast.playground.clear"),
+    });
+  };
+
+  const handleCopy = () => {
     copyPortfolioToSimulation();
-    toast.success(t("simulation.playground.reset"), {
-      description: t("toast.playground.reset"),
+    toast.success(t("simulation.playground.copyPortfolio"), {
+      description: t("toast.playground.copy"),
     });
   };
 
@@ -53,6 +63,35 @@ export function SimulationPlaygroundPage() {
       />
 
       <PersistentDisclaimer />
+
+      <motion.section
+        className="playground-actions"
+        aria-label={t("simulation.playground.actionsLabel")}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <button
+          type="button"
+          className="btn-secondary"
+          data-sim-action="clear"
+          onClick={handleClear}
+        >
+          <Eraser className="w-4 h-4" size={16} aria-hidden />
+          {t("simulation.playground.clear")}
+        </button>
+        <button
+          type="button"
+          className="btn-primary"
+          data-sim-action="copy"
+          onClick={handleCopy}
+        >
+          <Copy className="w-4 h-4" size={16} aria-hidden />
+          {t("simulation.playground.copyPortfolio")}
+        </button>
+        <p className="playground-actions-hint">
+          {t("simulation.playground.actionsHint")}
+        </p>
+      </motion.section>
 
       <motion.div
         className="playground-toolbar"
@@ -76,14 +115,6 @@ export function SimulationPlaygroundPage() {
             </span>
           )}
         </div>
-        <button
-          type="button"
-          className="btn-secondary gap-1.5"
-          onClick={handleReset}
-        >
-          <RotateCcw className="w-4 h-4" size={16} />
-          {t("simulation.playground.reset")}
-        </button>
       </motion.div>
 
       <PlaygroundSummaryStrip />
