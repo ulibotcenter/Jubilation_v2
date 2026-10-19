@@ -1144,6 +1144,13 @@ export const PT: Record<MessageKey, string> = {
   "calc.freedom.appPrimary": "Ver Básico e Completo",
   "calc.freedom.appSecondary": "Criar conta",
   "calc.freedom.appAria": "Continuar no app",
+  "calc.freedom.next.title": "E agora?",
+  "calc.freedom.next.create": "Criar conta e salvar",
+  "calc.freedom.next.plans": "Ver planos",
+  "calc.freedom.next.save": "Salvar este plano",
+  "calc.freedom.next.saveConfirm":
+    "Guardado neste aparelho. A nuvem ainda não grava o plano.",
+  "calc.freedom.next.aria": "Próximo passo depois do cálculo",
   "privacy.title": "Privacidade",
   "privacy.pageDescription":
     "Em linguagem simples: o que fica neste aparelho, o que não entra, por que usamos, onde fica hospedado, e como apagar.",

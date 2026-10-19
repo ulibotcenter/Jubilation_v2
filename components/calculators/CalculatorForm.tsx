@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { LiveNumberInput } from "@/components/calculators/LiveNumberInput";
 
 interface NumberFieldProps {
@@ -117,15 +117,18 @@ export function CalculatorForm({
   children,
   submitLabel = "Atualizar simulação",
   className,
+  onSubmit,
 }: {
   children: ReactNode;
   submitLabel?: string;
   className?: string;
+  onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
     <form
       method="get"
       className={`public-form card-surface${className ? ` ${className}` : ""}`}
+      onSubmit={onSubmit}
     >
       <div className="public-form-grid">{children}</div>
       <button type="submit" className="btn-primary">

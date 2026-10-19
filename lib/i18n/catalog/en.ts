@@ -1142,6 +1142,13 @@ export const EN = {
   "calc.freedom.appPrimary": "See Básico and Completo",
   "calc.freedom.appSecondary": "Create account",
   "calc.freedom.appAria": "Continue in the app",
+  "calc.freedom.next.title": "What now?",
+  "calc.freedom.next.create": "Create account and save",
+  "calc.freedom.next.plans": "See plans",
+  "calc.freedom.next.save": "Save this plan",
+  "calc.freedom.next.saveConfirm":
+    "Saved on this device. The cloud does not store the plan yet.",
+  "calc.freedom.next.aria": "Next step after the calculation",
   "privacy.title": "Privacy",
   "privacy.pageDescription":
     "Plain language: what stays on this device, what never enters, why we use it, where it is hosted, and how to delete it.",
