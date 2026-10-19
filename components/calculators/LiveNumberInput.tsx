@@ -12,6 +12,8 @@ import {
  * rewriting the value on each keystroke. The parent number is updated only
  * for a finished number. A slider (or any other parent change) still fills
  * the field when that number actually changes.
+ * `step="any"` keeps slider increments off the typed field so Chrome does
+ * not reject ordinary integers (35414) or default rates via step mismatch.
  */
 export function LiveNumberInput({
   name,
@@ -19,14 +21,12 @@ export function LiveNumberInput({
   onValueChange,
   min,
   max,
-  step = 1,
 }: {
   name: string;
   value: number;
   onValueChange: (value: number) => void;
   min?: number;
   max?: number;
-  step?: number;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const committed = useRef(value);
@@ -47,7 +47,7 @@ export function LiveNumberInput({
       name={name}
       min={min}
       max={max}
-      step={step}
+      step="any"
       inputMode="decimal"
       required
       defaultValue={Number.isFinite(value) ? value : undefined}

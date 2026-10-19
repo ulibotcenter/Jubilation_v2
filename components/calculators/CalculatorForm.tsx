@@ -47,7 +47,6 @@ export function NumberField({
             onValueChange={onValueChange}
             min={min}
             max={max}
-            step={step}
           />
         ) : (
           <input

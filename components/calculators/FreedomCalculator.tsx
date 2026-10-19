@@ -138,7 +138,6 @@ export function FreedomCalculator({
           onValueChange={(value) => patch("reserva", value)}
           min={0}
           max={50_000_000}
-          step={1000}
           suffix={symbol}
           matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.wealthHint")}
@@ -150,7 +149,6 @@ export function FreedomCalculator({
           onValueChange={(value) => patch("aporte", value)}
           min={0}
           max={500_000}
-          step={50}
           suffix={symbol}
           matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.contributionHint")}
@@ -172,7 +170,6 @@ export function FreedomCalculator({
           onValueChange={(value) => patch("juro", value)}
           min={-5}
           max={12}
-          step={0.1}
           suffix="%"
           matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.rateHint")}
@@ -184,7 +181,6 @@ export function FreedomCalculator({
           onValueChange={(value) => patch("inflacao", value)}
           min={ASSUMPTIONS.inflation.min}
           max={ASSUMPTIONS.inflation.max}
-          step={ASSUMPTIONS.inflation.step}
           suffix="%"
           matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.inflationHint")}
@@ -197,7 +193,6 @@ export function FreedomCalculator({
           onValueChange={(value) => patch("gasto", value)}
           min={100}
           max={500_000}
-          step={100}
           suffix={symbol}
           hint={t("calc.freedom.spendHint")}
         />
