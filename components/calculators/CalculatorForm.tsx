@@ -12,6 +12,8 @@ interface NumberFieldProps {
   max?: number;
   step?: number;
   suffix?: string;
+  /** Width gauges so a bare input matches suffixed inputs. Not read aloud. */
+  matchSuffixes?: readonly string[];
   className?: string;
 }
 
@@ -26,9 +28,12 @@ export function NumberField({
   max,
   step = 1,
   suffix,
+  matchSuffixes,
   className,
 }: NumberFieldProps) {
   const controlled = value != null && onValueChange != null;
+  const gauges = (matchSuffixes ?? []).filter((item) => item.length > 0);
+  const reserveOnly = !suffix && gauges.length > 0;
   return (
     <label
       className={`public-field${className ? ` ${className}` : ""}`}
@@ -56,7 +61,27 @@ export function NumberField({
             defaultValue={defaultValue}
           />
         )}
-        {suffix ? <span className="public-field-suffix">{suffix}</span> : null}
+        {suffix || gauges.length > 0 ? (
+          <span
+            className={`public-field-suffix${reserveOnly ? " public-field-suffix--reserve" : ""}`}
+            {...(reserveOnly ? { "aria-hidden": true as const } : {})}
+          >
+            {gauges.length > 0 ? (
+              <>
+                <span className="public-field-suffix-gauge" aria-hidden="true">
+                  {gauges.map((gauge) => (
+                    <span key={gauge}>{gauge}</span>
+                  ))}
+                </span>
+                {suffix ? (
+                  <span className="public-field-suffix-value">{suffix}</span>
+                ) : null}
+              </>
+            ) : (
+              suffix
+            )}
+          </span>
+        ) : null}
       </span>
       {hint ? <span className="public-field-hint">{hint}</span> : null}
     </label>
@@ -92,12 +117,17 @@ export function SelectField({
 export function CalculatorForm({
   children,
   submitLabel = "Atualizar simulação",
+  className,
 }: {
   children: ReactNode;
   submitLabel?: string;
+  className?: string;
 }) {
   return (
-    <form method="get" className="public-form card-surface">
+    <form
+      method="get"
+      className={`public-form card-surface${className ? ` ${className}` : ""}`}
+    >
       <div className="public-form-grid">{children}</div>
       <button type="submit" className="btn-primary">
         {submitLabel}

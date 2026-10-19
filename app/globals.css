@@ -5773,6 +5773,66 @@ html.light .add-asset-modal {
   flex-shrink: 0;
 }
 
+/* Desktop freedom form: shared rows keep inputs on one top edge,
+   and a hidden suffix gauge gives age inputs the same width as R$/%. */
+@media (min-width: 640px) {
+  .public-form--freedom .public-form-grid {
+    row-gap: 0.35rem;
+  }
+
+  .public-form--freedom .public-field:not(.public-field--emphasis) {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 3;
+    gap: 0;
+  }
+
+  .public-form--freedom .public-field:not(.public-field--emphasis) .public-field-hint {
+    padding-bottom: 0.55rem;
+  }
+
+  .public-form--freedom .public-field-label {
+    min-width: 0;
+  }
+
+  .public-form--freedom .public-field-control input {
+    height: var(--touch-target);
+    min-width: 0;
+  }
+
+  .public-form--freedom .public-field-suffix:has(.public-field-suffix-gauge) {
+    display: inline-grid;
+    justify-items: start;
+    align-items: center;
+  }
+
+  .public-form--freedom .public-field-suffix-gauge,
+  .public-form--freedom .public-field-suffix-value {
+    grid-area: 1 / 1;
+  }
+}
+
+.public-field-suffix-gauge {
+  display: inline-grid;
+}
+
+.public-field-suffix-gauge > span {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+
+@media (max-width: 639px) {
+  .public-field-suffix-gauge,
+  .public-field-suffix--reserve {
+    display: none;
+  }
+
+  .public-form--freedom .public-field-label {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+}
+
 .public-field-hint {
   font-size: 0.75rem;
   color: var(--muted-foreground);

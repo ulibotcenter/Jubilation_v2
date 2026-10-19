@@ -102,6 +102,7 @@ export function FreedomCalculator({
   const data = useMemo(() => toProjectionChartData(series), [series]);
   const intlLocale = htmlLang(locale);
   const symbol = CURRENCY_SYMBOLS[currency];
+  const matchSuffixes = [symbol, "%"];
   const yearsOut = result.feasible
     ? Math.max(0, Math.round(result.value) - input.currentAge)
     : null;
@@ -116,7 +117,10 @@ export function FreedomCalculator({
       <h1>{t("calc.freedom.title")}</h1>
       <p className="public-lead">{t("calc.freedom.lead")}</p>
 
-      <CalculatorForm submitLabel={t("calc.freedom.submit")}>
+      <CalculatorForm
+        className="public-form--freedom"
+        submitLabel={t("calc.freedom.submit")}
+      >
         <NumberField
           name="idade"
           label={t("calc.freedom.age")}
@@ -124,6 +128,7 @@ export function FreedomCalculator({
           onValueChange={(value) => patch("idade", value)}
           min={18}
           max={80}
+          matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.ageHint")}
         />
         <NumberField
@@ -135,6 +140,7 @@ export function FreedomCalculator({
           max={50_000_000}
           step={1000}
           suffix={symbol}
+          matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.wealthHint")}
         />
         <NumberField
@@ -146,6 +152,7 @@ export function FreedomCalculator({
           max={500_000}
           step={50}
           suffix={symbol}
+          matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.contributionHint")}
         />
         <NumberField
@@ -155,6 +162,7 @@ export function FreedomCalculator({
           onValueChange={(value) => patch("alvo", value)}
           min={55}
           max={120}
+          matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.horizonHint")}
         />
         <NumberField
@@ -166,6 +174,7 @@ export function FreedomCalculator({
           max={12}
           step={0.1}
           suffix="%"
+          matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.rateHint")}
         />
         <NumberField
@@ -177,6 +186,7 @@ export function FreedomCalculator({
           max={ASSUMPTIONS.inflation.max}
           step={ASSUMPTIONS.inflation.step}
           suffix="%"
+          matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.inflationHint")}
         />
         <NumberField

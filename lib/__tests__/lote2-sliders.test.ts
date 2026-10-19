@@ -122,8 +122,17 @@ describe("freedom page sliders", () => {
     expect(emphasisAt - gastoAt).toBeLessThan(80);
 
     expect(t("pt", "calc.freedom.rate")).toBe(
-      "Retorno percentual anual médio dos seus investimentos"
+      "Retorno anual médio dos seus investimentos"
     );
+    expect(t("en", "calc.freedom.rate")).toBe(
+      "Average annual return of your investments"
+    );
+    expect(t("es", "calc.freedom.rate")).toBe(
+      "Retorno anual medio de tus inversiones"
+    );
+    expect(t("pt", "calc.freedom.rateHint")).toMatch(/Este percentual é real/);
+    expect(t("en", "calc.freedom.rateHint")).toMatch(/This percentage is real/);
+    expect(t("es", "calc.freedom.rateHint")).toMatch(/Este porcentaje es real/);
     expect(t("pt", "calc.freedom.inflation")).toBe(
       "Inflação média esperada ao ano"
     );

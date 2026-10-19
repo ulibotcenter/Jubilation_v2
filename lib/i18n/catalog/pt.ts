@@ -1077,7 +1077,7 @@ export const PT: Record<MessageKey, string> = {
   "calc.freedom.spend":
     "Quanto você gostaria de sacar por mês após ter sua liberdade financeira",
   "calc.freedom.horizon": "Até que idade o dinheiro precisa durar",
-  "calc.freedom.rate": "Retorno percentual anual médio dos seus investimentos",
+  "calc.freedom.rate": "Retorno anual médio dos seus investimentos",
   "calc.freedom.inflation": "Inflação média esperada ao ano",
   "calc.freedom.ageHint": "É daqui que a conta começa.",
   "calc.freedom.wealthHint":
