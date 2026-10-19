@@ -284,16 +284,6 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           <Pencil className="w-4 h-4" size={16} />
           {t("portfolio.editAssets")}
         </button>
-        {mode === "real" && !modelSeedActive && portfolio.length > 0 ? (
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={handleClearAll}
-          >
-            <Eraser className="w-4 h-4" size={16} aria-hidden />
-            {t("portfolio.clearAll")}
-          </button>
-        ) : null}
         <button
           type="button"
           className="btn-secondary"

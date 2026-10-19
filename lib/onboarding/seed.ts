@@ -1,5 +1,9 @@
 import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
-import { hasUserHoldings } from "@/lib/holdings/origin";
+import {
+  hasUserHoldings,
+  isExampleHoldingId,
+  isLeftoverDemoHoldingId,
+} from "@/lib/holdings/origin";
 import type { PortfolioAsset } from "@/types";
 
 /**
@@ -148,5 +152,25 @@ export function dropSeedIfUserHoldings(
   portfolio: PortfolioAsset[]
 ): PortfolioAsset[] {
   if (!hasUserHoldings(portfolio)) return portfolio;
-  return portfolio.filter((asset) => !isModelSeedId(asset.id));
+  return portfolio.filter((asset) => !isExampleHoldingId(asset.id));
+}
+
+/**
+ * Leftover MOCK / lifestyle demo is not a user book. Replace it with the
+ * labeled 6-item example so Zerar stays on the banner. Real holdings win.
+ */
+export function canonicalizeExamplePortfolio(
+  portfolio: PortfolioAsset[]
+): PortfolioAsset[] {
+  if (!Array.isArray(portfolio) || portfolio.length === 0) return [];
+  if (hasUserHoldings(portfolio)) {
+    return dropSeedIfUserHoldings(portfolio);
+  }
+  const onlyExample = portfolio.every((asset) => isExampleHoldingId(asset.id));
+  if (!onlyExample) return portfolio;
+  const leftover = portfolio.some((asset) => isLeftoverDemoHoldingId(asset.id));
+  if (leftover || portfolio.length > 8 || !isModelSeedPortfolio(portfolio)) {
+    return createModelSeed();
+  }
+  return portfolio;
 }

@@ -1,4 +1,5 @@
-import { dropSeedIfUserHoldings, isModelSeedId } from "@/lib/onboarding/seed";
+import { dropSeedIfUserHoldings } from "@/lib/onboarding/seed";
+import { isExampleHoldingId } from "@/lib/holdings/origin";
 import type { PlanTier } from "@/lib/plans";
 import type { AssetClass, PortfolioAsset } from "@/types";
 
@@ -16,7 +17,7 @@ type CapAsset = Pick<PortfolioAsset, "id" | "assetClass"> &
  * drops them, and they must not block a paying user.
  */
 export function countsTowardListedCap(asset: CapAsset): boolean {
-  if (isModelSeedId(asset.id)) return false;
+  if (isExampleHoldingId(asset.id)) return false;
   if (asset.manualKind && asset.manualKind !== "custom") return false;
   if (asset.assetClass === "bonds") return true;
   if (asset.listing === "unlisted") return false;

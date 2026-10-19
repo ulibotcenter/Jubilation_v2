@@ -1,6 +1,6 @@
 import { parsePlanTier, type PlanTier } from "@/lib/plans";
 import { normalizePortfolioAssets } from "@/lib/engine/liquidity";
-import { dropSeedIfUserHoldings } from "@/lib/onboarding/seed";
+import { canonicalizeExamplePortfolio } from "@/lib/onboarding/seed";
 import { normalizePortfolioCagr } from "@/lib/portfolioCagr";
 import { normalizeTenant, type Tenant } from "@/lib/region";
 import { isHousehold } from "@/lib/engine/household";
@@ -44,7 +44,7 @@ export function migratePersistedState(
   const planTier = unifyPlanTier(raw.planTier ?? raw.user?.plan);
 
   const portfolio = Array.isArray(raw.portfolio)
-    ? dropSeedIfUserHoldings(
+    ? canonicalizeExamplePortfolio(
         normalizePortfolioCagr(normalizePortfolioAssets(raw.portfolio))
       )
     : undefined;

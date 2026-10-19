@@ -25,14 +25,42 @@ export function canonicalOrigin(value: unknown): HoldingOrigin | null {
   return ORIGIN_ALIASES[value] ?? ORIGIN_ALIASES[value.trim()] ?? null;
 }
 
+/** Pre-trim lifestyle demo ids. Never treat these as the user's book. */
+export const LEFTOVER_DEMO_IDS = [
+  "asset-aapl",
+  "asset-tsla",
+  "asset-googl",
+  "asset-nvda",
+  "asset-spy",
+  "asset-bnd",
+  "asset-msft34",
+  "asset-btc",
+  "asset-home-primary",
+  "asset-home-beach",
+  "asset-lambo",
+  "asset-watch",
+  "asset-aapl34",
+] as const;
+
 export function isModelSeedHoldingId(id: unknown): boolean {
   return typeof id === "string" && id.startsWith("seed-");
+}
+
+export function isLeftoverDemoHoldingId(id: unknown): boolean {
+  return (
+    typeof id === "string" &&
+    (LEFTOVER_DEMO_IDS as readonly string[]).includes(id)
+  );
+}
+
+export function isExampleHoldingId(id: unknown): boolean {
+  return isModelSeedHoldingId(id) || isLeftoverDemoHoldingId(id);
 }
 
 export function originOf(
   asset: Pick<PortfolioAsset, "origin" | "source"> & { id?: string }
 ): HoldingOrigin | null {
-  if (isModelSeedHoldingId(asset.id)) return null;
+  if (isExampleHoldingId(asset.id)) return null;
   return canonicalOrigin(asset.origin) ?? canonicalOrigin(asset.source);
 }
 
@@ -43,7 +71,7 @@ export function isUserOrigin(
 }
 
 export function isUserHolding(asset: PortfolioAsset): boolean {
-  if (isModelSeedHoldingId(asset.id)) return false;
+  if (isExampleHoldingId(asset.id)) return false;
   return isUserOrigin(originOf(asset));
 }
 
@@ -135,9 +163,9 @@ export function originRank(origin: HoldingOrigin | null): number {
 }
 
 export function migrateHolding(asset: PortfolioAsset): PortfolioAsset {
-  const seedRow = isModelSeedHoldingId(asset.id);
+  const exampleRow = isExampleHoldingId(asset.id);
   let origin = originOf(asset);
-  if (seedRow) {
+  if (exampleRow) {
     origin = null;
   } else if (!origin) {
     origin = "manual";
