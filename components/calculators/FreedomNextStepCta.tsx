@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCloudSignedIn } from "@/hooks/useCloudSignedIn";
 import { freedomInputsToKpis } from "@/lib/calculators/applyFreedomPlan";
@@ -29,7 +28,6 @@ export function FreedomNextStepCta({
 }) {
   const { t } = useTranslation();
   const signedIn = useCloudSignedIn();
-  const router = useRouter();
   const setKPI = useAppStore((s) => s.setKPI);
 
   const applyLocalPlan = () => {
@@ -48,9 +46,13 @@ export function FreedomNextStepCta({
   };
 
   const saveLocalAndOpenPainel = () => {
-    applyLocalPlan();
+    try {
+      applyLocalPlan();
+    } catch {
+      /* local apply is best-effort; the button still opens /painel */
+    }
     toast(t("calc.freedom.next.saveConfirm"));
-    router.push(DASHBOARD_PATH);
+    window.location.assign(DASHBOARD_PATH);
   };
 
   return (

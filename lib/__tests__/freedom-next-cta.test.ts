@@ -28,6 +28,7 @@ describe("freedom calculator next-step CTA", () => {
     expect(cta).toContain("SIGN_IN_PATH");
     expect(cta).toContain("PLANS_PATH");
     expect(cta).toContain("DASHBOARD_PATH");
+    expect(cta).toContain("location.assign");
     expect(cta).not.toContain("/settings");
     expect(calculator).toContain("secondaryHref={SIGN_IN_PATH}");
     expect(SIGN_IN_PATH).toBe("/entrar");
