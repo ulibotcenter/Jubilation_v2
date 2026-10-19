@@ -1075,7 +1075,7 @@ export const EN = {
   "calc.freedom.spend":
     "How much you would like to withdraw per month after having your financial freedom",
   "calc.freedom.horizon": "Until what age the money needs to last",
-  "calc.freedom.rate": "Average annual percentage return of your investments",
+  "calc.freedom.rate": "Average annual return of your investments",
   "calc.freedom.inflation": "Expected average inflation per year",
   "calc.freedom.ageHint": "The count starts here.",
   "calc.freedom.wealthHint":
