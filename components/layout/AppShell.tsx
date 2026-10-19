@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/platform/BottomNav";
 import { CoachMarks } from "@/components/platform/CoachMarks";
 import { CommandPalette } from "@/components/platform/CommandPalette";
-import { RetirementCoach } from "@/components/platform/RetirementCoach";
 import { FloatingNav } from "@/components/layout/FloatingNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
@@ -146,7 +145,6 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
 
       {pathname === DASHBOARD_PATH && onboardingCompleted && <CoachMarks />}
       <CommandPalette />
-      <RetirementCoach />
       <BillingSync />
       <AccountSync />
       {fullPlanner && !legalRoute && <OnboardingModal />}
