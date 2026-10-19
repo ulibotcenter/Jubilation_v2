@@ -16,6 +16,10 @@ import {
 } from "@/lib/calculators/chartSeries";
 import { PUBLIC_ENGINE_NOTE } from "@/lib/calculators/copy";
 import {
+  FREEDOM_CHART_ID,
+  scrollToFreedomChart,
+} from "@/lib/calculators/scrollToFreedomChart";
+import {
   shareRealReturn,
   type PublicIndependenceInput,
 } from "@/lib/calculators/independence";
@@ -124,9 +128,7 @@ export function FreedomCalculator({
         submitLabel={t("calc.freedom.submit")}
         onSubmit={(event) => {
           event.preventDefault();
-          document
-            .getElementById("freedom-next-cta")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          scrollToFreedomChart();
         }}
       >
         <NumberField
@@ -207,6 +209,7 @@ export function FreedomCalculator({
       </CalculatorForm>
 
       <ProjectionChart
+        id={FREEDOM_CHART_ID}
         data={data}
         currency={symbol}
         currencyCode={currency}

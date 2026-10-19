@@ -219,12 +219,14 @@ export function ProjectionChart({
   currencyCode,
   freedomAge,
   children,
+  id,
 }: {
   data: ProjectionChartPoint[];
   currency?: string;
   currencyCode?: Currency;
   freedomAge?: number;
   children?: ReactNode;
+  id?: string;
 }) {
   const plotRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(680);
@@ -587,6 +589,8 @@ export function ProjectionChart({
 
   return (
     <figure
+      id={id}
+      tabIndex={id ? -1 : undefined}
       className="projection-chart"
       data-chart="ProjectionChart"
       data-chart-line="patrimonio"
