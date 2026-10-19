@@ -2827,6 +2827,11 @@ html.light .plan-card-current {
 }
 
 .portfolio-model-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
   background: color-mix(in srgb, var(--accent) 8%, var(--surface));
   border-radius: 0.85rem;
@@ -2834,6 +2839,15 @@ html.light .plan-card-current {
   font-size: 0.75rem;
   line-height: 1.45;
   color: var(--muted-foreground);
+}
+
+.portfolio-model-banner p {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+
+.portfolio-model-banner .btn-secondary {
+  flex-shrink: 0;
 }
 
 .household-field input,
