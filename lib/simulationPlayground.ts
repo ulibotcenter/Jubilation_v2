@@ -86,6 +86,40 @@ export function createEmptyPlayground(): SimulationPlaygroundState {
   };
 }
 
+/** Active blank sim: product KPI defaults, no holdings, projections rebuilt. */
+export function blankPlaygroundFromDefaults(fx: {
+  currency?: Currency;
+  fxSnapshot?: FxSnapshot | null;
+  household?: Household | null;
+}): SimulationPlaygroundState {
+  const kpis = normalizeKpiValues({ ...DEFAULT_KPI_VALUES });
+  const built = buildPlaygroundProjections({
+    kpis,
+    kpiOutsidePortfolio: 0,
+    portfolio: [],
+    simulationIncludedAssetIds: [],
+    currency: fx.currency,
+    fxSnapshot: fx.fxSnapshot,
+    household: fx.household,
+  });
+  return {
+    isActive: true,
+    copiedAt: null,
+    kpis: built.kpis,
+    kpiOutsidePortfolio: 0,
+    portfolio: [],
+    portfolioSearchQuery: "",
+    portfolioLastRefreshedAt: null,
+    simulationIncludedAssetIds: [],
+    projections: built.projections,
+    chartData: built.chartData,
+    projectionRevision: 1,
+    monteCarlo: emptyMonteCarlo(),
+    activeStressTest: null,
+    stressTestResults: [],
+  };
+}
+
 export function clonePortfolioForSimulation(portfolio: PortfolioAsset[]): {
   portfolio: PortfolioAsset[];
   idMap: Map<string, string>;
@@ -241,7 +275,7 @@ export function normalizeSimPlayground(
     household?: Household | null;
   }
 ): SimulationPlaygroundState {
-  if (!persisted?.isActive || !persisted.portfolio?.length) {
+  if (!persisted?.isActive) {
     return snapshotFromRealState(real);
   }
 
