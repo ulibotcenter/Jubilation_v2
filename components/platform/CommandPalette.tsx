@@ -33,11 +33,6 @@ const ACTIONS = [
     labelKey: "command.togglePresentation" as MessageKey,
     action: "presentation" as const,
   },
-  {
-    id: "coach",
-    labelKey: "command.openCoach" as MessageKey,
-    action: "coach" as const,
-  },
 ] as const;
 
 export function CommandPalette() {
@@ -47,7 +42,6 @@ export function CommandPalette() {
   const router = useRouter();
   const navigate = useAppNavigation();
   const togglePresentation = useAppStore((s) => s.togglePresentationMode);
-  const setCoachOpen = useAppStore((s) => s.setCoachOpen);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -107,7 +101,6 @@ export function CommandPalette() {
                     if (item.id === "dashboard") navigate("dashboard");
                     else router.push(item.href);
                   } else if (item.action === "presentation") togglePresentation();
-                  else if (item.action === "coach") setCoachOpen(true);
                 }}
               >
                 {item.label}
