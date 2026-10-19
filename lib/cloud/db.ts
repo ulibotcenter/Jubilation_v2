@@ -7,6 +7,7 @@ import {
   normalizeEmail,
   randomToken,
 } from "@/lib/cloud/magicLink";
+import { issueSignupConfirmToken } from "@/lib/cloud/signupConfirm";
 import { parsePlanTier, type PlanTier } from "@/lib/plans";
 import {
   DEFAULT_DATA_REGION,
@@ -68,6 +69,21 @@ CREATE TABLE IF NOT EXISTS auth_magic_links (
 );
 ALTER TABLE auth_magic_links ADD COLUMN IF NOT EXISTS lead_age INTEGER;
 ALTER TABLE auth_magic_links ADD COLUMN IF NOT EXISTS lead_country TEXT;
+
+CREATE TABLE IF NOT EXISTS auth_pending_signups (
+  email TEXT PRIMARY KEY,
+  password_hash TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  data_region TEXT NOT NULL DEFAULT 'eu',
+  lead_age INTEGER,
+  lead_country TEXT,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS auth_pending_signups_token_uidx
+  ON auth_pending_signups (token_hash);
+CREATE INDEX IF NOT EXISTS auth_pending_signups_exp_idx
+  ON auth_pending_signups (expires_at);
 
 CREATE TABLE IF NOT EXISTS vault_blobs (
   user_id TEXT PRIMARY KEY REFERENCES auth_users(id) ON DELETE CASCADE,
@@ -323,6 +339,108 @@ export async function deleteSession(token: string | undefined | null): Promise<v
     await client.query(`DELETE FROM auth_sessions WHERE token_hash = $1`, [
       hashToken(token),
     ]);
+  });
+}
+
+export async function setUserPasswordHash(
+  userId: string,
+  passwordHash: string
+): Promise<AuthUser | null> {
+  return withDb(async (client) => {
+    const res = await client.query(
+      `UPDATE auth_users SET password_hash = $2
+       WHERE id = $1
+       RETURNING ${USER_COLUMNS}`,
+      [userId, passwordHash]
+    );
+    const row = res.rows[0] as AuthUserRow | undefined;
+    return row ? mapAuthUser(row) : null;
+  });
+}
+
+export interface PendingSignup {
+  email: string;
+  passwordHash: string;
+  dataRegion: string;
+  leadAge: number | null;
+  leadCountry: string | null;
+}
+
+export async function createPendingSignup(input: {
+  email: string;
+  passwordHash: string;
+  dataRegion?: string;
+  leadAge?: number | null;
+  country?: string | null;
+  now?: number;
+}): Promise<string> {
+  const email = normalizeEmail(input.email);
+  const dataRegion = parseDataRegion(input.dataRegion ?? DEFAULT_DATA_REGION);
+  const issued = issueSignupConfirmToken(input.now);
+  await withDb(async (client) => {
+    await client.query(
+      `INSERT INTO auth_pending_signups (
+         email, password_hash, token_hash, data_region, lead_age, lead_country, expires_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (email) DO UPDATE SET
+         password_hash = EXCLUDED.password_hash,
+         token_hash = EXCLUDED.token_hash,
+         data_region = EXCLUDED.data_region,
+         lead_age = EXCLUDED.lead_age,
+         lead_country = EXCLUDED.lead_country,
+         expires_at = EXCLUDED.expires_at,
+         created_at = now()`,
+      [
+        email,
+        input.passwordHash,
+        issued.tokenHash,
+        dataRegion,
+        input.leadAge ?? null,
+        input.country ?? null,
+        new Date(issued.expiresAt).toISOString(),
+      ]
+    );
+  });
+  return issued.token;
+}
+
+/**
+ * One-time consume. DELETE is conditional on an unexpired hash so a replay
+ * cannot confirm twice. The auth_users row is created by the confirm route.
+ */
+export async function consumePendingSignup(
+  token: string
+): Promise<PendingSignup | null> {
+  if (!token) return null;
+  return withDb(async (client) => {
+    const res = await client.query(
+      `DELETE FROM auth_pending_signups
+       WHERE token_hash = $1
+         AND expires_at > now()
+       RETURNING email, password_hash, data_region, lead_age, lead_country`,
+      [hashToken(token)]
+    );
+    const row = res.rows[0] as
+      | {
+          email?: string;
+          password_hash?: string;
+          data_region?: string;
+          lead_age?: number | null;
+          lead_country?: string | null;
+        }
+      | undefined;
+    if (!row?.email || !row.password_hash) return null;
+    return {
+      email: row.email,
+      passwordHash: row.password_hash,
+      dataRegion: parseDataRegion(row.data_region ?? DEFAULT_DATA_REGION),
+      leadAge:
+        typeof row.lead_age === "number" && Number.isFinite(row.lead_age)
+          ? row.lead_age
+          : null,
+      leadCountry: row.lead_country ?? null,
+    };
   });
 }
 

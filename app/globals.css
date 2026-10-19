@@ -6877,3 +6877,22 @@ html.light .add-asset-modal {
   min-height: var(--touch-target);
 }
 
+.lean-login-switch {
+  min-height: var(--touch-target);
+  margin: 0;
+  padding: 0.35rem 0.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.lean-login-switch:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
