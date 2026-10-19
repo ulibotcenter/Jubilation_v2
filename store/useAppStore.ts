@@ -76,12 +76,14 @@ import {
   resolveManualTaxRatePct,
 } from "@/lib/tax/manual";
 import {
+  canonicalizeExamplePortfolio,
   createModelSeed,
   dropSeedIfUserHoldings,
   emptyHoldings,
   isModelSeedPortfolio,
 } from "@/lib/onboarding/seed";
 import {
+  isUserHolding,
   migrateHolding,
   reconcileIncludedIds,
 } from "@/lib/holdings/origin";
@@ -677,7 +679,7 @@ export function mergePersistedAppState(
     persisted,
     CURRENT_PERSIST_VERSION
   ) as Partial<AppStore>;
-  const portfolio = dropSeedIfUserHoldings(
+  const portfolio = canonicalizeExamplePortfolio(
     normalizePortfolioAssets(
       normalizePortfolioCagr(migrated.portfolio ?? current.portfolio)
     )
@@ -1027,6 +1029,30 @@ export const useAppStore = create<AppStore>()(
 
       clearPortfolio: () => {
         const state = get();
+        const userRows = state.portfolio.filter(isUserHolding);
+        if (userRows.length > 0) {
+          const portfolio = userRows;
+          const simulationIncludedAssetIds = reconcileIncludedIds(
+            portfolio,
+            state.simulationIncludedAssetIds
+          );
+          const built = buildProjectionsFromState({
+            ...state,
+            portfolio,
+            simulationIncludedAssetIds,
+          });
+          set({
+            portfolio,
+            simulationIncludedAssetIds,
+            modelSeedActive: false,
+            kpis: built.kpis,
+            projections: built.projections,
+            chartData: built.chartData,
+            projectionRevision: state.projectionRevision + 1,
+            monteCarlo: markMonteCarloStale(state.monteCarlo),
+          });
+          return;
+        }
         const portfolio = emptyHoldings();
         const simulationIncludedAssetIds: string[] = [];
         const built = buildProjectionsFromState({

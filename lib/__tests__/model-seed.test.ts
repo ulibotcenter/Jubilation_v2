@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createModelSeed, emptyHoldings, isModelSeedPortfolio } from "@/lib/onboarding/seed";
+import {
+  canonicalizeExamplePortfolio,
+  createModelSeed,
+  emptyHoldings,
+  isModelSeedPortfolio,
+} from "@/lib/onboarding/seed";
 import { partializePersistedState } from "@/lib/persist/partialize";
 import { migratePersistedState } from "@/lib/persist/migrate";
 import { mergePersistedAppState, useAppStore } from "@/store/useAppStore";
@@ -9,7 +14,7 @@ import { MOCK_PORTFOLIO } from "@/types";
 describe("model seed and Clear all", () => {
   it("keeps the labeled example book short and diverse", () => {
     const seed = createModelSeed();
-    expect(seed.length).toBeLessThanOrEqual(12);
+    expect(seed.length).toBeLessThanOrEqual(8);
     const classes = new Set(seed.map((a) => a.assetClass));
     expect(classes.has("stocks")).toBe(true);
     expect(classes.has("bonds")).toBe(true);
@@ -21,11 +26,15 @@ describe("model seed and Clear all", () => {
   });
 
   it("trims the leftover lifestyle demo (watch, extra house, duplicates)", () => {
-    expect(MOCK_PORTFOLIO.length).toBeLessThanOrEqual(12);
+    expect(MOCK_PORTFOLIO.length).toBeLessThanOrEqual(8);
+    expect(MOCK_PORTFOLIO.length).toBeGreaterThanOrEqual(6);
     expect(MOCK_PORTFOLIO.some((a) => a.id === "asset-watch")).toBe(false);
     expect(MOCK_PORTFOLIO.some((a) => a.id === "asset-lambo")).toBe(false);
     expect(MOCK_PORTFOLIO.some((a) => a.id === "asset-home-beach")).toBe(false);
     expect(MOCK_PORTFOLIO.some((a) => a.ticker === "AAPL34")).toBe(false);
+    expect(MOCK_PORTFOLIO.some((a) => a.id === "asset-googl")).toBe(false);
+    expect(MOCK_PORTFOLIO.some((a) => a.id === "asset-nvda")).toBe(false);
+    expect(MOCK_PORTFOLIO.some((a) => a.ticker === "MSFT34")).toBe(false);
     expect(
       MOCK_PORTFOLIO.filter((a) => a.assetClass === "real_estate")
     ).toHaveLength(1);
@@ -114,5 +123,120 @@ describe("model seed and Clear all", () => {
     expect(merged.currency).toBe("USD");
     expect(merged.country).toBe("US");
     expect(isModelSeedPortfolio(merged.portfolio)).toBe(false);
+  });
+
+  it("replaces a leftover MOCK demo book with the labeled 6-item example", () => {
+    const leftover = [
+      {
+        id: "asset-watch",
+        ticker: "WATCH",
+        name: "Rolex Daytona",
+        assetClass: "personal" as const,
+        quantity: 1,
+        currentPrice: 18_000,
+        costBasis: 12_000,
+        currency: "USD" as const,
+        allocation: 0,
+        priceSource: "manual" as const,
+      },
+      {
+        id: "asset-lambo",
+        ticker: "LAMBO",
+        name: "Lamborghini Huracán",
+        assetClass: "personal" as const,
+        quantity: 1,
+        currentPrice: 72_000,
+        costBasis: 95_000,
+        currency: "USD" as const,
+        allocation: 0,
+        priceSource: "manual" as const,
+      },
+      {
+        id: "asset-home-beach",
+        ticker: "HOME-BEACH",
+        name: "Beach House — Trancoso",
+        assetClass: "real_estate" as const,
+        quantity: 1,
+        currentPrice: 175_000,
+        costBasis: 145_000,
+        currency: "USD" as const,
+        allocation: 0,
+        priceSource: "manual" as const,
+      },
+      {
+        id: "asset-aapl34",
+        ticker: "AAPL34",
+        name: "Apple Inc. BDR",
+        assetClass: "bdr" as const,
+        quantity: 140,
+        currentPrice: 42.15,
+        costBasis: 31.8,
+        currency: "USD" as const,
+        allocation: 0,
+        priceSource: "manual" as const,
+      },
+      ...MOCK_PORTFOLIO,
+    ];
+    expect(leftover.length).toBeGreaterThan(8);
+    const next = canonicalizeExamplePortfolio(leftover);
+    expect(next).toHaveLength(6);
+    expect(isModelSeedPortfolio(next)).toBe(true);
+    const names = next.map((a) => a.name);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "Apartamento — São Paulo",
+        "Bitcoin",
+        "SpaceX",
+        "Tesouro IPCA+",
+        "SPDR S&P 500 ETF Trust",
+        "Apple Inc.",
+      ])
+    );
+    expect(names.some((n) => /Rolex|Lamborghini|Trancoso|BDR/i.test(n))).toBe(
+      false
+    );
+
+    const migrated = migratePersistedState(
+      { kpis: { currentAge: 40 }, portfolio: leftover, modelSeedActive: false },
+      1
+    );
+    expect((migrated.portfolio as typeof leftover)).toHaveLength(6);
+    expect(isModelSeedPortfolio(migrated.portfolio as typeof leftover)).toBe(
+      true
+    );
+
+    const merged = mergePersistedAppState(
+      { portfolio: leftover, kpis: { currentAge: 40 } },
+      useAppStore.getState()
+    );
+    expect(merged.portfolio).toHaveLength(6);
+    expect(merged.modelSeedActive).toBe(true);
+  });
+
+  it("Clear all does not wipe a real stored holding", () => {
+    const petr = {
+      id: "asset-user-petr",
+      ticker: "PETR4",
+      name: "Petrobras",
+      assetClass: "stocks" as const,
+      quantity: 10,
+      currentPrice: 38,
+      costBasis: 30,
+      currency: "BRL" as const,
+      nativeCurrency: "BRL" as const,
+      allocation: 0,
+      origin: "manual" as const,
+      source: "MANUAL" as const,
+      valueType: "user_estimate" as const,
+    };
+    useAppStore.setState({
+      portfolio: [...createModelSeed(), petr],
+      simulationIncludedAssetIds: [...createModelSeed().map((a) => a.id), petr.id],
+      modelSeedActive: false,
+    });
+    useAppStore.getState().clearPortfolio();
+    const next = useAppStore.getState();
+    expect(next.portfolio.map((a) => a.ticker)).toEqual(["PETR4"]);
+    expect(next.modelSeedActive).toBe(false);
   });
 });
