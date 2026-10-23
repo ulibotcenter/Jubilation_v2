@@ -69,6 +69,9 @@ export function createMemoryDirectory() {
     async findUserById(id) {
       return users.get(id) ?? null;
     },
+    async findUserByEmail(email) {
+      return findByEmail(email);
+    },
     async findUserByStripeCustomerId(customerId) {
       for (const user of users.values()) {
         if (user.stripeCustomerId === customerId) return user;

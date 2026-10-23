@@ -78,12 +78,24 @@ export function AccountSync() {
       schedule();
     });
 
+    const pullPlan = async () => {
+      const planRes = await fetch("/api/plan", { cache: "no-store" });
+      if (!planRes.ok || cancelled) return false;
+      const body = (await planRes.json()) as { document?: unknown };
+      if (body.document && typeof body.document === "object") {
+        applyServerPlan(body.document as Record<string, unknown>);
+        lastPushed = documentFingerprint();
+        return true;
+      }
+      return false;
+    };
+
     (async () => {
       try {
-        const statusRes = await fetch("/api/auth/status");
+        const statusRes = await fetch("/api/auth/status", { cache: "no-store" });
         const status = (await statusRes.json()) as { enabled?: boolean };
         if (cancelled || !status.enabled) return;
-        const meRes = await fetch("/api/auth/me");
+        const meRes = await fetch("/api/auth/me", { cache: "no-store" });
         if (!meRes.ok || cancelled) return;
         const me = (await meRes.json()) as {
           email?: string;
@@ -92,33 +104,39 @@ export function AccountSync() {
           currency?: string | null;
         };
         if (me.email) syncSignedInEmail(me.email);
-        const planRes = await fetch("/api/plan");
-        if (!planRes.ok || cancelled) return;
-        const body = (await planRes.json()) as { document?: unknown };
-        if (body.document && typeof body.document === "object") {
-          applyServerPlan(body.document as Record<string, unknown>);
-        } else {
+        const hadDocument = await pullPlan();
+        if (cancelled) return;
+        if (!hadDocument) {
           const prefs = parseProfilePreferences({
             country: me.country,
             locale: me.locale,
             currency: me.currency,
           });
           if (prefs) applyAccountPreferences(prefs);
+          lastPushed = "";
         }
-        if (cancelled) return;
-        lastPushed = body.document ? documentFingerprint() : "";
         ready = true;
-        if (!body.document) void push();
+        if (!hadDocument) void push();
       } catch {
         /* signed-out or cloud off — localStorage remains the plan */
       }
     })();
+
+    const unsubPlan = useAppStore.subscribe((state, prev) => {
+      if (
+        canSaveFullPlan(state.planTier) &&
+        !canSaveFullPlan(prev.planTier)
+      ) {
+        void pullPlan();
+      }
+    });
 
     return () => {
       cancelled = true;
       ready = false;
       if (timer) clearTimeout(timer);
       unsubscribe();
+      unsubPlan();
     };
   }, [applyAccountPreferences, applyServerPlan, syncSignedInEmail]);
 

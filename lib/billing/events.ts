@@ -48,6 +48,22 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+function asStripeId(value: unknown): string | null {
+  const direct = asString(value);
+  if (direct) return direct;
+  return asString(asRecord(value)?.id);
+}
+
+function amountTotal(object: Record<string, unknown>): number | null {
+  const raw = object.amount_total;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 function metadataPlan(
   metadata: Record<string, unknown> | null,
   offers: BillingOffer[]
@@ -66,7 +82,10 @@ function metadataPlan(
 
 function paidCheckout(object: Record<string, unknown>): boolean {
   const payment = asString(object.payment_status);
-  return payment === "paid" || payment === "no_payment_required";
+  if (payment === "paid" || payment === "no_payment_required") return true;
+  return (
+    amountTotal(object) === 0 && asString(object.status) === "complete"
+  );
 }
 
 function trialDaysFromMetadata(
@@ -152,9 +171,9 @@ export function commandFromStripeEvent(
       action: "set_plan",
       eventId,
       eventType,
-      userId: asString(object.client_reference_id) ?? asString(metadata?.userId),
-      customerId: asString(object.customer),
-      subscriptionId: asString(object.subscription),
+      userId: asStripeId(object.client_reference_id) ?? asString(metadata?.userId),
+      customerId: asStripeId(object.customer),
+      subscriptionId: asStripeId(object.subscription),
       plan,
       status: trial ? "trialing" : "active",
       ...leadFieldsFromObject(object),
@@ -173,8 +192,8 @@ export function commandFromStripeEvent(
         eventId,
         eventType,
         userId: asString(metadata?.userId),
-        customerId: asString(object.customer),
-        subscriptionId: asString(object.id),
+        customerId: asStripeId(object.customer),
+        subscriptionId: asStripeId(object.id),
         plan: "free",
         status: "canceled",
         ...leadFieldsFromObject(object),
@@ -191,8 +210,8 @@ export function commandFromStripeEvent(
       eventId,
       eventType,
       userId: asString(metadata?.userId),
-      customerId: asString(object.customer),
-      subscriptionId: asString(object.id),
+      customerId: asStripeId(object.customer),
+      subscriptionId: asStripeId(object.id),
       plan,
       status,
       ...leadFieldsFromObject(object),
@@ -206,8 +225,8 @@ export function commandFromStripeEvent(
       eventId,
       eventType,
       userId: asString(metadata?.userId),
-      customerId: asString(object.customer),
-      subscriptionId: asString(object.id),
+      customerId: asStripeId(object.customer),
+      subscriptionId: asStripeId(object.id),
       plan: "free",
       status: "canceled",
       ...leadFieldsFromObject(object),

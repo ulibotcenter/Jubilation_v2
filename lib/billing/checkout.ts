@@ -51,6 +51,10 @@ export async function createStripeCheckoutSession(
     body.set("payment_method_collection", "always");
   }
   const email = input.email?.trim() ?? "";
+  if (email) {
+    body.set("metadata[email]", email);
+    body.set("subscription_data[metadata][email]", email);
+  }
   if (input.customerId) {
     body.set("customer", input.customerId);
   } else if (email) {

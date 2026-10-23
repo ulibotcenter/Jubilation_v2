@@ -671,6 +671,9 @@ describe("checkout POST", () => {
       expect(params.get("line_items[0][price]")).toBe("price_premium_yearly_usd");
       expect(params.get("metadata[currency]")).toBe("usd");
       expect(params.get("client_reference_id")).toBe("user-ada-1");
+      expect(params.get("metadata[userId]")).toBe("user-ada-1");
+      expect(params.get("metadata[email]")).toBe("ada@example.com");
+      expect(params.get("customer_email")).toBe("ada@example.com");
       expect(params.get("subscription_data[trial_period_days]")).toBe("7");
       expect(params.get("metadata[trialPeriodDays]")).toBe("7");
     } finally {
@@ -990,5 +993,116 @@ describe("Stripe webhook plan transitions", () => {
       plan: "couple",
     });
     expect(planFromPriceId(OFFERS, "price_couple_monthly_usd")).toBe("couple");
+  });
+
+  it("grants Completo on a $0 coupon checkout.session.completed", () => {
+    const zero = structuredClone(checkoutCompleted);
+    zero.id = "evt_test_amigo100";
+    Object.assign(zero.data.object, {
+      amount_subtotal: 999,
+      amount_total: 0,
+      payment_status: "paid",
+      status: "complete",
+      customer_email: "uli@example.com",
+      discounts: [{ coupon: null, promotion_code: "promo_amigo100" }],
+    });
+    Object.assign(zero.data.object.metadata, {
+      priceId: "price_horizon_monthly_eur",
+      offerId: "horizon_monthly",
+      planTier: "horizon",
+      email: "uli@example.com",
+    });
+    expect(commandFromStripeEvent(zero, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "horizon",
+      status: "active",
+      email: "uli@example.com",
+    });
+  });
+
+  it("still grants a plan when a 100% coupon leaves payment_status unpaid", () => {
+    const zero = structuredClone(checkoutCompleted);
+    zero.data.object.payment_status = "unpaid";
+    zero.data.object.status = "complete";
+    zero.data.object.amount_total = 0;
+    zero.data.object.metadata.priceId = "price_horizon_yearly_eur";
+    zero.data.object.metadata.offerId = "horizon_yearly";
+    zero.data.object.metadata.planTier = "horizon";
+    expect(commandFromStripeEvent(zero, OFFERS)).toMatchObject({
+      action: "set_plan",
+      plan: "horizon",
+      status: "active",
+    });
+  });
+
+  it("applies Completo by checkout email when Stripe ids are new", async () => {
+    const directory = createMemoryDirectory();
+    directory.createUser({
+      id: "user-uli-1",
+      email: "uli@example.com",
+    });
+    const zero = structuredClone(checkoutCompleted);
+    zero.id = "evt_test_persist_amigo100";
+    Object.assign(zero.data.object, {
+      amount_total: 0,
+      payment_status: "no_payment_required",
+      client_reference_id: null,
+      customer: "cus_new_coupon",
+      subscription: "sub_new_coupon",
+      customer_email: "uli@example.com",
+    });
+    Object.assign(zero.data.object.metadata, {
+      userId: "",
+      priceId: "price_horizon_monthly_eur",
+      offerId: "horizon_monthly",
+      planTier: "horizon",
+      email: "uli@example.com",
+    });
+    const result = await persistBillingCommand(
+      commandFromStripeEvent(zero, OFFERS),
+      directory.billingStore
+    );
+    expect(result).toMatchObject({
+      applied: true,
+      userId: "user-uli-1",
+    });
+    expect(directory.getUser("user-uli-1")).toMatchObject({
+      planTier: "horizon",
+      subscriptionStatus: "active",
+      stripeCustomerId: "cus_new_coupon",
+    });
+    expect(directory.getLead("uli@example.com")).toMatchObject({
+      plan: "completo",
+      status: "active",
+      userId: "user-uli-1",
+    });
+  });
+});
+
+describe("billing sync after checkout", () => {
+  it("keeps polling after a success return until the plan is paid", async () => {
+    const {
+      billingPollAttempts,
+      shouldKeepPollingBilling,
+    } = await import("@/lib/billing/syncAfterCheckout");
+    expect(billingPollAttempts("success")).toBeGreaterThan(
+      billingPollAttempts(null)
+    );
+    expect(
+      shouldKeepPollingBilling({
+        live: true,
+        planTier: "free",
+        attempt: 0,
+        maxAttempts: billingPollAttempts("success"),
+      })
+    ).toBe(true);
+    expect(
+      shouldKeepPollingBilling({
+        live: true,
+        planTier: "horizon",
+        attempt: 0,
+        maxAttempts: billingPollAttempts("success"),
+      })
+    ).toBe(false);
   });
 });

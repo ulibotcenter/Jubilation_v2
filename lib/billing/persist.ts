@@ -1,5 +1,6 @@
 import type { BillingCommand } from "@/lib/billing/events";
 import {
+  findUserByEmail,
   findUserById,
   findUserByStripeCustomerId,
   findUserByStripeSubscriptionId,
@@ -18,6 +19,7 @@ import type { PlanTier } from "@/lib/plans";
 
 export interface BillingStore {
   findUserById(id: string): Promise<AuthUser | null>;
+  findUserByEmail(email: string): Promise<AuthUser | null>;
   findUserByStripeCustomerId(customerId: string): Promise<AuthUser | null>;
   findUserByStripeSubscriptionId(
     subscriptionId: string
@@ -41,6 +43,7 @@ export interface BillingStore {
 
 const postgresBillingStore: BillingStore = {
   findUserById,
+  findUserByEmail,
   findUserByStripeCustomerId,
   findUserByStripeSubscriptionId,
   updateUserBilling,
@@ -65,6 +68,10 @@ export async function resolveBillingUser(
       command.subscriptionId
     );
     if (bySub) return bySub;
+  }
+  if (command.email) {
+    const byEmail = await store.findUserByEmail(command.email);
+    if (byEmail) return byEmail;
   }
   return null;
 }
