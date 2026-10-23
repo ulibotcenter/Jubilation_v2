@@ -184,6 +184,7 @@ function KPICard({
     <motion.article
       className={`kpi-card group${compact ? " kpi-card--compact" : ""}`}
       data-impact={config.impact}
+      data-kpi-field={config.field}
       title={impactHint}
       {...fadeUp(reduced, index * 0.04)}
       aria-label={`${label}: ${value}`}
