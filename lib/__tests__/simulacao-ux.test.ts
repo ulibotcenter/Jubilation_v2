@@ -10,7 +10,10 @@ describe("simulation layout pass", () => {
 
   it("places the chart right after the assumption cards and income after the chart", () => {
     const cardsAt = page.indexOf('<KPICards mode="playground"');
-    const chartAt = page.indexOf("<ProjectionChartCard");
+    const chartAt = Math.max(
+      page.indexOf("<SimulationProjectionChart"),
+      page.indexOf("<ProjectionChart")
+    );
     const incomeAt = page.indexOf("<IncomeGoalPanel");
     const diffAt = page.indexOf("<PlaygroundDiffPanel");
     expect(cardsAt).toBeGreaterThan(-1);
@@ -20,7 +23,10 @@ describe("simulation layout pass", () => {
   });
 
   it("places vs-real and premises between the chart and the asset table", () => {
-    const chartAt = page.indexOf("<ProjectionChartCard");
+    const chartAt = Math.max(
+      page.indexOf("<SimulationProjectionChart"),
+      page.indexOf("<ProjectionChart")
+    );
     const diffAt = page.indexOf("<PlaygroundDiffPanel");
     const tableAt = page.indexOf('id="playground-portfolio"');
     expect(chartAt).toBeGreaterThan(-1);

@@ -6,7 +6,7 @@ import { Copy, Eraser, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { IncomeGoalPanel } from "@/components/dashboard/IncomeGoalPanel";
 import { KPICards } from "@/components/dashboard/KPICards";
-import { ProjectionChartCard } from "@/components/dashboard/ProjectionChartCard";
+import { SimulationProjectionChart } from "@/components/simulation/SimulationProjectionChart";
 import { RealPortfolio } from "@/components/dashboard/RealPortfolio";
 import { SimulationTab } from "@/components/dashboard/SimulationTab";
 import { PlaygroundDiffPanel } from "@/components/simulation/PlaygroundDiffPanel";
@@ -20,7 +20,6 @@ import { useAppStore } from "@/store/useAppStore";
 export function SimulationPlaygroundPage() {
   const { t } = useTranslation();
   const sim = useAppStore((s) => s.simPlayground);
-  const currency = useAppStore((s) => s.currency);
   const copyPortfolioToSimulation = useAppStore(
     (s) => s.copyPortfolioToSimulation
   );
@@ -69,22 +68,7 @@ export function SimulationPlaygroundPage() {
       </section>
 
       <section data-sim-block="chart">
-        <ProjectionChartCard
-          mode="playground"
-          title={t("simulation.playground.projectionTitle")}
-          subtitle={t("simulation.projection.subtitle", {
-            from: sim.kpis.currentAge,
-            to:
-              sim.projections[sim.projections.length - 1]?.age ??
-              sim.kpis.retirementAge,
-          })}
-          chartData={sim.chartData}
-          projections={sim.projections}
-          kpis={sim.kpis}
-          currency={currency}
-          projectionRevision={sim.projectionRevision}
-          showAssetFilter
-        />
+        <SimulationProjectionChart />
       </section>
 
       <section aria-label="Playground income goal" data-sim-block="income">
