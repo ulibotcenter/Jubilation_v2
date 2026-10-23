@@ -6808,6 +6808,13 @@ html.light .add-asset-modal {
   margin-bottom: 0.5rem;
 }
 
+.simulation-projection-chart .projection-chart {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .projection-chart-plot {
   position: relative;
   width: 100%;
@@ -6845,6 +6852,13 @@ html.light .add-asset-modal {
     width: min(64rem, calc(100vw - 4rem));
     margin-left: calc((100% - min(64rem, 100vw - 4rem)) / 2);
     padding: 2.35rem 2.4rem 1.55rem;
+  }
+
+  .simulation-projection-chart .projection-chart {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 

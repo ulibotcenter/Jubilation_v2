@@ -7,7 +7,7 @@ import {
 } from "@/lib/calculators/chartSeries";
 import { FREEDOM_DEFAULTS } from "@/lib/calculators/independence";
 import { simulationProjectionChartInput } from "@/lib/calculators/simulationChartAdapter";
-import { DEFAULT_KPI_VALUES, type ChartDataPoint } from "@/types";
+import { DEFAULT_KPI_VALUES } from "@/types";
 
 describe("simulation uses the public calculator chart", () => {
   it("keeps the public calculator on ProjectionChart without restyling it", () => {
@@ -56,25 +56,28 @@ describe("simulation uses the public calculator chart", () => {
     expect(page).not.toContain("ProjectionChartCard");
     expect(wrap).toContain('from "@/components/ProjectionChart"');
     expect(wrap).toContain("simulationProjectionChartInput");
-    expect(wrap).toContain("scenarios={input.scenarios}");
+    expect(wrap).not.toContain("scenarios=");
+  });
+
+  it("widens only the simulation chart to the page column", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toMatch(
+      /\.simulation-projection-chart \.projection-chart\s*\{[^}]*width:\s*100%/
+    );
+    expect(css).toContain("width: min(64rem, calc(100vw - 4rem))");
   });
 
   it("maps the sandbox path onto calculator rows without changing wealth", () => {
     const { years, freedomAge } = freedomProjection(FREEDOM_DEFAULTS);
     const { series } = freedomChartSeries(FREEDOM_DEFAULTS);
     const expected = toProjectionChartData(series);
-    const chartData: ChartDataPoint[] = years.map((row) => ({
-      year: row.year,
-      age: row.age,
-      value: row.portfolioValue,
-    }));
     const kpis = {
       ...DEFAULT_KPI_VALUES,
       currentAge: FREEDOM_DEFAULTS.currentAge,
       retirementAge: freedomAge,
       lifeExpectancy: FREEDOM_DEFAULTS.lifeExpectancy,
     };
-    const input = simulationProjectionChartInput(years, chartData, kpis);
+    const input = simulationProjectionChartInput(years, kpis);
     expect(input.freedomAge).toBe(freedomAge);
     expect(input.data).toHaveLength(expected.length);
     for (let i = 0; i < expected.length; i++) {
@@ -84,12 +87,5 @@ describe("simulation uses the public calculator chart", () => {
       expect(input.data[i]!.rendimentos).toBe(expected[i]!.rendimentos);
       expect(input.data[i]!.saques).toBe(expected[i]!.saques);
     }
-    const mid = Math.floor(input.scenarios.optimistic.length / 2);
-    expect(input.scenarios.optimistic[mid]!.wealth).toBeGreaterThan(
-      input.data[mid]!.patrimonio
-    );
-    expect(input.scenarios.pessimistic[mid]!.wealth).toBeLessThan(
-      input.data[mid]!.patrimonio
-    );
   });
 });
