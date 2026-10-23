@@ -69,6 +69,7 @@ export function ConnectB3Button({ align = "stack" }: ConnectB3ButtonProps) {
   }, []);
 
   if (!isConnectorEnabled("b3")) return null;
+  if (locale !== "pt") return null;
 
   const consent = consents.find((c) => c.provider === "b3");
   const authorised = canCollect(consent);
@@ -126,6 +127,25 @@ export function ConnectB3Button({ align = "stack" }: ConnectB3ButtonProps) {
   };
 
   const localeTag = locale === "pt" ? "pt-BR" : locale === "es" ? "es" : "en";
+  const fixtureHint =
+    status && !status.live
+      ? status.reason === "sandbox_only"
+        ? t("portfolio.b3.sandboxOnly")
+        : status.reason === "disabled"
+          ? t("portfolio.b3.disabled")
+          : t("portfolio.b3.notLive")
+      : null;
+  const buttonHint = [
+    t("portfolio.b3.buttonHint"),
+    authorised
+      ? t("portfolio.b3.connectedStatus", { date: asOfDay || "—" })
+      : null,
+    sync?.asOf ? `asOf ${sync.asOf}` : null,
+    authorised && quotaUsed ? t("portfolio.b3.alreadyToday") : null,
+    fixtureHint,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <>
@@ -142,6 +162,7 @@ export function ConnectB3Button({ align = "stack" }: ConnectB3ButtonProps) {
           onClick={handleClick}
           disabled={isSyncing || (authorised && quotaUsed)}
           data-b3-cta={authorised ? "update" : "connect"}
+          title={buttonHint}
         >
           {isSyncing ? (
             <Loader2 className="w-4 h-4 animate-spin" size={16} />
@@ -156,31 +177,6 @@ export function ConnectB3Button({ align = "stack" }: ConnectB3ButtonProps) {
               ? t("portfolio.updateB3")
               : t("portfolio.connectB3")}
         </button>
-        {authorised && quotaUsed ? (
-          <p className="text-[10px] text-muted-foreground sm:text-right leading-snug">
-            {t("portfolio.b3.alreadyToday")}
-          </p>
-        ) : null}
-        {authorised ? (
-          <p
-            className="text-[10px] text-muted-foreground tabular-nums sm:text-right"
-            data-b3-status="connected"
-          >
-            {t("portfolio.b3.connectedStatus", {
-              date: asOfDay || "—",
-            })}
-            {sync?.asOf ? ` · asOf ${sync.asOf}` : ""}
-          </p>
-        ) : null}
-        {status && !status.live ? (
-          <p className="text-[10px] text-muted-foreground max-w-[16rem] sm:text-right leading-snug">
-            {status.reason === "sandbox_only"
-              ? t("portfolio.b3.sandboxOnly")
-              : status.reason === "disabled"
-                ? t("portfolio.b3.disabled")
-                : t("portfolio.b3.notLive")}
-          </p>
-        ) : null}
       </div>
 
       {mounted &&

@@ -9,7 +9,8 @@ export function ImportIrpfButton({
 }: {
   className?: string;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  if (locale !== "pt") return null;
   return (
     <IrpfImportWizard
       trigger={

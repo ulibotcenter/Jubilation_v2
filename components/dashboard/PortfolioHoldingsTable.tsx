@@ -12,6 +12,7 @@ import {
 import { CLASS_BG } from "@/lib/portfolioColors";
 import { useAppStore } from "@/store/useAppStore";
 import { OriginBadge } from "@/components/portfolio/OriginBadge";
+import { HintedText } from "@/components/ui/TermHint";
 import { originOf } from "@/lib/holdings/origin";
 import { shouldHideRowPnl } from "@/lib/holdings/costBasis";
 import { formatCurrencyValue, type PortfolioAsset } from "@/types";
@@ -22,6 +23,7 @@ interface PortfolioHoldingsTableProps {
   quote: HoldingQuote;
   onRemove: (asset: PortfolioAsset) => void;
   mode?: "real" | "playground";
+  lastRefreshedAt?: string | null;
 }
 
 export function PortfolioHoldingsTable({
@@ -30,6 +32,7 @@ export function PortfolioHoldingsTable({
   quote,
   onRemove,
   mode = "real",
+  lastRefreshedAt = null,
 }: PortfolioHoldingsTableProps) {
   const { t, locale } = useTranslation();
   const b3Mode = useAppStore((s) => s.connectorSync.b3?.mode);
@@ -50,7 +53,7 @@ export function PortfolioHoldingsTable({
               {t("portfolio.table.column.qty")}
             </th>
             <th className="portfolio-col-cagr text-right">
-              {t("portfolio.table.column.cagr")}
+              <HintedText text={t("portfolio.table.column.cagr")} />
             </th>
             <th className="portfolio-col-price text-right hidden md:table-cell">
               {t("portfolio.table.column.avgPrice")}
@@ -62,7 +65,7 @@ export function PortfolioHoldingsTable({
               {t("portfolio.table.column.marketValue")}
             </th>
             <th className="portfolio-col-value text-right hidden lg:table-cell">
-              {t("portfolio.table.column.pnl")}
+              <HintedText text={t("portfolio.table.column.pnl")} />
             </th>
             <th className="portfolio-col-pct text-right">
               {t("portfolio.table.column.returnPct")}
@@ -122,7 +125,9 @@ export function PortfolioHoldingsTable({
                       <div className="mt-0.5 flex flex-wrap items-center gap-1">
                         <OriginBadge asset={asset} />
                         <span className="portfolio-asset-class-badge inline-block">
-                          {getAssetClassLabel(locale, asset.assetClass)}
+                          <HintedText
+                            text={getAssetClassLabel(locale, asset.assetClass)}
+                          />
                           {asset.listing === "unlisted" && (
                             <span className="ml-1 opacity-70">
                               · {t("portfolio.unlisted")}
@@ -270,6 +275,27 @@ export function PortfolioHoldingsTable({
             );
           })}
         </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={2} className="portfolio-table-sources-pad" />
+            <td
+              colSpan={8}
+              className="portfolio-table-sources"
+              data-portfolio-sources="table"
+            >
+              <span>{t("portfolio.dataSources")}</span>
+              {lastRefreshedAt ? (
+                <span className="tabular-nums">
+                  {" · "}
+                  {new Date(lastRefreshedAt).toLocaleString(locale, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </span>
+              ) : null}
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

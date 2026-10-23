@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { BarChart3, LineChart as LineChartIcon, Loader2, Play } from "lucide-react";
-import { toast } from "sonner";
+import { BarChart3, LineChart as LineChartIcon } from "lucide-react";
 import { ProjectionCashFlowChart } from "@/components/dashboard/ProjectionCashFlowChart";
 import {
   Area,
@@ -34,7 +33,10 @@ import {
   getEndOfLifeProjectionRow,
   getRetirementProjectionRow,
 } from "@/lib/projectionUtils";
-import { buildDisplayChartData } from "@/lib/projectionChartData";
+import {
+  buildDisplayChartData,
+  densifyChartLine,
+} from "@/lib/projectionChartData";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { chartMotion, fadeUp } from "@/lib/uiMotion";
@@ -78,8 +80,6 @@ export function ProjectionChartCard({
   const monteCarlo = useAppStore((s) =>
     mode === "playground" ? s.simPlayground.monteCarlo : s.monteCarlo
   );
-  const runRealMc = useAppStore((s) => s.runMonteCarlo);
-  const runSimMc = useAppStore((s) => s.runSimMonteCarlo);
   const [lineOverrides, setLineOverrides] = useState<Partial<ChartLineVisibility>>(
     {}
   );
@@ -112,15 +112,24 @@ export function ProjectionChartCard({
     [chartData, projections, kpis, monteCarlo.hasRun, monteCarlo.results]
   );
 
+  const paintedChartData = useMemo(
+    () => densifyChartLine(displayChartData),
+    [displayChartData]
+  );
+
+  const hasScenarioLines = useMemo(
+    () =>
+      displayChartData.some(
+        (d) =>
+          d.pessimistic != null &&
+          d.optimistic != null &&
+          (d.band ?? 0) > 0 &&
+          (d.pessimistic !== d.value || d.optimistic !== d.value)
+      ),
+    [displayChartData]
+  );
+
   const hasMcBands = useMemo(() => {
-    const fromChart = displayChartData.some(
-      (d) =>
-        d.pessimistic != null &&
-        d.optimistic != null &&
-        (d.band ?? 0) > 0 &&
-        (d.pessimistic !== d.value || d.optimistic !== d.value)
-    );
-    if (fromChart) return true;
     if (!mcReady) return false;
     const base = monteCarlo.results.find((r) => r.scenario === "base");
     return (
@@ -128,21 +137,28 @@ export function ProjectionChartCard({
       base.percentile10 !== base.percentile90 &&
       base.percentile10 > 0
     );
-  }, [displayChartData, mcReady, monteCarlo.results]);
+  }, [mcReady, monteCarlo.results]);
 
   const lineVisibility: ChartLineVisibility = {
     base: lineOverrides.base ?? true,
-    pessimistic: hasMcBands ? (lineOverrides.pessimistic ?? true) : false,
-    optimistic: hasMcBands ? (lineOverrides.optimistic ?? true) : false,
+    pessimistic: hasScenarioLines
+      ? (lineOverrides.pessimistic ?? true)
+      : false,
+    optimistic: hasScenarioLines ? (lineOverrides.optimistic ?? true) : false,
   };
 
   const effectiveVisibility = useMemo(
     (): ChartLineVisibility => ({
       base: lineVisibility.base,
-      pessimistic: hasMcBands && lineVisibility.pessimistic,
-      optimistic: hasMcBands && lineVisibility.optimistic,
+      pessimistic: hasScenarioLines && lineVisibility.pessimistic,
+      optimistic: hasScenarioLines && lineVisibility.optimistic,
     }),
-    [hasMcBands, lineVisibility.base, lineVisibility.pessimistic, lineVisibility.optimistic]
+    [
+      hasScenarioLines,
+      lineVisibility.base,
+      lineVisibility.pessimistic,
+      lineVisibility.optimistic,
+    ]
   );
 
   const peakValue = useMemo(() => {
@@ -156,14 +172,6 @@ export function ProjectionChartCard({
     });
     return Math.max(...values, 0);
   }, [displayChartData, effectiveVisibility]);
-
-  const handleRunMonteCarlo = async () => {
-    const runMc = mode === "playground" ? runSimMc : runRealMc;
-    await runMc();
-    toast.success(t("toast.monteCarlo.complete"), {
-      description: t("toast.monteCarlo.completeDesc"),
-    });
-  };
 
   const formatYAxis = (value: number) => {
     if (value >= 1_000_000) return `${sym}${(value / 1_000_000).toFixed(1)}M`;
@@ -223,7 +231,7 @@ export function ProjectionChartCard({
           <ChartScenarioToggles
             visibility={lineVisibility}
             onToggle={toggleLine}
-            bandsAvailable={hasMcBands}
+            bandsAvailable={hasScenarioLines}
           />
           {hasMcBands ? (
             monteCarlo.stale ? (
@@ -235,40 +243,7 @@ export function ProjectionChartCard({
                 {t("chart.bandsActive")}
               </p>
             )
-          ) : (
-            <div className="chart-bands-cta w-full sm:w-auto">
-              <p className="chart-bands-hint text-left">
-                {mode === "playground"
-                  ? t("chart.bandsHintPlayground")
-                  : t("chart.bandsHint")}
-              </p>
-              {mode === "real" ? (
-                <button
-                  type="button"
-                  className="chart-mc-run-btn"
-                  onClick={handleRunMonteCarlo}
-                  disabled={monteCarlo.isRunning}
-                >
-                  {monteCarlo.isRunning ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" size={14} />
-                      {t("chart.runningMc")}
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-3.5 h-3.5" size={14} />
-                      {t("chart.runMonteCarlo")}
-                    </>
-                  )}
-                </button>
-              ) : (
-                <a href="#monte-carlo" className="chart-mc-run-btn">
-                  <Play className="w-3.5 h-3.5" size={14} />
-                  {t("chart.goToMonteCarlo")}
-                </a>
-              )}
-            </div>
-          )}
+          ) : null}
           <button
             type="button"
             className="chart-toggle-btn"
@@ -284,6 +259,7 @@ export function ProjectionChartCard({
 
       <div
         className={`chart-container relative ${compact ? "chart-container--compact" : ""}`}
+        data-chart-scenarios={hasScenarioLines ? "lines" : "base"}
       >
         <ChartSkeleton
           visible={projectionRevision > 0}
@@ -292,7 +268,7 @@ export function ProjectionChartCard({
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             key={`chart-${mode}-${projectionRevision}`}
-            data={displayChartData}
+            data={paintedChartData}
             margin={{ top: 8, right: 12, left: 4, bottom: 4 }}
           >
             <defs>
@@ -363,7 +339,7 @@ export function ProjectionChartCard({
                 fontSize: 10,
               }}
             />
-            {hasMcBands &&
+            {hasScenarioLines &&
               effectiveVisibility.pessimistic &&
               effectiveVisibility.optimistic && (
               <>
@@ -400,7 +376,7 @@ export function ProjectionChartCard({
                 isAnimationActive={false}
               />
             )}
-            {hasMcBands && effectiveVisibility.pessimistic && (
+            {hasScenarioLines && effectiveVisibility.pessimistic && (
               <Line
                 type="monotone"
                 dataKey="pessimistic"
@@ -423,7 +399,7 @@ export function ProjectionChartCard({
                 {...chartAnim}
               />
             )}
-            {hasMcBands && effectiveVisibility.optimistic && (
+            {hasScenarioLines && effectiveVisibility.optimistic && (
               <Line
                 type="monotone"
                 dataKey="optimistic"

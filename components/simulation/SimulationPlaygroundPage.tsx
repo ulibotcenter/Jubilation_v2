@@ -64,35 +64,6 @@ export function SimulationPlaygroundPage() {
 
       <PersistentDisclaimer />
 
-      <motion.section
-        className="playground-actions"
-        aria-label={t("simulation.playground.actionsLabel")}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <button
-          type="button"
-          className="btn-secondary"
-          data-sim-action="clear"
-          onClick={handleClear}
-        >
-          <Eraser className="w-4 h-4" size={16} aria-hidden />
-          {t("simulation.playground.clear")}
-        </button>
-        <button
-          type="button"
-          className="btn-primary"
-          data-sim-action="copy"
-          onClick={handleCopy}
-        >
-          <Copy className="w-4 h-4" size={16} aria-hidden />
-          {t("simulation.playground.copyPortfolio")}
-        </button>
-        <p className="playground-actions-hint">
-          {t("simulation.playground.actionsHint")}
-        </p>
-      </motion.section>
-
       <motion.div
         className="playground-toolbar"
         initial={{ opacity: 0, y: 8 }}
@@ -166,6 +137,34 @@ export function SimulationPlaygroundPage() {
             {t("simulation.playground.portfolioHint")}
           </p>
         </div>
+        <motion.section
+          className="playground-actions mb-3"
+          aria-label={t("simulation.playground.actionsLabel")}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <button
+            type="button"
+            className="btn-secondary"
+            data-sim-action="clear"
+            onClick={handleClear}
+          >
+            <Eraser className="w-4 h-4" size={16} aria-hidden />
+            {t("simulation.playground.clear")}
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            data-sim-action="copy"
+            onClick={handleCopy}
+          >
+            <Copy className="w-4 h-4" size={16} aria-hidden />
+            {t("simulation.playground.copyPortfolio")}
+          </button>
+          <p className="playground-actions-hint">
+            {t("simulation.playground.actionsHint")}
+          </p>
+        </motion.section>
         <div className="card-surface p-4 sm:p-6">
           <RealPortfolio mode="playground" />
         </div>

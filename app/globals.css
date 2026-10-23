@@ -4030,20 +4030,51 @@ html.light .settings-backup-warning {
   max-width: none;
 }
 
-.portfolio-toolbar-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.125rem;
-  margin-left: auto;
+.portfolio-table-sources,
+.portfolio-table-sources-pad {
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+  background: transparent;
 }
 
-@media (max-width: 639px) {
-  .portfolio-toolbar-meta {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 0.25rem;
-  }
+.portfolio-table-sources {
+  text-align: right;
+  font-size: 0.625rem;
+  line-height: 1.35;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.term-hint {
+  position: relative;
+  display: inline;
+  cursor: help;
+}
+
+.term-hint-text {
+  border-bottom: 1px dotted currentColor;
+}
+
+.term-hint-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  z-index: 30;
+  min-width: 9.5rem;
+  max-width: 16rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.375rem;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: normal;
+  pointer-events: none;
 }
 
 .portfolio-stat-card {

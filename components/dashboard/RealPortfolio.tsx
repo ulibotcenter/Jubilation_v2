@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   ArrowDownAZ,
   Briefcase,
-  Clock,
   Eraser,
   Link2,
   Pencil,
@@ -22,6 +21,7 @@ import { PortfolioHoldingsTable } from "@/components/dashboard/PortfolioHoldings
 import { AddAssetModal } from "@/components/ui/AddAssetModal";
 import { ConnectB3Button } from "@/components/portfolio/ConnectB3Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { HintedText } from "@/components/ui/TermHint";
 import { getAssetClassLabel } from "@/lib/i18n/resolve";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { canUseConnectors, canUseFullPlanner } from "@/lib/plans";
@@ -284,23 +284,9 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
         />
         {isRefreshing ? t("portfolio.updating") : t("portfolio.refreshPrices")}
       </button>
-      {mode === "real" && connectorsOpen ? (
+      {mode === "real" && connectorsOpen && locale === "pt" ? (
         <ConnectB3Button align="toolbar" />
       ) : null}
-      <div className="portfolio-toolbar-meta">
-        {portfolioLastRefreshedAt && (
-          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <Clock className="w-3 h-3" size={12} />
-            {new Date(portfolioLastRefreshedAt).toLocaleString(locale, {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-          </span>
-        )}
-        <span className="text-[10px] text-muted">
-          {t("portfolio.dataSources")}
-        </span>
-      </div>
     </div>
   );
 
@@ -385,7 +371,9 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
           >
-            <p className="portfolio-stat-label">{stat.label}</p>
+            <p className="portfolio-stat-label">
+              <HintedText text={stat.label} />
+            </p>
             <p
               className={`portfolio-stat-value flex items-center gap-1.5 ${
                 stat.muted ? "text-muted-foreground" : ""
@@ -459,7 +447,7 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
                 data-active={classFilter === cls ? "true" : "false"}
                 onClick={() => setClassFilter(cls)}
               >
-                {getAssetClassLabel(locale, cls)}
+                <HintedText text={getAssetClassLabel(locale, cls)} />
               </button>
             ))}
           </div>
@@ -491,11 +479,13 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           >
             <ArrowDownAZ className="w-4 h-4" size={16} />
             {t("portfolio.sort.label")}{" "}
-            {sortBy === "value"
-              ? t("portfolio.sort.value")
-              : sortBy === "gain"
-                ? t("portfolio.sort.gain")
-                : t("portfolio.sort.ticker")}
+            {sortBy === "value" ? (
+              t("portfolio.sort.value")
+            ) : sortBy === "gain" ? (
+              <HintedText text={t("portfolio.sort.gain")} />
+            ) : (
+              t("portfolio.sort.ticker")
+            )}
           </button>
         </div>
       </div>
@@ -526,9 +516,10 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
             quote={valueQuote}
             onRemove={handleRemove}
             mode={mode}
+            lastRefreshedAt={portfolioLastRefreshedAt}
           />
           <p className="portfolio-cagr-footnote text-[11px] text-muted-foreground leading-snug">
-            {t("portfolio.cagrFootnote")}
+            <HintedText text={t("portfolio.cagrFootnote")} />
           </p>
         </>
       )}

@@ -90,7 +90,7 @@ export const ASSUMPTIONS = {
     labelKey: "kpi.field.expectedCAGR",
     defaultValue: 4,
     min: -5,
-    max: 12,
+    max: 20,
     step: 0.1,
     unit: "percent",
     impact: "high",

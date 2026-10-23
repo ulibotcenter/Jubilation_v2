@@ -169,7 +169,7 @@ describe("public calculator query parsing", () => {
     expect(parsed.monthlyContribution).toBe(500_000);
     expect(parsed.monthlySpending).toBe(100);
     expect(parsed.lifeExpectancy).toBe(120);
-    expect(parsed.realReturn).toBe(0.12);
+    expect(parsed.realReturn).toBe(0.2);
   });
 
   it("keeps income-date defaults when the query is empty", () => {

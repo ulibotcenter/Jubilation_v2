@@ -179,7 +179,7 @@ export function FreedomCalculator({
           value={draft.juro}
           onValueChange={(value) => patch("juro", value)}
           min={-5}
-          max={12}
+          max={ASSUMPTIONS.realReturn.max}
           suffix="%"
           matchSuffixes={matchSuffixes}
           hint={t("calc.freedom.rateHint")}
