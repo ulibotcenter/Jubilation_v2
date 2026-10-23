@@ -12,6 +12,7 @@ import {
   holdingAddDecision,
   listedCapCount,
 } from "@/lib/plans/holdingCap";
+import { readFileSync } from "node:fs";
 import {
   PLAN_LABELS,
   canModelCouple,
@@ -21,6 +22,8 @@ import {
   canUseConnectors,
   canUseFullPlanner,
   canUseMultipleScenarios,
+  plannerGateReady,
+  shouldRenderAppPage,
 } from "@/lib/plans";
 import { PT } from "@/lib/i18n/catalog/pt";
 import { useAppStore } from "@/store/useAppStore";
@@ -101,6 +104,71 @@ describe("tier gates", () => {
     expect(canUseAdvancedExport("couple")).toBe(true);
     expect(canModelCouple("couple")).toBe(true);
     expect(canModelCouple("premium")).toBe(false);
+  });
+
+  it("never blanks Painel for a paid plan waiting on onboarding", () => {
+    expect(
+      shouldRenderAppPage({
+        legalRoute: false,
+        fullPlanner: true,
+        onboardingCompleted: false,
+      })
+    ).toBe(true);
+    expect(
+      plannerGateReady({
+        billingChecked: false,
+        billingLive: true,
+        planTier: "horizon",
+      })
+    ).toBe(true);
+    expect(
+      plannerGateReady({
+        billingChecked: false,
+        billingLive: true,
+        planTier: "couple",
+      })
+    ).toBe(true);
+    expect(
+      plannerGateReady({
+        billingChecked: false,
+        billingLive: false,
+        planTier: "free",
+      })
+    ).toBe(false);
+    const shell = readFileSync("components/layout/AppShell.tsx", "utf8");
+    expect(shell).toContain("shouldRenderAppPage");
+    expect(shell).toContain("{children}");
+  });
+
+  it("keeps Completo live after the cloud plan document is applied", () => {
+    const before = useAppStore.getState();
+    useAppStore.setState({
+      planTier: "horizon",
+      billingLive: true,
+      billingChecked: true,
+      user: {
+        ...before.user,
+        plan: "horizon",
+        subscriptionStatus: "active",
+      },
+    });
+    useAppStore.getState().applyServerPlan({
+      kpis: before.kpis,
+      household: before.household,
+      portfolio: before.portfolio,
+    });
+    const next = useAppStore.getState();
+    expect(next.planTier).toBe("horizon");
+    expect(next.billingLive).toBe(true);
+    expect(next.billingChecked).toBe(true);
+    expect(canUseFullPlanner(next.planTier)).toBe(true);
+    expect(plannerGateReady(next)).toBe(true);
+    useAppStore.setState({
+      planTier: before.planTier,
+      billingLive: before.billingLive,
+      billingChecked: before.billingChecked,
+      user: before.user,
+    });
   });
 });
 

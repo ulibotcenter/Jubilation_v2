@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { canUseFullPlanner } from "@/lib/plans";
+import { canUseFullPlanner, plannerGateReady } from "@/lib/plans";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -41,7 +41,8 @@ export function PlannerGate({
 }) {
   const planTier = useAppStore((s) => s.planTier);
   const billingChecked = useAppStore((s) => s.billingChecked);
-  if (!billingChecked) {
+  const billingLive = useAppStore((s) => s.billingLive);
+  if (!plannerGateReady({ billingChecked, billingLive, planTier })) {
     return <div className="card-surface h-40 skeleton" data-plan-gate="pending" />;
   }
   if (!canUseFullPlanner(planTier)) return empty ?? <FreePlanGate />;

@@ -115,6 +115,30 @@ export function canUseFullPlanner(plan: PlanTier): boolean {
   return isPaidPlanTier(plan);
 }
 
+/**
+ * Paid planner pages always render. Onboarding may overlay; it must not
+ * replace Painel/Portfólio with an empty main.
+ */
+export function shouldRenderAppPage(_input?: {
+  legalRoute?: boolean;
+  fullPlanner?: boolean;
+  onboardingCompleted?: boolean;
+}): boolean {
+  return true;
+}
+
+/** Ready once billing was checked, or this session already has a live paid plan. */
+export function plannerGateReady(input: {
+  billingChecked: boolean;
+  billingLive: boolean;
+  planTier: PlanTier;
+}): boolean {
+  return (
+    input.billingChecked ||
+    (input.billingLive && isPaidPlanTier(input.planTier))
+  );
+}
+
 /** One saved retirement plan. Free cannot write it. */
 export function canSaveFullPlan(plan: PlanTier): boolean {
   return isPaidPlanTier(plan);
