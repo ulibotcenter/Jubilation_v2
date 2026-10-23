@@ -466,6 +466,7 @@ describe("checkout session body", () => {
     const params = new URLSearchParams(body);
     expect(session.url).toBe("https://checkout.stripe.com/c/pay/cs_test_session");
     expect(params.get("line_items[0][price]")).toBe("price_premium_yearly_usd");
+    expect(params.get("allow_promotion_codes")).toBe("true");
     expect(params.get("metadata[currency]")).toBe("usd");
     expect(params.get("metadata[offerId]")).toBe("premium_yearly");
   });

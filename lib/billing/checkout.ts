@@ -27,6 +27,7 @@ export async function createStripeCheckoutSession(
   body.set("line_items[0][quantity]", "1");
   body.set("success_url", input.successUrl);
   body.set("cancel_url", input.cancelUrl);
+  body.set("allow_promotion_codes", "true");
   body.set("locale", STRIPE_LOCALE[input.offer.currency]);
   const userId = input.userId?.trim() ?? "";
   if (userId) {
