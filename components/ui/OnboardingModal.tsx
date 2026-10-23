@@ -28,7 +28,7 @@ const STEP_VARIANTS = {
   }),
   center: {
     x: 0,
-    opacity: 0,
+    opacity: 1,
   },
   exit: (direction: number) => ({
     x: direction < 0 ? 40 : -40,

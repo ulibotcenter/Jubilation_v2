@@ -2130,6 +2130,7 @@ export const useAppStore = create<AppStore>()(
             ...merged,
             planTier: current.planTier,
             billingLive: current.billingLive,
+            billingChecked: current.billingChecked,
             user: {
               ...merged.user,
               email: current.user.email || merged.user.email,

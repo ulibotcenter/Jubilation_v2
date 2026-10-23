@@ -13,7 +13,7 @@ import { AccountSync } from "@/components/account/AccountSync";
 import { BillingSync } from "@/components/billing/BillingSync";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
 import { navIdFromPathname } from "@/lib/appNavigation";
-import { canUseFullPlanner } from "@/lib/plans";
+import { canUseFullPlanner, shouldRenderAppPage } from "@/lib/plans";
 import { TERMS_PATH } from "@/lib/legal/terms";
 import { isPrivacyPath } from "@/lib/privacy/local";
 import { DASHBOARD_PATH } from "@/lib/routes";
@@ -120,7 +120,11 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
     pathname === TERMS_PATH || Boolean(pathname?.startsWith(`${TERMS_PATH}/`));
   const legalRoute = privacyRoute || termsRoute;
   const fullPlanner = billingChecked && canUseFullPlanner(planTier);
-  const showPage = legalRoute || !fullPlanner || onboardingCompleted;
+  const showPage = shouldRenderAppPage({
+    legalRoute,
+    fullPlanner,
+    onboardingCompleted,
+  });
 
   return (
     <div
@@ -137,7 +141,7 @@ export function AppShell({ children, enableHashSync = false }: AppShellProps) {
           {showPage ? (
             <>
               {children}
-              {onboardingCompleted || !fullPlanner ? <LegalFooter /> : null}
+              <LegalFooter />
             </>
           ) : null}
         </main>
