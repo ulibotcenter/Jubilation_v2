@@ -14,14 +14,8 @@ export function SimulationProjectionChart() {
   const sim = useAppStore((s) => s.simPlayground);
   const currency = useAppStore((s) => s.currency);
   const input = useMemo(
-    () =>
-      simulationProjectionChartInput(
-        sim.projections,
-        sim.chartData,
-        sim.kpis,
-        sim.monteCarlo
-      ),
-    [sim.projections, sim.chartData, sim.kpis, sim.monteCarlo]
+    () => simulationProjectionChartInput(sim.projections, sim.kpis),
+    [sim.projections, sim.kpis]
   );
   const to =
     sim.projections[sim.projections.length - 1]?.age ?? sim.kpis.retirementAge;
@@ -37,7 +31,6 @@ export function SimulationProjectionChart() {
         currency={CURRENCY_SYMBOLS[currency]}
         currencyCode={currency}
         freedomAge={input.freedomAge}
-        scenarios={input.scenarios}
         title={t("simulation.playground.projectionTitle")}
         subtitle={t("simulation.projection.subtitle", {
           from: sim.kpis.currentAge,
