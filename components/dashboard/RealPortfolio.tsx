@@ -250,6 +250,60 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
     return <PortfolioEmptyState canAdd={canUseFullPlanner(planTier)} />;
   }
 
+  const actionToolbar = (
+    <div className="portfolio-toolbar" data-portfolio-toolbar="list">
+      <button
+        type="button"
+        className="btn-primary"
+        onClick={() => {
+          document
+            .getElementById("portfolio-holdings")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      >
+        <Pencil className="w-4 h-4" size={16} />
+        {t("portfolio.editAssets")}
+      </button>
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={() => setAddOpen(true)}
+      >
+        <Plus className="w-4 h-4" size={16} />
+        {t("portfolio.addAsset")}
+      </button>
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={handleRefresh}
+        disabled={isRefreshing || portfolio.length === 0}
+      >
+        <RefreshCw
+          className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+          size={16}
+        />
+        {isRefreshing ? t("portfolio.updating") : t("portfolio.refreshPrices")}
+      </button>
+      {mode === "real" && connectorsOpen ? (
+        <ConnectB3Button align="toolbar" />
+      ) : null}
+      <div className="portfolio-toolbar-meta">
+        {portfolioLastRefreshedAt && (
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Clock className="w-3 h-3" size={12} />
+            {new Date(portfolioLastRefreshedAt).toLocaleString(locale, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </span>
+        )}
+        <span className="text-[10px] text-muted">
+          {t("portfolio.dataSources")}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-5">
       {mode === "real" && holdingCapBlocked ? (
@@ -271,66 +325,19 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           </button>
         </div>
       ) : null}
-      <div className="portfolio-toolbar">
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => {
-            document
-              .getElementById("portfolio-holdings")
-              ?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-        >
-          <Pencil className="w-4 h-4" size={16} />
-          {t("portfolio.editAssets")}
-        </button>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => setAddOpen(true)}
-        >
-          <Plus className="w-4 h-4" size={16} />
-          {t("portfolio.addAsset")}
-        </button>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={handleRefresh}
-          disabled={isRefreshing || portfolio.length === 0}
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-            size={16}
-          />
-          {isRefreshing ? t("portfolio.updating") : t("portfolio.refreshPrices")}
-        </button>
-        {mode === "real" && connectorsOpen ? <ConnectB3Button /> : null}
-        <div className="portfolio-toolbar-meta">
-          {portfolioLastRefreshedAt && (
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Clock className="w-3 h-3" size={12} />
-              {new Date(portfolioLastRefreshedAt).toLocaleString(locale, {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
-            </span>
-          )}
-          <span className="text-[10px] text-muted">
-            {t("portfolio.dataSources")}
-          </span>
-        </div>
-      </div>
-
       {portfolio.length === 0 ? (
-        <EmptyState
-          icon={Briefcase}
-          title={t("portfolio.empty.build.title")}
-          description={t("portfolio.empty.build.desc")}
-          action={{
-            label: t("portfolio.addAsset"),
-            onClick: () => setAddOpen(true),
-          }}
-        />
+        <>
+          {actionToolbar}
+          <EmptyState
+            icon={Briefcase}
+            title={t("portfolio.empty.build.title")}
+            description={t("portfolio.empty.build.desc")}
+            action={{
+              label: t("portfolio.addAsset"),
+              onClick: () => setAddOpen(true),
+            }}
+          />
+        </>
       ) : (
         <>
       <div className="portfolio-stat-grid">
@@ -430,6 +437,8 @@ export function RealPortfolio({ mode = "real" }: RealPortfolioProps) {
           />
         </div>
       )}
+
+      {actionToolbar}
 
       <div className="space-y-3">
         {classChips.length > 1 && (

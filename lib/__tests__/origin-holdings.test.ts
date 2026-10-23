@@ -345,11 +345,10 @@ describe("seed clears on the first real holding", () => {
       1
     );
     const book = migrated.portfolio as PortfolioAsset[];
-    expect(book).toHaveLength(6);
+    expect(book).toHaveLength(7);
     expect(isModelSeedPortfolio(book)).toBe(true);
     expect(book.every((row) => originOf(row) === null)).toBe(true);
-    expect(book.find((row) => row.id === "seed-tesouro")?.source).toBe("MANUAL");
-    expect(book.find((row) => row.id === "seed-home")?.source).toBe("MANUAL");
+    expect(book.find((row) => row.id === "seed-home")?.source).toBe("ESTIMATED");
     expect(book.some((row) => row.origin === "manual")).toBe(false);
 
     const withWege = dropSeedIfUserHoldings([

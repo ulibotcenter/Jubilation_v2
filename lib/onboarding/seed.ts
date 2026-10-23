@@ -13,32 +13,51 @@ import type { PortfolioAsset } from "@/types";
  * Seed price: last regular close 2026-09-18, $152.71. Cost = IPO $135.
  */
 export const MODEL_SEED_IDS = [
-  "seed-tesouro",
-  "seed-aapl",
-  "seed-spacex",
-  "seed-spy",
   "seed-btc",
   "seed-home",
+  "seed-aapl",
+  "seed-spacex",
+  "seed-ust",
+  "seed-petr",
+  "seed-gld",
 ] as const;
 
 const RAW_MODEL_SEED: PortfolioAsset[] = [
   {
-    id: "seed-tesouro",
-    ticker: "TESOURO",
-    name: "Tesouro IPCA+",
-    assetClass: "bonds",
-    quantity: 80,
-    currentPrice: 1_150,
-    costBasis: 980,
+    id: "seed-btc",
+    ticker: "BTC",
+    name: "Bitcoin",
+    assetClass: "crypto",
+    quantity: 0.75,
+    currentPrice: 67_500,
+    costBasis: 41_200,
+    currency: "USD",
+    nativeCurrency: "USD",
+    allocation: 0,
+    priceSource: "coingecko",
+    listing: "listed",
+    source: "COINGECKO",
+    expectedCAGR: 6,
+  },
+  {
+    id: "seed-home",
+    ticker: "CASA",
+    name: "Casa / Residência",
+    assetClass: "real_estate",
+    quantity: 1,
+    currentPrice: 850_000,
+    costBasis: 620_000,
     currency: "BRL",
     nativeCurrency: "BRL",
     allocation: 0,
     priceSource: "manual",
-    listing: "listed",
+    listing: "unlisted",
     source: "ESTIMATED",
-    liquidity: "liquid",
-    expectedCAGR: 6.5,
-    realReturn: 3.5,
+    liquidity: "illiquid",
+    allowSale: false,
+    manualKind: "home",
+    expectedCAGR: 4.5,
+    realReturn: 1.5,
   },
   {
     id: "seed-aapl",
@@ -74,56 +93,53 @@ const RAW_MODEL_SEED: PortfolioAsset[] = [
     expectedCAGR: 8,
   },
   {
-    id: "seed-spy",
-    ticker: "SPY",
-    name: "SPDR S&P 500 ETF Trust",
-    assetClass: "etf",
-    quantity: 18,
-    currentPrice: 542.18,
-    costBasis: 412.5,
+    id: "seed-ust",
+    ticker: "GOVT",
+    name: "US Treasury",
+    assetClass: "bonds",
+    quantity: 730,
+    currentPrice: 23.12,
+    costBasis: 22.4,
     currency: "USD",
     nativeCurrency: "USD",
     allocation: 0,
     priceSource: "yahoo",
     listing: "listed",
     source: "YAHOO",
-    expectedCAGR: 7.5,
+    expectedCAGR: 4.2,
+    realReturn: 1.8,
   },
   {
-    id: "seed-btc",
-    ticker: "BTC",
-    name: "Bitcoin",
-    assetClass: "crypto",
-    quantity: 0.75,
-    currentPrice: 67_500,
-    costBasis: 41_200,
-    currency: "USD",
-    nativeCurrency: "USD",
-    allocation: 0,
-    priceSource: "coingecko",
-    listing: "listed",
-    source: "COINGECKO",
-    expectedCAGR: 6,
-  },
-  {
-    id: "seed-home",
-    ticker: "CASA",
-    name: "Apartamento — São Paulo",
-    assetClass: "real_estate",
-    quantity: 1,
-    currentPrice: 850_000,
-    costBasis: 620_000,
+    id: "seed-petr",
+    ticker: "PETR4",
+    name: "Petrobras",
+    assetClass: "stocks",
+    quantity: 1_200,
+    currentPrice: 36.8,
+    costBasis: 28.4,
     currency: "BRL",
     nativeCurrency: "BRL",
     allocation: 0,
-    priceSource: "manual",
-    listing: "unlisted",
-    source: "ESTIMATED",
-    liquidity: "illiquid",
-    allowSale: false,
-    manualKind: "home",
-    expectedCAGR: 4.5,
-    realReturn: 1.5,
+    priceSource: "yahoo",
+    listing: "listed",
+    source: "YAHOO",
+    expectedCAGR: 8,
+  },
+  {
+    id: "seed-gld",
+    ticker: "GLD",
+    name: "Gold",
+    assetClass: "etf",
+    quantity: 40,
+    currentPrice: 243.5,
+    costBasis: 198.2,
+    currency: "USD",
+    nativeCurrency: "USD",
+    allocation: 0,
+    priceSource: "yahoo",
+    listing: "listed",
+    source: "YAHOO",
+    expectedCAGR: 4,
   },
 ];
 
@@ -157,7 +173,8 @@ export function dropSeedIfUserHoldings(
 
 /**
  * Leftover MOCK / lifestyle demo is not a user book. Replace it with the
- * labeled 6-item example so Zerar stays on the banner. Real holdings win.
+ * labeled 7-item example so Zerar stays on the banner. Real holdings win.
+ * Older 6-item example books (Tesouro / SPY) also canonicalize here.
  */
 export function canonicalizeExamplePortfolio(
   portfolio: PortfolioAsset[]
@@ -169,8 +186,14 @@ export function canonicalizeExamplePortfolio(
   const onlyExample = portfolio.every((asset) => isExampleHoldingId(asset.id));
   if (!onlyExample) return portfolio;
   const leftover = portfolio.some((asset) => isLeftoverDemoHoldingId(asset.id));
-  if (leftover || portfolio.length > 8 || !isModelSeedPortfolio(portfolio)) {
-    return createModelSeed();
+  const current = createModelSeed();
+  if (
+    leftover ||
+    portfolio.length > 8 ||
+    portfolio.length !== current.length ||
+    !isModelSeedPortfolio(portfolio)
+  ) {
+    return current;
   }
   return portfolio;
 }

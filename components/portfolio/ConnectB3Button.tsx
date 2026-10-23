@@ -20,7 +20,12 @@ import { useAppStore } from "@/store/useAppStore";
 
 const WIZARD_STEPS = 4;
 
-export function ConnectB3Button() {
+interface ConnectB3ButtonProps {
+  /** `toolbar` keeps the CTA on the same row as the other portfolio actions. */
+  align?: "stack" | "toolbar";
+}
+
+export function ConnectB3Button({ align = "stack" }: ConnectB3ButtonProps) {
   const { t, locale } = useTranslation();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -124,7 +129,13 @@ export function ConnectB3Button() {
 
   return (
     <>
-      <div className="flex flex-col items-stretch sm:items-end gap-1">
+      <div
+        className={
+          align === "toolbar"
+            ? "portfolio-toolbar-b3"
+            : "flex flex-col items-stretch sm:items-end gap-1"
+        }
+      >
         <button
           type="button"
           className="btn-secondary"
