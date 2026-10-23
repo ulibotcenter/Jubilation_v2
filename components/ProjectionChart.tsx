@@ -207,6 +207,61 @@ function asSeries(data: ProjectionChartPoint[]): FreedomChartPoint[] {
   }));
 }
 
+export type ProjectionScenarioPoint = { age: number; wealth: number };
+
+export type ProjectionChartScenarios = {
+  optimistic?: ProjectionScenarioPoint[];
+  pessimistic?: ProjectionScenarioPoint[];
+};
+
+function wealthAsFreedom(
+  points: ProjectionScenarioPoint[]
+): FreedomChartPoint[] {
+  return points.map((point) => ({
+    age: point.age,
+    wealth: point.wealth,
+    contributions: 0,
+    returns: Math.max(0, point.wealth),
+    withdrawals: 0,
+    accumulate: null,
+    withdraw: null,
+  }));
+}
+
+function scenarioLinePath(
+  points: ProjectionScenarioPoint[],
+  xOf: (age: number) => number,
+  yOf: (value: number) => number
+): string {
+  if (points.length < 2) return "";
+  const dense = densifyHill(wealthAsFreedom(points), 24);
+  const pts = roundCrestLine(
+    dense.map((point) => ({
+      age: point.age,
+      x: xOf(point.age),
+      line: yOf(point.lineY),
+    }))
+  );
+  return polyline(pts.map((point) => ({ x: point.x, y: point.line })));
+}
+
+function wealthAtAge(
+  points: ProjectionScenarioPoint[] | undefined,
+  age: number
+): number | null {
+  if (!points?.length) return null;
+  let nearest = points[0]!;
+  let best = Infinity;
+  for (const point of points) {
+    const distance = Math.abs(point.age - age);
+    if (distance < best) {
+      best = distance;
+      nearest = point;
+    }
+  }
+  return nearest.wealth;
+}
+
 function currencyFromSymbol(symbol: string): Currency {
   if (symbol === "$" || symbol === "US$") return "USD";
   if (symbol === "€") return "EUR";
@@ -220,6 +275,9 @@ export function ProjectionChart({
   freedomAge,
   children,
   id,
+  scenarios,
+  title: titleOverride,
+  subtitle: subtitleOverride,
 }: {
   data: ProjectionChartPoint[];
   currency?: string;
@@ -227,6 +285,9 @@ export function ProjectionChart({
   freedomAge?: number;
   children?: ReactNode;
   id?: string;
+  scenarios?: ProjectionChartScenarios;
+  title?: string;
+  subtitle?: string;
 }) {
   const plotRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(680);
@@ -269,8 +330,14 @@ export function ProjectionChart({
   const moneyFull = (value: number) =>
     formatCurrencyValue(value, code, false, intlLocale);
 
-  const title = t("calc.freedom.chart.title");
-  const subtitle = t("calc.freedom.chart.subtitle");
+  const title = titleOverride ?? t("calc.freedom.chart.title");
+  const subtitle = subtitleOverride ?? t("calc.freedom.chart.subtitle");
+  const optimisticLabel = t("chart.scenario.optimistic");
+  const pessimisticLabel = t("chart.scenario.pessimistic");
+  const hasScenarios = Boolean(
+    (scenarios?.optimistic?.length ?? 0) > 1 ||
+      (scenarios?.pessimistic?.length ?? 0) > 1
+  );
   const description = t("calc.freedom.chart.description");
   const aportesLabel = t("calc.freedom.chart.contributions");
   const aportesHint = t("calc.freedom.chart.contributionsHint");
@@ -314,7 +381,12 @@ export function ProjectionChart({
   const xMin = plot[0]!.age;
   const xMax = plot.at(-1)!.age;
   const xSpan = Math.max(1, xMax - xMin);
-  const yMax = Math.max(1, peakKnot.patrimonio * 1.05);
+  const scenarioPeak = Math.max(
+    0,
+    ...(scenarios?.optimistic ?? []).map((point) => point.wealth),
+    ...(scenarios?.pessimistic ?? []).map((point) => point.wealth)
+  );
+  const yMax = Math.max(1, Math.max(peakKnot.patrimonio, scenarioPeak) * 1.05);
   const xPad = xSpan * 0.012;
   const xStart = crestPosition(xMin - xPad, peakKnot.age);
   const xEnd = crestPosition(xMax + xPad, peakKnot.age);
@@ -335,6 +407,16 @@ export function ProjectionChart({
     }))
   );
   const lineD = polyline(pts.map((point) => ({ x: point.x, y: point.line })));
+  const optimisticD = scenarioLinePath(
+    scenarios?.optimistic ?? [],
+    xOf,
+    yOf
+  );
+  const pessimisticD = scenarioLinePath(
+    scenarios?.pessimistic ?? [],
+    xOf,
+    yOf
+  );
   const clipD = bandPath(
     pts.map((point) => ({ x: point.x, y: point.line })),
     pts.map((point) => ({ x: point.x, y: point.zero }))
@@ -597,6 +679,7 @@ export function ProjectionChart({
       data-chart-curve="monotone"
       data-chart-layout="hill"
       data-chart-area="aportes-rendimentos-saques"
+      data-chart-scenarios={hasScenarios ? "base-optimistic-pessimistic" : "base"}
       data-peak-age={peakKnot.age}
       data-end-age={endKnot.age}
       data-freedom-age={freedom ?? ""}
@@ -626,6 +709,18 @@ export function ProjectionChart({
               {saquesLabel} <em>{saquesHint}</em>
             </span>
           </li>
+          {hasScenarios ? (
+            <>
+              <li data-stack="optimistic">
+                <span className="projection-chart-swatch" aria-hidden="true" />
+                <span>{optimisticLabel}</span>
+              </li>
+              <li data-stack="pessimistic">
+                <span className="projection-chart-swatch" aria-hidden="true" />
+                <span>{pessimisticLabel}</span>
+              </li>
+            </>
+          ) : null}
         </ul>
       </div>
       <div className="projection-chart-plot" ref={plotRef}>
@@ -709,6 +804,32 @@ export function ProjectionChart({
             ) : null}
           </g>
 
+          {pessimisticD ? (
+            <path
+              d={pessimisticD}
+              fill="none"
+              stroke={LINE}
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="2 5"
+              strokeOpacity="0.42"
+              data-scenario-line="pessimistic"
+            />
+          ) : null}
+          {optimisticD ? (
+            <path
+              d={optimisticD}
+              fill="none"
+              stroke={LINE}
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="6 4"
+              strokeOpacity="0.7"
+              data-scenario-line="optimistic"
+            />
+          ) : null}
           <path
             d={lineD}
             fill="none"
@@ -890,6 +1011,24 @@ export function ProjectionChart({
               color={GOLD}
             />
             <HoverRow label={saquesLabel} value={moneyFull(hover.saques)} color={CORAL} />
+            {hasScenarios ? (
+              <>
+                <HoverRow
+                  label={optimisticLabel}
+                  value={moneyFull(
+                    wealthAtAge(scenarios?.optimistic, hover.age) ?? hover.patrimonio
+                  )}
+                  color={LINE}
+                />
+                <HoverRow
+                  label={pessimisticLabel}
+                  value={moneyFull(
+                    wealthAtAge(scenarios?.pessimistic, hover.age) ?? hover.patrimonio
+                  )}
+                  color={LINE}
+                />
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>
