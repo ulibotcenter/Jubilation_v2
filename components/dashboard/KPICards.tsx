@@ -137,6 +137,7 @@ function KPICard({
   impactHint,
   onChange,
   readOnly = false,
+  compact = false,
 }: {
   config: KPIConfig;
   label: string;
@@ -149,59 +150,80 @@ function KPICard({
   impactHint?: string;
   onChange: (value: number) => void;
   readOnly?: boolean;
+  compact?: boolean;
 }) {
   const Icon = KPI_ICONS[config.field];
   const reduced = useReducedMotion();
+  const valueNode = readOnly ? (
+    <p className="kpi-value-text tabular-nums text-foreground">
+      {config.format === "percent"
+        ? `${value.toFixed(config.decimals)}%`
+        : value.toLocaleString(locale === "pt" ? "pt-BR" : locale)}
+    </p>
+  ) : (
+    <EditableNumber
+      value={value}
+      onChange={onChange}
+      min={config.min}
+      max={config.max}
+      step={config.step}
+      decimals={config.decimals}
+      format={config.format}
+      suffix={config.suffix}
+      currencySymbol={currencySymbol}
+      compact={config.format === "currency"}
+      inputClassName={
+        compact
+          ? "text-base sm:text-lg font-bold w-full bg-transparent"
+          : "text-xl sm:text-2xl font-bold w-full bg-transparent"
+      }
+    />
+  );
 
   return (
     <motion.article
-      className="kpi-card group"
+      className={`kpi-card group${compact ? " kpi-card--compact" : ""}`}
       data-impact={config.impact}
       title={impactHint}
       {...fadeUp(reduced, index * 0.04)}
       aria-label={`${label}: ${value}`}
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 shrink-0 transition-colors duration-200 group-hover:bg-accent/15">
-          <Icon className="w-4 h-4 text-accent" size={16} aria-hidden="true" />
+      {compact ? (
+        <div className="kpi-card-compact">
+          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-accent/10 border border-accent/20 shrink-0">
+            <Icon className="w-3.5 h-3.5 text-accent" size={14} aria-hidden="true" />
+          </div>
+          <div className="kpi-card-compact-body min-w-0">
+            <div className="kpi-card-compact-main">
+              <SpacedWords as="p" className="kpi-label" text={label} />
+              <div className="kpi-value">{valueNode}</div>
+            </div>
+            <p className="kpi-subtitle">{subtitle}</p>
+            {config.impact === "high" && impactHint ? (
+              <p className="kpi-impact">{impactHint}</p>
+            ) : null}
+          </div>
         </div>
-        <span className="text-[10px] font-medium text-muted-foreground text-right leading-snug max-w-[55%] hidden sm:block">
-          {subtitle}
-        </span>
-      </div>
-
-      <SpacedWords as="p" className="kpi-label" text={label} />
-
-      <div className="kpi-value mt-1">
-        {readOnly ? (
-          <p className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
-            {config.format === "percent"
-              ? `${value.toFixed(config.decimals)}%`
-              : value.toLocaleString(locale === "pt" ? "pt-BR" : locale)}
+      ) : (
+        <>
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 shrink-0 transition-colors duration-200 group-hover:bg-accent/15">
+              <Icon className="w-4 h-4 text-accent" size={16} aria-hidden="true" />
+            </div>
+            <span className="text-[10px] font-medium text-muted-foreground text-right leading-snug max-w-[55%] hidden sm:block">
+              {subtitle}
+            </span>
+          </div>
+          <SpacedWords as="p" className="kpi-label" text={label} />
+          <div className="kpi-value mt-1">{valueNode}</div>
+          <p className="text-[10px] text-muted-foreground mt-2 sm:hidden">
+            {subtitle}
           </p>
-        ) : (
-          <EditableNumber
-            value={value}
-            onChange={onChange}
-            min={config.min}
-            max={config.max}
-            step={config.step}
-            decimals={config.decimals}
-            format={config.format}
-            suffix={config.suffix}
-            currencySymbol={currencySymbol}
-            compact={config.format === "currency"}
-            inputClassName="text-xl sm:text-2xl font-bold w-full bg-transparent"
-          />
-        )}
-      </div>
-
-      <p className="text-[10px] text-muted-foreground mt-2 sm:hidden">
-        {subtitle}
-      </p>
-      {config.impact === "high" && impactHint ? (
-        <p className="kpi-impact">{impactHint}</p>
-      ) : null}
+          {config.impact === "high" && impactHint ? (
+            <p className="kpi-impact">{impactHint}</p>
+          ) : null}
+        </>
+      )}
     </motion.article>
   );
 }
@@ -312,6 +334,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
       subtitle={subtitles[config.field]}
       impactHint={config.impact === "high" ? t("kpi.impact.high") : undefined}
       readOnly={config.field === "expectedCAGR" && portfolio.length > 0}
+      compact={mode === "playground"}
       onChange={(v) => handleChange(config.field, v)}
     />
   );
@@ -331,7 +354,10 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
         </p>
       </div>
 
-      <div className="kpi-carousel" aria-label={t("kpi.assumptions")}>
+      <div
+        className={`kpi-carousel${mode === "playground" ? " kpi-carousel--compact" : ""}`}
+        aria-label={t("kpi.assumptions")}
+      >
         {mobilePages.map((page, pageIndex) => (
           <div key={pageIndex} className="kpi-carousel-page">
             {page.map((config, index) =>
@@ -341,7 +367,7 @@ export function KPICards({ mode = "real" }: KPICardsProps) {
         ))}
       </div>
 
-      <div className="kpi-grid">
+      <div className={`kpi-grid${mode === "playground" ? " kpi-grid--compact" : ""}`}>
         {visibleConfigs.map((config, index) => renderCard(config, index))}
       </div>
     </section>

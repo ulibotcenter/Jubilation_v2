@@ -676,6 +676,10 @@ export const PT: Record<MessageKey, string> = {
   "term.etf.hint": "Fundo negociado em bolsa — cesta listada de ativos.",
   "term.reit.hint": "Fundo imobiliário listado (EUA) — renda de imóveis.",
   "term.bdr.hint": "Recibo de ação estrangeira negociado na B3.",
+  "term.mc.hint":
+    "Monte Carlo testa muitos caminhos aleatórios de mercado para mostrar uma faixa de resultados — não um único palpite.",
+  "monteCarlo.what":
+    "Ele roda muitos futuros possíveis do mercado para você ver uma faixa, não um número previsto.",
   "portfolio.b3.buttonHint": "Status da custódia B3. Clique para atualizar a posição de hoje.",
   "portfolio.empty.noMatch.title": "Nenhuma posição encontrada",
   "portfolio.empty.noMatch.desc": "Ajuste os filtros ou adicione um novo ativo.",

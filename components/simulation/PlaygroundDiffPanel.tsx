@@ -135,18 +135,20 @@ export function PlaygroundDiffPanel() {
           <p className="playground-diff-highlight-label">
             {t("simulation.diff.holdings")}
           </p>
-          <DeltaBadge
-            delta={diff.holdingsDelta}
-            currency={currency}
-            format="integer"
-            noChangeLabel={t("simulation.diff.noChange")}
-          />
-          <p className="playground-diff-hint">
-            {t("simulation.diff.holdingsHint", {
-              sandbox: diff.simHoldings,
-              real: diff.realHoldings,
-            })}
-          </p>
+          <span className="playground-diff-highlight-pair">
+            <DeltaBadge
+              delta={diff.holdingsDelta}
+              currency={currency}
+              format="integer"
+              noChangeLabel={t("simulation.diff.noChange")}
+            />
+            <span className="playground-diff-hint">
+              {t("simulation.diff.holdingsHint", {
+                sandbox: diff.simHoldings,
+                real: diff.realHoldings,
+              })}
+            </span>
+          </span>
         </div>
       </div>
 

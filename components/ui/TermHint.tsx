@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import type { MessageKey } from "@/lib/i18n/messages";
 
@@ -10,6 +11,7 @@ const TERMS = {
   etf: { hint: "term.etf.hint" },
   reit: { hint: "term.reit.hint" },
   bdr: { hint: "term.bdr.hint" },
+  mc: { hint: "term.mc.hint" },
 } as const satisfies Record<string, { hint: MessageKey }>;
 
 export type TermId = keyof typeof TERMS;
@@ -36,17 +38,47 @@ export function TermHint({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
+    null
+  );
+  const triggerRef = useRef<HTMLSpanElement>(null);
   const id = useId();
   const hint = t(TERMS[term].hint);
 
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      setCoords(null);
+      return;
+    }
+    const place = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const left = Math.min(
+        Math.max(rect.left + rect.width / 2, 96),
+        window.innerWidth - 96
+      );
+      setCoords({ top: rect.top, left });
+    };
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [open]);
+
+  const close = () => setOpen(false);
+
   return (
     <span
+      ref={triggerRef}
       className="term-hint"
       tabIndex={0}
       onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseLeave={close}
       onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
+      onBlur={close}
       onClick={(event) => {
         event.stopPropagation();
         setOpen((current) => !current);
@@ -55,11 +87,19 @@ export function TermHint({
       data-term={term}
     >
       <span className="term-hint-text">{children}</span>
-      {open ? (
-        <span id={id} role="tooltip" className="term-hint-tooltip">
-          {hint}
-        </span>
-      ) : null}
+      {open && coords
+        ? createPortal(
+            <span
+              id={id}
+              role="tooltip"
+              className="term-hint-tooltip term-hint-tooltip--portal"
+              style={{ top: coords.top, left: coords.left }}
+            >
+              {hint}
+            </span>,
+            document.body
+          )
+        : null}
     </span>
   );
 }

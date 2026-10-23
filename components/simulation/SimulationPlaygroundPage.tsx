@@ -62,42 +62,10 @@ export function SimulationPlaygroundPage() {
         backLabel={t("common.backToDashboard")}
       />
 
-      <PersistentDisclaimer />
-
-      <motion.div
-        className="playground-toolbar"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="playground-badge">
-          <FlaskConical className="w-3.5 h-3.5" size={14} />
-          {t("simulation.playground.badge")}
-          {sim.copiedAt && (
-            <span className="text-muted-foreground font-normal">
-              ·{" "}
-              {t("simulation.playground.synced", {
-                date: new Date(sim.copiedAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              })}
-            </span>
-          )}
-        </div>
-      </motion.div>
-
       <PlaygroundSummaryStrip />
 
-      <PlaygroundDiffPanel />
-
-      <section
-        aria-label={t("simulation.scenarios.title")}
-        className="card-surface p-4"
-      >
-        <h3 className="text-sm font-bold mb-2">{t("simulation.scenarios.title")}</h3>
-        <ScenarioManager />
+      <section aria-label="Playground assumptions">
+        <KPICards mode="playground" />
       </section>
 
       <section aria-label="Playground income goal">
@@ -105,10 +73,6 @@ export function SimulationPlaygroundPage() {
           mode="playground"
           projectedPortfolio={projectedPortfolio}
         />
-      </section>
-
-      <section aria-label="Playground assumptions">
-        <KPICards mode="playground" />
       </section>
 
       <ProjectionChartCard
@@ -127,6 +91,8 @@ export function SimulationPlaygroundPage() {
         projectionRevision={sim.projectionRevision}
         showAssetFilter
       />
+
+      <PlaygroundDiffPanel />
 
       <section id="playground-portfolio" className="scroll-mt-6">
         <div className="flex items-center justify-between mb-3 px-0.5">
@@ -170,7 +136,39 @@ export function SimulationPlaygroundPage() {
         </div>
       </section>
 
+      <section
+        aria-label={t("simulation.scenarios.title")}
+        className="card-surface p-4"
+        data-sim-block="scenarios"
+      >
+        <h3 className="text-sm font-bold mb-2">{t("simulation.scenarios.title")}</h3>
+        <ScenarioManager />
+      </section>
+
       <SimulationTab mode="playground" hideChart />
+
+      <footer className="playground-page-end" data-sim-block="page-end">
+        <div className="playground-toolbar">
+          <div className="playground-badge">
+            <FlaskConical className="w-3.5 h-3.5" size={14} />
+            {t("simulation.playground.badge")}
+            {sim.copiedAt && (
+              <span className="text-muted-foreground font-normal">
+                ·{" "}
+                {t("simulation.playground.synced", {
+                  date: new Date(sim.copiedAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                })}
+              </span>
+            )}
+          </div>
+        </div>
+        <PersistentDisclaimer />
+      </footer>
     </div>
   );
 }

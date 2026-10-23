@@ -676,6 +676,10 @@ export const ES: Record<MessageKey, string> = {
   "term.etf.hint": "Fondo cotizado — cesta listada de activos.",
   "term.reit.hint": "Fideicomiso inmobiliario cotizado — renta de inmuebles.",
   "term.bdr.hint": "Recibo de depósito brasileño — acción extranjera en B3.",
+  "term.mc.hint":
+    "Monte Carlo prueba muchos caminos aleatorios de mercado para mostrar un rango de resultados — no un único pronóstico.",
+  "monteCarlo.what":
+    "Ejecuta muchos futuros posibles del mercado para ver un rango, no un número previsto.",
   "portfolio.b3.buttonHint": "Estado de la custodia B3. Pulsa para actualizar la posición de hoy.",
   "portfolio.empty.noMatch.title": "Sin posiciones coincidentes",
   "portfolio.empty.noMatch.desc": "Ajusta los filtros o añade un nuevo activo.",
