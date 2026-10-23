@@ -5,9 +5,15 @@ import {
   findUserByStripeSubscriptionId,
   recordBillingEvent,
   updateUserBilling,
+  upsertBillingLead,
   type AuthUser,
   type SubscriptionStatus,
 } from "@/lib/cloud/db";
+import {
+  leadPlanFromTier,
+  leadStatusFromSubscription,
+  type BillingLeadWrite,
+} from "@/lib/leads";
 import type { PlanTier } from "@/lib/plans";
 
 export interface BillingStore {
@@ -30,6 +36,7 @@ export interface BillingStore {
     type: string;
     userId: string | null;
   }): Promise<boolean>;
+  upsertBillingLead(input: BillingLeadWrite): Promise<void>;
 }
 
 const postgresBillingStore: BillingStore = {
@@ -38,6 +45,7 @@ const postgresBillingStore: BillingStore = {
   findUserByStripeSubscriptionId,
   updateUserBilling,
   recordBillingEvent,
+  upsertBillingLead,
 };
 
 export async function resolveBillingUser(
@@ -70,16 +78,38 @@ export async function persistBillingCommand(
   }
 
   const user = await resolveBillingUser(command, store);
+  if (user) {
+    await store.updateUserBilling(user.id, {
+      planTier: command.plan,
+      subscriptionStatus: command.status,
+      stripeCustomerId: command.customerId,
+      stripeSubscriptionId: command.subscriptionId,
+    });
+  }
+
+  const leadEmail = user?.email ?? command.email;
+  if (leadEmail) {
+    try {
+      await store.upsertBillingLead({
+        email: leadEmail,
+        userId: user?.id ?? null,
+        plan: leadPlanFromTier(command.plan),
+        status: leadStatusFromSubscription(command.status),
+        usedCoupon: command.usedCoupon,
+        couponCode: command.couponCode,
+        subscribedAt: command.subscribedAt,
+        renewalDate: command.renewalDate,
+        stripeCustomerId: command.customerId,
+        country: user?.preferredCountry ?? null,
+      });
+    } catch {
+      // fail closed — same as plan persist when DATABASE_URL is missing
+    }
+  }
+
   if (!user) {
     return { applied: false, duplicate: false, userId: null };
   }
-
-  await store.updateUserBilling(user.id, {
-    planTier: command.plan,
-    subscriptionStatus: command.status,
-    stripeCustomerId: command.customerId,
-    stripeSubscriptionId: command.subscriptionId,
-  });
 
   const recorded = await store.recordBillingEvent({
     eventId: command.eventId,

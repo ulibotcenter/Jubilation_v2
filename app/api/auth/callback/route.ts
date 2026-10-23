@@ -6,6 +6,7 @@ import {
   createSession,
   createUser,
   findUserByEmail,
+  recordSignupLead,
 } from "@/lib/cloud/db";
 import {
   attachSession,
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginFailureUrl(origin, "expired", next));
   }
   let user = await findUserByEmail(consumed.email);
+  let created = false;
   if (!user) {
     try {
       user = await createUser({
@@ -47,12 +49,20 @@ export async function GET(request: NextRequest) {
         leadAge: consumed.leadAge,
         country: consumed.leadCountry,
       });
+      created = true;
     } catch (err) {
       if (err instanceof DataRegionError) {
         return NextResponse.redirect(loginFailureUrl(origin, "region", next));
       }
       throw err;
     }
+  }
+  if (created) {
+    await recordSignupLead({
+      email: user.email,
+      userId: user.id,
+      country: user.preferredCountry ?? consumed.leadCountry,
+    });
   }
   const session = await createSession(user.id);
   const res = NextResponse.redirect(postLoginUrl(origin, next));

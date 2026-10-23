@@ -8,6 +8,12 @@ import {
   randomToken,
 } from "@/lib/cloud/magicLink";
 import { issueSignupConfirmToken } from "@/lib/cloud/signupConfirm";
+import {
+  mergeBillingLead,
+  mergeSignupLead,
+  type BillingLeadWrite,
+  type LeadRecord,
+} from "@/lib/leads";
 import { parsePlanTier, type PlanTier } from "@/lib/plans";
 import {
   DEFAULT_DATA_REGION,
@@ -105,6 +111,24 @@ CREATE TABLE IF NOT EXISTS retirement_plans (
   document JSONB NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS leads (
+  id UUID PRIMARY KEY,
+  email TEXT NOT NULL,
+  user_id TEXT REFERENCES auth_users(id) ON DELETE SET NULL,
+  used_coupon BOOLEAN NOT NULL DEFAULT false,
+  coupon_code TEXT,
+  plan TEXT NOT NULL DEFAULT 'free',
+  status TEXT NOT NULL DEFAULT 'free',
+  subscribed_at TIMESTAMPTZ,
+  renewal_date TIMESTAMPTZ,
+  source TEXT NOT NULL DEFAULT 'organic',
+  country TEXT,
+  stripe_customer_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS leads_email_uidx ON leads (email);
 `;
 
 export type SubscriptionStatus = "active" | "canceled" | "trialing" | "none";
@@ -284,6 +308,11 @@ export async function createUser(input: {
         input.country ?? null,
       ]
     );
+    await writeSignupLeadOnClient(client, {
+      email,
+      userId: id,
+      country: input.country ?? null,
+    });
     return {
       id,
       email,
@@ -697,4 +726,170 @@ export async function recordBillingEvent(input: {
     );
     return Boolean(res.rows[0]);
   });
+}
+
+interface LeadRow {
+  id: string;
+  email: string;
+  user_id: string | null;
+  used_coupon: boolean;
+  coupon_code: string | null;
+  plan: string;
+  status: string;
+  subscribed_at: Date | string | null;
+  renewal_date: Date | string | null;
+  source: string;
+  country: string | null;
+  stripe_customer_id: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+function asIso(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString();
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function mapLeadRow(row: LeadRow): LeadRecord {
+  return {
+    id: row.id,
+    email: row.email,
+    userId: row.user_id,
+    usedCoupon: Boolean(row.used_coupon),
+    couponCode: row.coupon_code,
+    plan: row.plan === "basico" || row.plan === "completo" || row.plan === "completo_conjuge"
+      ? row.plan
+      : "free",
+    status:
+      row.status === "trial" || row.status === "active" || row.status === "canceled"
+        ? row.status
+        : "free",
+    subscribedAt: asIso(row.subscribed_at),
+    renewalDate: asIso(row.renewal_date),
+    source:
+      row.source === "coupon_amigo" || row.source === "landing"
+        ? row.source
+        : "organic",
+    country: row.country,
+    stripeCustomerId: row.stripe_customer_id,
+    createdAt: asIso(row.created_at) ?? new Date().toISOString(),
+    updatedAt: asIso(row.updated_at) ?? new Date().toISOString(),
+  };
+}
+
+const LEAD_COLUMNS =
+  "id, email, user_id, used_coupon, coupon_code, plan, status, subscribed_at, renewal_date, source, country, stripe_customer_id, created_at, updated_at";
+
+async function loadLeadByEmail(
+  client: PoolClient,
+  email: string
+): Promise<LeadRecord | null> {
+  const res = await client.query(
+    `SELECT ${LEAD_COLUMNS} FROM leads WHERE email = $1`,
+    [normalizeEmail(email)]
+  );
+  const row = res.rows[0] as LeadRow | undefined;
+  return row ? mapLeadRow(row) : null;
+}
+
+async function persistLeadRow(
+  client: PoolClient,
+  lead: LeadRecord
+): Promise<void> {
+  await client.query(
+    `INSERT INTO leads (
+       id, email, user_id, used_coupon, coupon_code, plan, status,
+       subscribed_at, renewal_date, source, country, stripe_customer_id,
+       created_at, updated_at
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+     ON CONFLICT (email) DO UPDATE SET
+       user_id = EXCLUDED.user_id,
+       used_coupon = EXCLUDED.used_coupon,
+       coupon_code = EXCLUDED.coupon_code,
+       plan = EXCLUDED.plan,
+       status = EXCLUDED.status,
+       subscribed_at = EXCLUDED.subscribed_at,
+       renewal_date = EXCLUDED.renewal_date,
+       source = EXCLUDED.source,
+       country = EXCLUDED.country,
+       stripe_customer_id = EXCLUDED.stripe_customer_id,
+       updated_at = EXCLUDED.updated_at`,
+    [
+      lead.id,
+      lead.email,
+      lead.userId,
+      lead.usedCoupon,
+      lead.couponCode,
+      lead.plan,
+      lead.status,
+      lead.subscribedAt,
+      lead.renewalDate,
+      lead.source,
+      lead.country,
+      lead.stripeCustomerId,
+      lead.createdAt,
+      lead.updatedAt,
+    ]
+  );
+}
+
+async function writeSignupLeadOnClient(
+  client: PoolClient,
+  input: { email: string; userId?: string | null; country?: string | null }
+): Promise<void> {
+  const email = normalizeEmail(input.email);
+  if (!email) return;
+  try {
+    const existing = await loadLeadByEmail(client, email);
+    const next = mergeSignupLead(existing, {
+      email,
+      userId: input.userId ?? null,
+      country: input.country ?? null,
+    });
+    await persistLeadRow(client, next);
+  } catch {
+    // Same fail-closed pattern as plan persist: missing/broken Postgres
+    // must not break signup.
+  }
+}
+
+/**
+ * Insert or update the organic free lead after confirmation or first magic-link
+ * session. No-op when DATABASE_URL is missing.
+ */
+export async function recordSignupLead(input: {
+  email: string;
+  userId?: string | null;
+  country?: string | null;
+}): Promise<void> {
+  if (!cloudAuthConfig().enabled) return;
+  try {
+    await withDb(async (client) => {
+      await writeSignupLeadOnClient(client, input);
+    });
+  } catch {
+    // fail closed
+  }
+}
+
+/**
+ * Apply Stripe plan/status/coupon onto the lead keyed by email.
+ * No-op when DATABASE_URL is missing.
+ */
+export async function upsertBillingLead(input: BillingLeadWrite): Promise<void> {
+  if (!cloudAuthConfig().enabled) return;
+  const email = normalizeEmail(input.email);
+  if (!email) return;
+  try {
+    await withDb(async (client) => {
+      const existing = await loadLeadByEmail(client, email);
+      const next = mergeBillingLead(existing, { ...input, email });
+      await persistLeadRow(client, next);
+    });
+  } catch {
+    // fail closed — checkout/webhook still succeed
+  }
 }
