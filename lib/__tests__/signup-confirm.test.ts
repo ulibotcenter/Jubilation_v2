@@ -135,6 +135,7 @@ describe("password signup + confirmation", () => {
     const confirm = readFileSync("app/api/auth/confirm/route.ts", "utf8");
     expect(confirm).toContain("consumePendingSignup");
     expect(confirm).toContain("createSession");
+    expect(confirm).toContain("recordSignupLead");
     expect(confirm).toContain("resolveConfirmRedirect");
     expect(confirm).not.toContain("/settings");
   });

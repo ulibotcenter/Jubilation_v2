@@ -3,6 +3,11 @@ import {
   planFromPriceId,
   type BillingOffer,
 } from "@/lib/billing/config";
+import {
+  couponCodeFromStripeObject,
+  emailFromStripeObject,
+  timestampsFromStripeObject,
+} from "@/lib/leads";
 import type { PlanTier } from "@/lib/plans";
 
 export type SubscriptionStatus = "active" | "canceled" | "trialing" | "none";
@@ -24,6 +29,11 @@ export type BillingCommand =
       subscriptionId: string | null;
       plan: PlanTier;
       status: SubscriptionStatus;
+      email: string | null;
+      couponCode: string | null;
+      usedCoupon: boolean;
+      subscribedAt: string | null;
+      renewalDate: string | null;
     };
 
 function asString(value: unknown): string | null {
@@ -102,6 +112,18 @@ function endedStripeStatus(status: string | null): boolean {
   );
 }
 
+function leadFieldsFromObject(object: Record<string, unknown>) {
+  const couponCode = couponCodeFromStripeObject(object);
+  const timestamps = timestampsFromStripeObject(object);
+  return {
+    email: emailFromStripeObject(object),
+    couponCode,
+    usedCoupon: couponCode != null,
+    subscribedAt: timestamps.subscribedAt,
+    renewalDate: timestamps.renewalDate,
+  };
+}
+
 export function commandFromStripeEvent(
   event: StripeLikeEvent,
   offers: BillingOffer[]
@@ -135,6 +157,7 @@ export function commandFromStripeEvent(
       subscriptionId: asString(object.subscription),
       plan,
       status: trial ? "trialing" : "active",
+      ...leadFieldsFromObject(object),
     };
   }
 
@@ -154,6 +177,7 @@ export function commandFromStripeEvent(
         subscriptionId: asString(object.id),
         plan: "free",
         status: "canceled",
+        ...leadFieldsFromObject(object),
       };
     }
     const plan = subscriptionPlan(object, offers);
@@ -171,6 +195,7 @@ export function commandFromStripeEvent(
       subscriptionId: asString(object.id),
       plan,
       status,
+      ...leadFieldsFromObject(object),
     };
   }
 
@@ -185,6 +210,7 @@ export function commandFromStripeEvent(
       subscriptionId: asString(object.id),
       plan: "free",
       status: "canceled",
+      ...leadFieldsFromObject(object),
     };
   }
 

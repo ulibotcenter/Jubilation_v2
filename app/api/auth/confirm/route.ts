@@ -6,6 +6,7 @@ import {
   createSession,
   createUser,
   findUserByEmail,
+  recordSignupLead,
   setUserPasswordHash,
 } from "@/lib/cloud/db";
 import {
@@ -67,6 +68,11 @@ export async function GET(request: NextRequest) {
       const updated = await setUserPasswordHash(user.id, pending.passwordHash);
       if (updated) user = updated;
     }
+    await recordSignupLead({
+      email: user.email,
+      userId: user.id,
+      country: user.preferredCountry ?? pending.leadCountry,
+    });
     const session = await createSession(user.id);
     const res = NextResponse.redirect(decided.url);
     return attachSession(res, session);

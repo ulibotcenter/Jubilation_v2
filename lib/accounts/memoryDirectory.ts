@@ -8,6 +8,7 @@ import {
 } from "@/lib/cloud/magicLink";
 import type { BillingStore } from "@/lib/billing/persist";
 import type { SignupLead } from "@/lib/accounts/signupLead";
+import { mergeBillingLead, type LeadRecord } from "@/lib/leads";
 import { canSaveFullPlan, type PlanTier } from "@/lib/plans";
 import {
   parseProfilePreferences,
@@ -29,6 +30,7 @@ export function createMemoryDirectory() {
   const links = new Map<string, MagicLinkRecord>();
   const plans = new Map<string, StoredPlan>();
   const events = new Set<string>();
+  const leads = new Map<string, LeadRecord>();
 
   function findByEmail(email: string): AuthUser | null {
     const normalized = normalizeEmail(email);
@@ -97,6 +99,14 @@ export function createMemoryDirectory() {
       events.add(input.eventId);
       return true;
     },
+    async upsertBillingLead(input) {
+      const email = normalizeEmail(input.email);
+      const next = mergeBillingLead(leads.get(email) ?? null, {
+        ...input,
+        email,
+      });
+      leads.set(email, next);
+    },
   };
 
   return {
@@ -157,6 +167,9 @@ export function createMemoryDirectory() {
     },
     getPlan(userId: string): StoredPlan | null {
       return plans.get(userId) ?? null;
+    },
+    getLead(email: string): LeadRecord | null {
+      return leads.get(normalizeEmail(email)) ?? null;
     },
   };
 }
