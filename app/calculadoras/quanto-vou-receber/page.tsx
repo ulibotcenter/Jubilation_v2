@@ -10,6 +10,7 @@ import { parseIncomeInput, type SearchBag } from "@/lib/calculators/parse";
 import { formatReais } from "@/lib/calculators/format";
 import { calculatorMetadata } from "@/lib/calculators/seo";
 import { PUBLIC_ENGINE_NOTE } from "@/lib/calculators/copy";
+import { ASSUMPTIONS } from "@/lib/engine/assumptions";
 
 export const metadata: Metadata = calculatorMetadata("retirementIncome");
 
@@ -79,7 +80,7 @@ export default async function QuantoVouReceberPage({
           label="Juro real ao ano"
           defaultValue={Math.round(input.realReturn * 1000) / 10}
           min={-5}
-          max={12}
+          max={ASSUMPTIONS.realReturn.max}
           step={0.1}
           suffix="%"
           hint="Padrão 4%. Premissa, não recomendação de ativo."

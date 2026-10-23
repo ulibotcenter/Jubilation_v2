@@ -15,7 +15,7 @@ import { ImportIrpfButton } from "@/components/portfolio/ImportIrpfButton";
 import { useAppStore } from "@/store/useAppStore";
 
 export function ImportFilesCard() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const consents = useAppStore((s) => s.consents);
   const grantCnis = useAppStore((s) => s.grantCnisConsent);
   const revoke = useAppStore((s) => s.revokeFileConsent);
@@ -115,26 +115,30 @@ export function ImportFilesCard() {
             : ""}
         </p>
 
-        <div className="flex flex-wrap items-center gap-2" id="import-irpf">
-          <ImportIrpfButton className="btn-secondary text-xs" />
-          {irpfOk && (
-            <button
-              type="button"
-              className="btn-ghost text-xs"
-              onClick={() => {
-                revoke("irpf");
-                toast.success(t("toast.files.revoked"));
-              }}
-            >
-              {t("settings.files.revokeIrpf")}
-            </button>
-          )}
-        </div>
-        <p className="text-[11px] text-muted-foreground tabular-nums">
-          {irpfSync?.asOf
-            ? t("settings.files.irpfAsOf", { date: irpfSync.asOf })
-            : t("settings.files.irpfNone")}
-        </p>
+        {locale === "pt" ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2" id="import-irpf">
+              <ImportIrpfButton className="btn-secondary text-xs" />
+              {irpfOk && (
+                <button
+                  type="button"
+                  className="btn-ghost text-xs"
+                  onClick={() => {
+                    revoke("irpf");
+                    toast.success(t("toast.files.revoked"));
+                  }}
+                >
+                  {t("settings.files.revokeIrpf")}
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground tabular-nums">
+              {irpfSync?.asOf
+                ? t("settings.files.irpfAsOf", { date: irpfSync.asOf })
+                : t("settings.files.irpfNone")}
+            </p>
+          </>
+        ) : null}
       </div>
 
       {mounted &&

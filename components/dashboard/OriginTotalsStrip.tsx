@@ -26,7 +26,7 @@ const ORIGIN_HINT: Record<HoldingOrigin, MessageKey> = {
 };
 
 export function OriginTotalsStrip() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const country = useAppStore((s) => s.country);
   const portfolio = useAppStore((s) => s.portfolio);
   const currency = useAppStore((s) => s.currency);
@@ -127,18 +127,18 @@ export function OriginTotalsStrip() {
               </p>
               <p className="origin-total-hint">{t(ORIGIN_HINT[origin])}</p>
               <div className="origin-total-cta">
-                {origin === "b3" && connectorsOpen ? (
+                {origin === "b3" && connectorsOpen && locale === "pt" ? (
                   <ConnectB3Button />
-                ) : origin === "irpf" && connectorsOpen ? (
+                ) : origin === "irpf" && connectorsOpen && locale === "pt" ? (
                   <ImportIrpfButton />
-                ) : origin !== "manual" ? (
+                ) : origin !== "manual" && locale === "pt" ? (
                   <p
                     className="text-[11px] text-muted-foreground"
                     data-connectors="locked"
                   >
                     {t("dashboard.origins.connectorsLocked")}
                   </p>
-                ) : (
+                ) : origin === "manual" ? (
                   <button
                     type="button"
                     className="btn-secondary"
@@ -148,7 +148,7 @@ export function OriginTotalsStrip() {
                     <RefreshCw className="w-4 h-4" size={16} />
                     {t("dashboard.origins.cta.refresh")}
                   </button>
-                )}
+                ) : null}
               </div>
             </article>
           );

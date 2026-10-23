@@ -29,6 +29,9 @@ describe("simulation playground actions", () => {
     expect(page).toContain('data-sim-action="clear"');
     expect(page).toContain('data-sim-action="copy"');
     expect(page).toContain("playground-actions");
+    expect(page.indexOf("playground-actions")).toBeGreaterThan(
+      page.indexOf('id="playground-portfolio"')
+    );
     expect(page).not.toContain("simulation.playground.reset");
     expect(page).not.toContain("handleReset");
   });
