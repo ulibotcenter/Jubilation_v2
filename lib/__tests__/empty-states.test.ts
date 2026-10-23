@@ -73,6 +73,14 @@ describe("empty state routes", () => {
     expect(screens).not.toContain("PortfolioHoldingsTable");
     expect(screens).not.toContain("PortfolioAllocationChart");
     expect(realPortfolio).toContain("PortfolioEmptyState");
+    expect(realPortfolio).toContain('data-portfolio-toolbar="list"');
+    expect(realPortfolio).toContain('align="toolbar"');
+    const statsAt = realPortfolio.indexOf('className="portfolio-stat-grid"');
+    const toolbarAfterStats = realPortfolio.indexOf("{actionToolbar}", statsAt);
+    const chipsAt = realPortfolio.indexOf("portfolio-class-chips");
+    expect(statsAt).toBeGreaterThan(-1);
+    expect(toolbarAfterStats).toBeGreaterThan(statsAt);
+    expect(chipsAt).toBeGreaterThan(toolbarAfterStats);
     expect(portfolioPage).toContain("DASHBOARD_PORTFOLIO_PATH");
     expect(DASHBOARD_PORTFOLIO_PATH).toBe("/painel#portfolio");
   });

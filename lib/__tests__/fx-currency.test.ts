@@ -44,7 +44,7 @@ describe("BRL / USD / EUR display and conversion", () => {
       seed.map((a) => a.nativeCurrency ?? a.currency)
     );
     expect(rewritten.find((a) => a.id === "seed-aapl")?.currency).toBe("USD");
-    expect(rewritten.find((a) => a.id === "seed-tesouro")?.currency).toBe("BRL");
+    expect(rewritten.find((a) => a.id === "seed-petr")?.currency).toBe("BRL");
   });
 
   it("aggregates the mixed model seed with FX, not 1:1", () => {

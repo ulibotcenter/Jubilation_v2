@@ -42,15 +42,21 @@ describe("model seed and Clear all", () => {
     expect(MOCK_PORTFOLIO.some((a) => a.assetClass === "bonds")).toBe(true);
   });
 
-  it("seeds Apple, Bitcoin, Tesouro, one ETF, listed SPCX, and a house", () => {
+  it("seeds Bitcoin, a house, Apple, SpaceX, US Treasury, Petrobras, and gold", () => {
     const seed = createModelSeed();
     expect(isModelSeedPortfolio(seed)).toBe(true);
+    expect(seed).toHaveLength(7);
     const byId = Object.fromEntries(seed.map((a) => [a.id, a]));
     expect(byId["seed-aapl"]?.ticker).toBe("AAPL");
     expect(byId["seed-btc"]?.ticker).toBe("BTC");
-    expect(byId["seed-tesouro"]?.name).toMatch(/Tesouro/i);
-    expect(byId["seed-tesouro"]?.currency).toBe("BRL");
-    expect(byId["seed-spy"]?.assetClass).toBe("etf");
+    expect(byId["seed-ust"]?.name).toMatch(/US Treasury/i);
+    expect(byId["seed-ust"]?.assetClass).toBe("bonds");
+    expect(byId["seed-ust"]?.currency).toBe("USD");
+    expect(byId["seed-petr"]?.ticker).toBe("PETR4");
+    expect(byId["seed-petr"]?.name).toMatch(/Petrobras/i);
+    expect(byId["seed-petr"]?.currency).toBe("BRL");
+    expect(byId["seed-gld"]?.name).toMatch(/Gold/i);
+    expect(byId["seed-gld"]?.assetClass).toBe("etf");
     expect(byId["seed-spacex"]?.name).toBe("SpaceX");
     expect(byId["seed-spacex"]?.ticker).toBe("SPCX");
     expect(byId["seed-spacex"]?.listing).toBe("listed");
@@ -58,6 +64,7 @@ describe("model seed and Clear all", () => {
     expect(byId["seed-spacex"]?.currentPrice).toBe(152.71);
     expect(byId["seed-spacex"]?.costBasis).toBe(135);
     expect(byId["seed-home"]?.assetClass).toBe("real_estate");
+    expect(byId["seed-home"]?.name).toMatch(/Casa|Residência/i);
     expect(byId["seed-home"]?.listing).toBe("unlisted");
     expect(seed.some((a) => a.listing === "unlisted")).toBe(true);
     expect(t("pt", "portfolio.model.banner").toLowerCase()).toMatch(/exemplo/);
@@ -125,7 +132,7 @@ describe("model seed and Clear all", () => {
     expect(isModelSeedPortfolio(merged.portfolio)).toBe(false);
   });
 
-  it("replaces a leftover MOCK demo book with the labeled 6-item example", () => {
+  it("replaces a leftover MOCK demo book with the labeled 7-item example", () => {
     const leftover = [
       {
         id: "asset-watch",
@@ -179,17 +186,18 @@ describe("model seed and Clear all", () => {
     ];
     expect(leftover.length).toBeGreaterThan(8);
     const next = canonicalizeExamplePortfolio(leftover);
-    expect(next).toHaveLength(6);
+    expect(next).toHaveLength(7);
     expect(isModelSeedPortfolio(next)).toBe(true);
     const names = next.map((a) => a.name);
     expect(names).toEqual(
       expect.arrayContaining([
-        "Apartamento — São Paulo",
+        "Casa / Residência",
         "Bitcoin",
         "SpaceX",
-        "Tesouro IPCA+",
-        "SPDR S&P 500 ETF Trust",
+        "US Treasury",
+        "Gold",
         "Apple Inc.",
+        "Petrobras",
       ])
     );
     expect(names.some((n) => /Rolex|Lamborghini|Trancoso|BDR/i.test(n))).toBe(
@@ -200,7 +208,7 @@ describe("model seed and Clear all", () => {
       { kpis: { currentAge: 40 }, portfolio: leftover, modelSeedActive: false },
       1
     );
-    expect((migrated.portfolio as typeof leftover)).toHaveLength(6);
+    expect((migrated.portfolio as typeof leftover)).toHaveLength(7);
     expect(isModelSeedPortfolio(migrated.portfolio as typeof leftover)).toBe(
       true
     );
@@ -209,7 +217,7 @@ describe("model seed and Clear all", () => {
       { portfolio: leftover, kpis: { currentAge: 40 } },
       useAppStore.getState()
     );
-    expect(merged.portfolio).toHaveLength(6);
+    expect(merged.portfolio).toHaveLength(7);
     expect(merged.modelSeedActive).toBe(true);
   });
 
