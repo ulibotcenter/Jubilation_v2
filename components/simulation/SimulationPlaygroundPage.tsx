@@ -68,29 +68,31 @@ export function SimulationPlaygroundPage() {
         <KPICards mode="playground" />
       </section>
 
-      <section aria-label="Playground income goal">
+      <section data-sim-block="chart">
+        <ProjectionChartCard
+          mode="playground"
+          title={t("simulation.playground.projectionTitle")}
+          subtitle={t("simulation.projection.subtitle", {
+            from: sim.kpis.currentAge,
+            to:
+              sim.projections[sim.projections.length - 1]?.age ??
+              sim.kpis.retirementAge,
+          })}
+          chartData={sim.chartData}
+          projections={sim.projections}
+          kpis={sim.kpis}
+          currency={currency}
+          projectionRevision={sim.projectionRevision}
+          showAssetFilter
+        />
+      </section>
+
+      <section aria-label="Playground income goal" data-sim-block="income">
         <IncomeGoalPanel
           mode="playground"
           projectedPortfolio={projectedPortfolio}
         />
       </section>
-
-      <ProjectionChartCard
-        mode="playground"
-        title={t("simulation.playground.projectionTitle")}
-        subtitle={t("simulation.projection.subtitle", {
-          from: sim.kpis.currentAge,
-          to:
-            sim.projections[sim.projections.length - 1]?.age ??
-            sim.kpis.retirementAge,
-        })}
-        chartData={sim.chartData}
-        projections={sim.projections}
-        kpis={sim.kpis}
-        currency={currency}
-        projectionRevision={sim.projectionRevision}
-        showAssetFilter
-      />
 
       <PlaygroundDiffPanel />
 
