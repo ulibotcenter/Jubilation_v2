@@ -6,7 +6,6 @@ import {
   AlertCircle,
   Calendar,
   CheckCircle2,
-  FlaskConical,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -70,7 +69,6 @@ export function PlaygroundSummaryStrip() {
     >
       <div className="playground-summary-main">
         <div className="playground-summary-score" data-on-track={onTrack}>
-          <FlaskConical className="w-4 h-4 text-accent" size={16} />
           <span className="playground-summary-score-value tabular-nums">
             {score}
           </span>
@@ -78,24 +76,26 @@ export function PlaygroundSummaryStrip() {
         </div>
 
         <div className="playground-summary-copy">
-          <p className="playground-summary-title">
-            {t("simulation.playground.readiness")}
-          </p>
-          <div
-            className={`playground-summary-status ${
-              onTrack
-                ? "playground-summary-status--ok"
-                : "playground-summary-status--warn"
-            }`}
-          >
-            {onTrack ? (
-              <CheckCircle2 className="w-3.5 h-3.5" size={14} />
-            ) : (
-              <AlertCircle className="w-3.5 h-3.5" size={14} />
-            )}
-            {onTrack
-              ? t("simulation.playground.status.onTrack")
-              : t("simulation.playground.status.needsAttention")}
+          <div className="playground-summary-headline">
+            <p className="playground-summary-title">
+              {t("simulation.playground.readiness")}
+            </p>
+            <div
+              className={`playground-summary-status ${
+                onTrack
+                  ? "playground-summary-status--ok"
+                  : "playground-summary-status--warn"
+              }`}
+            >
+              {onTrack ? (
+                <CheckCircle2 className="w-3.5 h-3.5" size={14} />
+              ) : (
+                <AlertCircle className="w-3.5 h-3.5" size={14} />
+              )}
+              {onTrack
+                ? t("simulation.playground.status.onTrack")
+                : t("simulation.playground.status.needsAttention")}
+            </div>
           </div>
           <p className="playground-summary-subline">
             <span className="text-foreground font-semibold tabular-nums">

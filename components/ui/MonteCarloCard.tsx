@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { TermHint } from "@/components/ui/TermHint";
 import { MonteCarloHistogram } from "@/components/ui/MonteCarloHistogram";
 import {
   getChartScenarioLabel,
@@ -134,8 +135,11 @@ export function MonteCarloCard({ mode = "real" }: MonteCarloCardProps) {
           </div>
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-foreground">
-              {t("monteCarlo.title")}
+              <TermHint term="mc">{t("monteCarlo.title")}</TermHint>
             </h3>
+            <p className="montecarlo-what text-sm text-muted-foreground mt-1 max-w-lg">
+              {t("monteCarlo.what")}
+            </p>
             <p className="text-sm text-muted-foreground mt-1 max-w-lg">
               {t("monteCarlo.subtitle", {
                 iterations: monteCarlo.iterations.toLocaleString(locale),

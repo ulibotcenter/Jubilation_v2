@@ -674,6 +674,10 @@ export const EN = {
   "term.etf.hint": "Exchange-traded fund — a listed basket of assets.",
   "term.reit.hint": "Real estate investment trust — listed property income.",
   "term.bdr.hint": "Brazilian Depositary Receipt — a foreign stock on B3.",
+  "term.mc.hint":
+    "Monte Carlo tests many random market paths to show a range of outcomes — not a single forecast.",
+  "monteCarlo.what":
+    "It runs many possible market futures so you see a range, not one predicted number.",
   "portfolio.b3.buttonHint": "B3 custody status. Click to refresh today's position.",
   "portfolio.empty.noMatch.title": "No matching holdings",
   "portfolio.empty.noMatch.desc": "Adjust filters or add a new asset.",
